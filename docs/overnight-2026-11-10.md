@@ -22,3 +22,18 @@ How to look at a slice: `git log --oneline main..stage-2-overnight`, then `git s
 - `UploadError` has a stable `code` for the API and a human message that never echoes file content.
 
 **Worth understanding:** the file bytes decide whether it's a PDF, not the filename or the browser's content type. Both of those are chosen by the client and can lie.
+
+## Slice 2: Text extraction per page
+
+**Built:** `backend/app/ingest/extract.py` with `extract_pages(data) -> list[str]`, one string per page, in order. It is the only file that uses pypdf for text, so the library can be swapped later. 6 tests in `backend/tests/test_extract.py`. They build real text PDFs with fpdf2, which is now pinned in `requirements.txt` as `fpdf2==2.9.0` (dev only, already approved in PLAN.md section 6).
+
+**Check:** tests first (collection error), then the code. 6 passed; `./check.sh` passed.
+
+**Decisions I made for you:**
+- A page with no text layer (a scan) becomes `""`, not an error. OCR is out of scope for v1, so such a page later shows as "evidence not found".
+- Text is NFC-normalized and stripped. Line breaks inside a page are kept.
+- Any pypdf failure becomes `ExtractionError`.
+
+**Look at carefully:** the docstring says the output is **not redacted yet**. Nothing stores it so far. Slice 3 adds redaction, and the Stage 4 upload endpoint must call extract and then redact before saving anything. That ordering is the one thing to keep an eye on when the pieces get wired together.
+
+**Worth understanding:** NFC normalization. "ä" can be stored as one character or as "a" plus a combining dot mark. They look identical but compare as different strings, which would break quote matching and redaction. NFC picks the one-character form every time.

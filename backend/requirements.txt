@@ -1,5 +1,5 @@
 # Approved backend dependencies (PLAN.md section 6), pinned for reproducible installs.
-# Not yet: anthropic (on hold, no key), fpdf2 (dev-only, added with the eval slice).
+# Not yet: anthropic (on hold, no key).
 fastapi==0.162.3
 uvicorn==0.54.0
 pydantic==2.14.3
@@ -9,5 +9,6 @@ pypdf==7.0.1
 sqlalchemy==2.1.8
 httpx==0.28.1
 httpx2==2.16.0   # used by FastAPI/Starlette TestClient (tests only), replaces deprecated httpx there
+fpdf2==2.9.0     # dev only: test PDFs and eval packets. Never imported by app/
 pytest==9.2.0
 ruff==0.17.4
