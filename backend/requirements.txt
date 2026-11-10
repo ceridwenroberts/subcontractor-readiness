@@ -8,5 +8,6 @@ python-multipart==0.0.33
 pypdf==7.0.1
 sqlalchemy==2.1.8
 httpx==0.28.1
+httpx2==2.16.0   # used by FastAPI/Starlette TestClient (tests only), replaces deprecated httpx there
 pytest==9.2.0
 ruff==0.17.4

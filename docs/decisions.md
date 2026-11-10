@@ -29,3 +29,7 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-10: Python 3.15 for the backend
 **Decision:** Use the installed Python 3.15.2 for `backend/.venv`. Dependencies are pinned in `backend/requirements.txt`.
 **Reason:** Already installed, so no extra download. All approved packages installed from prebuilt wheels on 3.15 with no compiling. Fallback if a later package lacks 3.15 support: install 3.12 and rebuild the venv from `requirements.txt`.
+
+## 2026-11-10: Add httpx2 for the test client
+**Decision:** Add `httpx2==2.16.0` (BSD-3, same author as httpx, maintained under the pydantic GitHub org). Starlette's `TestClient` imports it in preference to `httpx`. Keep `httpx` for the Ollama provider for now.
+**Reason:** Starlette 1.10 shows a deprecation warning when its test client runs on `httpx`. Switching now removes the warning before support for `httpx` is dropped. Verified it is the package Starlette's own code imports, not a lookalike.

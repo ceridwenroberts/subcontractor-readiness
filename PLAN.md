@@ -120,7 +120,7 @@ backend/app/
 | Uploads | python-multipart | Required by FastAPI for file uploads |
 | PDF text | pypdf | BSD license. Chosen over PyMuPDF (AGPL) so the product path stays open. Wrapped in one function so it can be swapped. |
 | Database | SQLite via SQLAlchemy | Postgres later. One file in `data/`, gitignored. |
-| HTTP client | httpx | Used for Ollama, and FastAPI's test client |
+| HTTP client | httpx, httpx2 | httpx for Ollama. httpx2 for FastAPI's test client (Starlette deprecated httpx there). Added 2026-11-10. |
 | LLM, quality | anthropic SDK | Optional. Only used when `LLM_PROVIDER=anthropic`. |
 | LLM, local | Ollama over HTTP | No extra package |
 | Backend tests and lint | pytest, ruff | |
@@ -279,7 +279,7 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 - [x] Python version chosen and the backend virtual environment created
 - [ ] Ollama installed and a small model pulled (needed by day 3). **Deferred** on day 1 because of download time, see `docs/decisions.md` 2026-11-10.
 - [x] `check.sh`: ruff, pytest, secret scan, (frontend checks once they exist), `git status`
-- [ ] FastAPI app with `/health` and a test. `/docs` works.
+- [x] FastAPI app with `/health` and a test. `/docs` works.
 - [ ] Template Pydantic model, VVS placeholder JSON, loader with tests (valid and invalid file)
 - [ ] Next.js app created, `npm run dev` shows a page that calls `/health`
 

@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+# Make `import app` work whether you run `pytest` or `python -m pytest` from backend/.
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+# Treat `app` as our own (first-party) package when sorting imports.
+src = ["."]
