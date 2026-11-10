@@ -11,7 +11,7 @@ fail() { printf '\nFAILED: %s\n' "$1" >&2; exit 1; }
 
 # 1. Lint
 step "ruff"
-"$VENV/ruff" check backend/ || fail "ruff"
+"$VENV/ruff" check backend/ evals/ || fail "ruff"
 
 # 2. Backend tests (exit code 5 = no tests collected; allowed until the first test exists)
 step "pytest"

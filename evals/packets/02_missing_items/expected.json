@@ -1,0 +1,14 @@
+{
+  "template": "vvs",
+  "description": "Only tax, registration, and insurance documents. VVS-04 to VVS-07 are missing.",
+  "expected": {
+    "VVS-01": "found",
+    "VVS-02": "found",
+    "VVS-03": "found",
+    "VVS-04": "missing",
+    "VVS-05": "missing",
+    "VVS-06": "missing",
+    "VVS-07": "missing"
+  },
+  "expectedRedactions": 0
+}

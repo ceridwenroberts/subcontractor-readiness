@@ -1,0 +1,14 @@
+{
+  "template": "vvs",
+  "description": "All seven VVS requirements are covered by valid documents.",
+  "expected": {
+    "VVS-01": "found",
+    "VVS-02": "found",
+    "VVS-03": "found",
+    "VVS-04": "found",
+    "VVS-05": "found",
+    "VVS-06": "found",
+    "VVS-07": "found"
+  },
+  "expectedRedactions": 0
+}

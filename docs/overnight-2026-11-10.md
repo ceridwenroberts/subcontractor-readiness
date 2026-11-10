@@ -60,3 +60,40 @@ How to look at a slice: `git log --oneline main..stage-2-overnight`, then `git s
 - Nothing calls redaction yet. Stage 4 wires it in as extract, then redact, then store.
 
 **Worth understanding:** `(?<!\d)` and `(?!\d)` are "lookarounds". They check the character before and after a match without including it. They're why `1234567890123` isn't partly redacted: a match may not start or end inside a longer run of digits.
+
+## Slice 4: Synthetic PDF generator and the first 3 packets
+
+**Built:**
+- `evals/make_packets.py`: generates packets with fpdf2. Run it from the project root with `backend/.venv/bin/python evals/make_packets.py`.
+- `evals/packets/`: three packets for the VVS template, 64 KB in total, each with PDFs and an `expected.json`:
+
+| Packet | Documents | Expected |
+|---|---|---|
+| `01_complete` | 5 PDFs, 7 pages | all 7 `found` |
+| `02_missing_items` | 3 PDFs | VVS-01 to 03 `found`, VVS-04 to 07 `missing` |
+| `03_expired_and_personnummer` | 5 PDFs | insurance expired 2025-06-30, so VVS-03 `expired`, the rest `found`. The hot work certificate shows `19121212-1212`, which is redacted (`expectedRedactions: 1`). |
+
+- `backend/tests/test_packets.py`, 8 tests. For each packet it checks that `expected.json` covers exactly the template's requirement codes with valid statuses. It also runs every PDF through **upload check, extract, redact**, which tests the three earlier slices working together. One more test regenerates the packets and fails if they differ from the committed files.
+- `check.sh` now runs ruff on `evals/` too.
+
+**Check:** 123 backend tests passed, and `./check.sh` passed. The first full run **failed on ruff**: 6 errors in my generator for implicit string concatenation inside lists (rule ISC004). I fixed the code by wrapping the joined strings in parentheses, regenerated, and it passed. No test was changed.
+
+**Before and after redaction** (packet 3, hot work certificate page):
+```
+BEFORE: Innehavare: Test Testsson (fiktiv), 19121212-1212
+AFTER:  Innehavare: Test Testsson (fiktiv), [PERSONNUMMER]
+```
+
+**Decisions I made for you:**
+- **Packet 3 combines expired insurance and a personnummer.** The plan lists them as separate packet types. Here they share one packet so the demo document (PLAN.md demo step 6) exists now. Split them when you build packets 4 to 10 if you prefer.
+- **Synthetic data:**
+  - Companies are clearly fictional ("Exempelrör AB (fiktivt)", "Exempelförsäkring AB (fiktivt)").
+  - No org numbers anywhere.
+  - `19121212-1212` is the well-known Swedish test personnummer.
+  - **Please check:** the texts name **Skatteverket** and **Säker Vatten**, because the template's evidence hints use those words. Every page is stamped as a synthetic test document, but they are real organisations. Say if you'd rather use made-up names.
+- Expiry dates (2027 for valid items) are fixed, so the expected statuses stay correct through the deadline.
+- `evals/run.py` doesn't exist yet. Where it lives is left for Stage 6, because CLAUDE.md shows two different layouts.
+
+**Process note:** for this slice I wrote the generator before the test, unlike slices 1 to 3. It's tooling rather than logic, but it's a small break from "tests first", so I'm telling you.
+
+**Worth understanding:** determinism. fpdf2 normally stamps each PDF with the current time, so two runs would differ. Fixing the creation date makes the output byte-identical every time, which is what lets a test say "the committed packets are exactly what the generator produces".
