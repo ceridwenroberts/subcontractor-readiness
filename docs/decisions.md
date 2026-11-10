@@ -21,3 +21,7 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-10: SQLite via SQLAlchemy for v1
 **Decision:** One SQLite file in `data/` (gitignored). Postgres later.
 **Reason:** No server to run for a local demo. SQLAlchemy keeps the move to Postgres small.
+
+## 2026-11-10: Ollama setup deferred
+**Decision:** Skip installing Ollama and pulling a model on day 1. The `scripted` provider covers development until the Ollama provider slice. Install it before that slice (day 3), ideally starting the download in the background earlier.
+**Reason:** Download time. Nothing before the Ollama provider slice needs a real model.

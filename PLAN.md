@@ -277,7 +277,7 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 ### Stage 1: Skeleton (day 1)
 - [x] Project folder, `git init`, `.gitignore`, `.env.example`, `docs/journal.md`, and `docs/decisions.md` seeded with the decisions made so far (pypdf, English UI, no API key, three status fields, SQLite)
 - [ ] Python version chosen and the backend virtual environment created
-- [ ] Ollama installed and a small model pulled (needed by day 3)
+- [ ] Ollama installed and a small model pulled (needed by day 3). **Deferred** on day 1 because of download time, see `docs/decisions.md` 2026-11-10.
 - [ ] `check.sh`: ruff, pytest, secret scan, (frontend checks once they exist), `git status`
 - [ ] FastAPI app with `/health` and a test. `/docs` works.
 - [ ] Template Pydantic model, VVS placeholder JSON, loader with tests (valid and invalid file)
