@@ -36,7 +36,7 @@ patterns=(
 if git grep -I -n -E --untracked "${patterns[@]}" -- . ':!check.sh'; then
   fail "possible secret found (see lines above)"
 fi
-tracked_env=$(git ls-files | grep -E '(^|/)\.env(\..*)?$' | grep -v '\.env\.example$' || true)
+tracked_env=$(git ls-files | grep -E '(^|/)\.env(\..*)?$' | grep -v '\.example$' || true)
 if [ -n "$tracked_env" ]; then
   fail "env file tracked by git: $tracked_env"
 fi

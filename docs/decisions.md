@@ -33,3 +33,11 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-10: Add httpx2 for the test client
 **Decision:** Add `httpx2==2.16.0` (BSD-3, same author as httpx, maintained under the pydantic GitHub org). Starlette's `TestClient` imports it in preference to `httpx`. Keep `httpx` for the Ollama provider for now.
 **Reason:** Starlette 1.10 shows a deprecation warning when its test client runs on `httpx`. Switching now removes the warning before support for `httpx` is dropped. Verified it is the package Starlette's own code imports, not a lookalike.
+
+## 2026-11-10: ESLint for the frontend
+**Decision:** Keep the ESLint setup that `create-next-app` generates (`eslint`, `eslint-config-next`). `npm run lint` runs ESLint, then `tsc --noEmit`.
+**Reason:** `check.sh` expects a frontend lint step, and ESLint catches React mistakes (hook rules) that the type checker misses. `npm audit` reports moderate issues (a minimatch ReDoS) in the dev-only ESLint chain. The suggested fix downgrades `eslint-config-next` to 15, so it is not applied. Recheck when Next updates.
+
+## 2026-11-10: @tailwindcss/turbopack for Tailwind
+**Decision:** Keep `@tailwindcss/turbopack`, which `create-next-app` generates to load Tailwind CSS in Next's Turbopack bundler.
+**Reason:** It is part of the already-approved Tailwind, published by the Tailwind team, and is how Next 16 wires Tailwind in. Recorded separately because it is its own package.
