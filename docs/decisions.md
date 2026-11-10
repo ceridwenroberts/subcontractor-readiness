@@ -25,3 +25,7 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-10: Ollama setup deferred
 **Decision:** Skip installing Ollama and pulling a model on day 1. The `scripted` provider covers development until the Ollama provider slice. Install it before that slice (day 3), ideally starting the download in the background earlier.
 **Reason:** Download time. Nothing before the Ollama provider slice needs a real model.
+
+## 2026-11-10: Python 3.15 for the backend
+**Decision:** Use the installed Python 3.15.2 for `backend/.venv`. Dependencies are pinned in `backend/requirements.txt`.
+**Reason:** Already installed, so no extra download. All approved packages installed from prebuilt wheels on 3.15 with no compiling. Fallback if a later package lacks 3.15 support: install 3.12 and rebuild the venv from `requirements.txt`.

@@ -276,7 +276,7 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 
 ### Stage 1: Skeleton (day 1)
 - [x] Project folder, `git init`, `.gitignore`, `.env.example`, `docs/journal.md`, and `docs/decisions.md` seeded with the decisions made so far (pypdf, English UI, no API key, three status fields, SQLite)
-- [ ] Python version chosen and the backend virtual environment created
+- [x] Python version chosen and the backend virtual environment created
 - [ ] Ollama installed and a small model pulled (needed by day 3). **Deferred** on day 1 because of download time, see `docs/decisions.md` 2026-11-10.
 - [ ] `check.sh`: ruff, pytest, secret scan, (frontend checks once they exist), `git status`
 - [ ] FastAPI app with `/health` and a test. `/docs` works.
@@ -334,7 +334,7 @@ Login and roles. Postgres and EU hosting. Real subcontractor portal. OCR for sca
 
 - Decided 2026-11-10: the UI is in English. Swedish is a later roadmap item.
 - Decided 2026-11-10: no Anthropic API key for now. The demo uses `scripted` and `ollama`.
-- Which Python version? 3.15 is installed but very new, and some packages may not support it yet. 3.12 is the safer choice (see Stage 1).
+- Decided 2026-11-10: Python 3.15 (installed, and all packages have wheels). 3.12 is the fallback.
 - Later: which Anthropic model for eval runs, and what budget? (Read from `ANTHROPIC_MODEL`.)
 - Who could review the VVS placeholder list, even informally, before the demo?
 - After the deadline: hosting region, retention period, data protection review.

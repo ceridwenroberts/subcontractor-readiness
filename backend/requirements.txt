@@ -1,0 +1,12 @@
+# Approved backend dependencies (PLAN.md section 6), pinned for reproducible installs.
+# Not yet: anthropic (on hold, no key), fpdf2 (dev-only, added with the eval slice).
+fastapi==0.162.3
+uvicorn==0.54.0
+pydantic==2.14.3
+pydantic-settings==2.16.2
+python-multipart==0.0.33
+pypdf==7.0.1
+sqlalchemy==2.1.8
+httpx==0.28.1
+pytest==9.2.0
+ruff==0.17.4
