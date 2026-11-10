@@ -9,7 +9,8 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/config.py -> project root
-ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+ENV_FILE = PROJECT_ROOT / ".env"
 
 
 class Settings(BaseSettings):
@@ -17,6 +18,9 @@ class Settings(BaseSettings):
 
     # The only browser origin allowed to call the backend (CORS).
     frontend_origin: str = "http://localhost:3000"
+
+    # Folder with one requirement template JSON file per trade.
+    templates_dir: Path = PROJECT_ROOT / "templates"
 
 
 @lru_cache
