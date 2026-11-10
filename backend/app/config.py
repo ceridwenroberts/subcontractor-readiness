@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     # Folder with one requirement template JSON file per trade.
     templates_dir: Path = PROJECT_ROOT / "templates"
 
+    # Upload limits (PLAN.md section 12). Checked in app/ingest/upload.py.
+    max_file_mb: int = Field(default=10, gt=0)
+    max_pages: int = Field(default=50, gt=0)
+    max_files: int = Field(default=10, gt=0)
+
+    # Uploaded PDFs, stored under UUID names. Gitignored (data/).
+    uploads_dir: Path = PROJECT_ROOT / "data" / "uploads"
+
 
 @lru_cache
 def get_settings() -> Settings:

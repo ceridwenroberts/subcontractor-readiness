@@ -41,3 +41,7 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-10: @tailwindcss/turbopack for Tailwind
 **Decision:** Keep `@tailwindcss/turbopack`, which `create-next-app` generates to load Tailwind CSS in Next's Turbopack bundler.
 **Reason:** It is part of the already-approved Tailwind, published by the Tailwind team, and is how Next 16 wires Tailwind in. Recorded separately because it is its own package.
+
+## 2026-11-10: Upload checks are strict and run cheapest first
+**Decision:** `app/ingest/upload.py` checks, in order: empty file, size, `%PDF-` at byte 0, then pypdf parsing, encryption, page count. Any encrypted PDF is rejected, including ones that open with an empty password. Any pypdf exception becomes `unreadable`. Files are written with mode `"xb"` under `<uuid4>.pdf`. These are plain functions; the HTTP endpoint comes with Stage 4.
+**Reason:** Size before parsing means a huge file never reaches the parser. The PDF spec allows the header anywhere in the first 1024 bytes, but real PDFs start with it, and strict is safer for untrusted input. Made overnight on `stage-2-overnight`, pending review.
