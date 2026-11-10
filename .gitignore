@@ -1,0 +1,23 @@
+# Secrets: only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# Runtime data: uploads and SQLite
+data/
+
+# Python
+backend/.venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+node_modules/
+
+# OS
+.DS_Store
