@@ -37,3 +37,26 @@ How to look at a slice: `git log --oneline main..stage-2-overnight`, then `git s
 **Look at carefully:** the docstring says the output is **not redacted yet**. Nothing stores it so far. Slice 3 adds redaction, and the Stage 4 upload endpoint must call extract and then redact before saving anything. That ordering is the one thing to keep an eye on when the pieces get wired together.
 
 **Worth understanding:** NFC normalization. "ä" can be stored as one character or as "a" plus a combining dot mark. They look identical but compare as different strings, which would break quote matching and redaction. NFC picks the one-character form every time.
+
+## Slice 3: Personnummer and samordningsnummer redaction
+
+**Built:** `backend/app/ingest/redact.py` with `redact(text)` (returns the text plus a count per kind) and `redact_pages(pages)` (returns the redacted pages plus a total, matching `redactionCount` in the data model). 60 tests in `backend/tests/test_redact.py`.
+
+**Check:** tests first (collection error), then the code. All 60 passed on the first run; `./check.sh` passed.
+
+**What the tests cover:**
+- **Redacted:** with and without century; separators `-`, `+`, space, spaced dash, en dash, non-breaking hyphen, minus sign, non-breaking space, and a line break; born in the 1800s, 1900s, and 2000s; samordningsnummer days 61 to 91; numbers at the start or end of text, in brackets, after `pnr:`, and glued to letters; several numbers in one text, counted separately.
+- **Left alone:** org numbers (`556677-8899`, also with the `16` prefix), impossible months and days, ISO dates, 8-digit dates, phone numbers with spaces, amounts, postal codes, and 8-, 11- and 13-digit numbers.
+- **Idempotent:** redacting already-redacted text changes nothing.
+
+**Decisions I made for you:**
+- **This differs from what I said before you left.** I said the checksum would separate real ID numbers from other numbers. While writing the tests I changed my mind: a personal number with a typo is still personal data, and the checksum would let it through. So the checksum is **not** required. What protects org numbers is the date check: their third and fourth digits are always 20 or higher, which is never a valid month. Two tests document the cost: `800101-1235` (bad checksum) and `0701234567` (looks like a phone number) are both redacted.
+- Calendar validity (Feb 30) isn't checked, for the same reason.
+- Markers are `[PERSONNUMMER]` and `[SAMORDNINGSNUMMER]`. They contain no digits, which is why redacting twice changes nothing.
+
+**Look at carefully:**
+- The regex in `redact.py`, piece by piece (`_MONTH`, `_DAY`, `_SEP`). It's the whole rule.
+- **Not covered:** a number written in odd groups (`800101 12 34`), and a number split by the PDF across two pages. Tell me if you want either added.
+- Nothing calls redaction yet. Stage 4 wires it in as extract, then redact, then store.
+
+**Worth understanding:** `(?<!\d)` and `(?!\d)` are "lookarounds". They check the character before and after a match without including it. They're why `1234567890123` isn't partly redacted: a match may not start or end inside a longer run of digits.
