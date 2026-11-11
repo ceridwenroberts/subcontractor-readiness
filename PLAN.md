@@ -287,10 +287,10 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 - [x] Next.js app created, `npm run dev` shows a page that calls `/health`
 
 ### Stage 2: Ingestion (day 2)
-- [ ] Upload checks (magic bytes, size, pages, count, encrypted) with tests
-- [ ] Text extraction per page with pypdf
-- [ ] Personnummer and samordningsnummer redaction with thorough tests
-- [ ] Synthetic PDF generator (fpdf2) and the first 3 packets
+- [x] Upload checks (magic bytes, size, pages, count, encrypted) with tests
+- [x] Text extraction per page with pypdf
+- [x] Personnummer and samordningsnummer redaction with thorough tests
+- [x] Synthetic PDF generator (fpdf2) and the first 3 packets
 
 ### Stage 3: Assessment (days 3 and 4)
 - [ ] Quote normalization and verification in `domain/`, with tests
