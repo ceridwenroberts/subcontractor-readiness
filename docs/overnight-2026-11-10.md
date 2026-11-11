@@ -97,3 +97,35 @@ AFTER:  Innehavare: Test Testsson (fiktiv), [PERSONNUMMER]
 **Process note:** for this slice I wrote the generator before the test, unlike slices 1 to 3. It's tooling rather than logic, but it's a small break from "tests first", so I'm telling you.
 
 **Worth understanding:** determinism. fpdf2 normally stamps each PDF with the current time, so two runs would differ. Fixing the creation date makes the output byte-identical every time, which is what lets a test say "the committed packets are exactly what the generator produces".
+
+## Slice 5 (added 2026-11-11 morning): Redaction notes for human review
+
+You approved this after reading slices 1 to 4: show the PM when redaction was unsure, fix numbers split across pages, and add `redactionNotesJson` to the Document model for Stage 4.
+
+**Built:** `backend/app/ingest/redact.py`, extended.
+
+| What the text contains | Result | Note for the PM |
+|---|---|---|
+| `800101-1231` (valid checksum) | `[PERSONNUMMER]` | none |
+| `800172-1235` (valid checksum) | `[SAMORDNINGSNUMMER]` | none |
+| `800101-1234` (wrong checksum) or `0701234567` | `[POSSIBLE PERSONNUMMER]` | "uncertain" on that page |
+| `800101 12 31` (odd layout, valid checksum) | `[POSSIBLE PERSONNUMMER]` | "uncertain" on that page |
+| `070-123 45 67` (odd layout, wrong checksum) | left alone | none |
+| `800101-` at the end of a page, `1231` on the next | hidden on both pages | "split_across_pages" on the second page |
+
+- `redact_pages()` now returns `pages`, `count`, and `notes`. Each note is `{page, kind, count}` and structurally can't hold the number; a test checks that.
+- PLAN.md section 7 now lists `redactionNotesJson` on Document.
+
+**Check:** 86 redaction tests, 149 backend tests in total. `./check.sh` passed. The first run failed with a regex error: a `-` inside `[...]` was read as a range. I fixed the code by escaping it.
+
+**Tests I changed, and why:** the behaviour changed, so the expected output did too:
+- My original test numbers were made up by hand, and most had invalid checksums. Under the new rules they'd correctly come out as `[POSSIBLE PERSONNUMMER]`. I moved the format tests to checksum-valid numbers and added separate tests for the invalid ones.
+- `070-123 45 67` moved from "left alone" to its own group, still left alone.
+- `test_packets.py` uses the new return format, and now also checks that packets produce no notes.
+- No assertion was loosened to make code pass.
+
+**Look at carefully:** the table in the module docstring of `redact.py`. It is the whole policy in one place.
+
+**Known limit:** an odd-layout number with a wrong checksum is not hidden or noted. That covers a mistyped personnummer in an odd layout, which is unlikely; flagging it would also flag every phone number written `070-123 45 67`.
+
+**Worth understanding:** the Luhn checksum. The last digit of a personnummer is calculated from the other nine, so a random 10-digit number passes only about 1 time in 10. That's why it separates "probably a personnummer" from "probably something else" well, but not perfectly. That's also why the result is a marker plus a note, not a silent guess.

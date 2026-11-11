@@ -49,9 +49,10 @@ def test_packet_passes_upload_extract_and_redact(packet: Path) -> None:
         assert len(pages) == checked.page_count
         assert all("SYNTETISKT TESTDOKUMENT" in page for page in pages)
 
-        redacted, count = redact_pages(pages)
-        total_redactions += count
-        assert all(redact(page).count == 0 for page in redacted)  # nothing left over
+        result = redact_pages(pages)
+        total_redactions += result.count
+        assert result.notes == []  # packets have no uncertain or split numbers
+        assert all(redact(page).count == 0 for page in result.pages)  # nothing left over
 
     assert total_redactions == meta["expectedRedactions"]
 

@@ -135,7 +135,9 @@ Any dependency not in this table needs approval first. Record it here and in `do
 Project      id, name, templateId, createdAt
 Engagement   id, projectId, subcontractorName, orgNumber (optional, fictional), createdAt
 Document     id, engagementId, originalFilename, storedName (UUID), sha256,
-             pageCount, pagesJson (redacted text per page), redactionCount, createdAt
+             pageCount, pagesJson (redacted text per page), redactionCount,
+             redactionNotesJson (list of {page, kind, count}: what a person should
+               check in the original; never the number itself), createdAt
 Finding      id, engagementId, requirementCode,
              modelStatus      what the LLM said, after schema validation
              aiStatus         after code checks (quote verification, expiry). Can only stay the same or get weaker.
