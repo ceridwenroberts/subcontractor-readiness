@@ -327,7 +327,7 @@ Only after Stage 6 has eval numbers to compare against. Without an API key this 
 - [ ] Run evals with and without the verifier. Compare false `found` rate, accuracy, time, and cost.
 - [ ] Keep it only if the numbers show a benefit. Write the result in `docs/decisions.md` either way. A negative result is still a good result for the report.
 
-There is also a free, low-risk way to gain multi-agent experience: during development, use Claude Code's review subagents (`/code-review`, `/security-review`) at the end of each stage, and note in the journal what they found.
+There is also a free, low-risk way to gain multi-agent experience: during development, use Claude Code's review subagents (`/code-review`, `/security-review`) once near the end of the project, or sooner if a stage felt risky, and note in the journal what they found.
 
 ## 16. Roadmap after the school version (LATER)
 

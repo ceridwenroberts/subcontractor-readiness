@@ -67,27 +67,28 @@ Providers: `LLM_PROVIDER=scripted` (default, tests and demo), `ollama` (with `OL
 
 ## How we work
 
-The developer wants to follow along and learn, so every slice follows the steps below.
+The developer wants to follow along and learn, so every slice is explained, not just built.
 
-1. **Plan.** Pick the next unchecked item in `PLAN.md`. State the goal, the files you will touch, the check you will run, and in one or two sentences any new concept involved (for example "a Pydantic validator runs when..."). Wait for "go" when the slice touches security, the data model, or a prompt.
-2. **Build.** Keep the slice small, ideally under about 150 changed lines. Write tests for deterministic logic first. Touch only the files you listed.
-3. **Check.** Run the check and show its output. If it fails, explain the cause before changing code. Never edit a test just to make it pass.
-4. **Explain.** Show `git diff --stat` and the important parts of the diff. In plain language, explain what changed and why, and point out one thing worth understanding. Keep it short.
-5. **Hand off.** Suggest a commit message and a two- or three-line entry for `docs/journal.md` (what was built, what was learned, any problem). Then stop and wait.
-6. **Commit.** Only after the developer replies "approved": run `./check.sh`, commit with a message that names the slice, and tick the box in `PLAN.md`.
+**Ordinary slice** (doesn't touch security, the data model, or a prompt):
+1. Build it — keep the slice small, ideally under about 150 changed lines, touching only the files the goal requires. Write tests for deterministic logic first.
+2. Run the check. If it fails, explain the cause before changing code. Never edit a test just to make it pass.
+3. Show `git diff --stat` and explain in plain language what changed, why, and one thing worth understanding. Suggest a commit message and a one-line `docs/journal.md` entry, then commit and tick the box in `PLAN.md`.
+
+**Slice that touches security, the data model, or a prompt:**
+State the goal and the files you'll touch, then wait for "go" before building. Build and check as above. Before committing, show the diff and explain it, then wait for "approved" before running `./check.sh`, committing, and ticking `PLAN.md`.
 
 Also:
 - **Ask before** adding a dependency not listed in `PLAN.md` section 6, changing a hard rule, changing the data model, or doing anything outside the slice.
-- When a decision is made or changed, add it to `docs/decisions.md` (date, decision, reason) and update `PLAN.md`.
-- When a prompt changes, bump its `PROMPT_VERSION`, re-run the evals, and save the result in `evals/results/`.
-- At the end of each stage, suggest running `/code-review` and `/security-review`.
-- Start a new session (`/clear`) between slices. `PLAN.md`, this file, and `git log` carry the context.
+- Log real decisions (ones that could've gone another way, or that reverse an earlier choice) in `docs/decisions.md` (date, decision, reason) and update `PLAN.md`. Routine implementation choices don't need a log entry.
+- When a prompt changes, bump its `PROMPT_VERSION` and re-run the evals before committing.
+- Keep working in one session across slices rather than clearing each time; this file, `PLAN.md`, and `git log` are there if context ever needs refreshing. Suggest `/code-review` and `/security-review` once near the end of the project, or sooner if a stage felt risky.
 - Keep an eye on the deadline. If the work is falling behind the daily targets in `PLAN.md`, say so and suggest what to cut. Never cut security or verification.
 
 ## Conventions
 
 - Python: type hints everywhere, Pydantic models for every data shape, `def` (not `async def`) for endpoints that call an LLM, and ruff for lint.
 - TypeScript: strict mode, no `any`, zod at every API boundary.
+- Frontend layout must be responsive — every screen works on mobile, tablet, and desktop widths, not just desktop.
 - Code, docs, and UI text are in English.
 - Prompts live in one place per feature, with a `PROMPT_VERSION` constant.
 - Test deterministic logic with unit tests. Test LLM behavior with evals.
