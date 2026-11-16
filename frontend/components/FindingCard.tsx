@@ -93,6 +93,12 @@ export function FindingCard({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <span className="font-mono text-xs text-slate-600">{finding.requirement_code}</span>
+          <span
+            title={`${finding.model}, prompt ${finding.prompt_version}`}
+            className="ml-2 rounded border border-slate-200 px-1 py-px text-[11px] text-slate-500"
+          >
+            {finding.provider_label}
+          </span>
           <h3 className="font-medium">
             {finding.requirement_title}
             {!finding.mandatory && <span className="font-normal text-slate-600"> (optional)</span>}
@@ -104,7 +110,11 @@ export function FindingCard({
         </div>
       </div>
 
-      <ol className="mt-3 space-y-1.5 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+      <details className="mt-3 text-xs text-slate-500">
+        <summary className="cursor-pointer select-none hover:text-slate-700">
+          How this result was made{modelDiffers ? " · adjusted by automatic checks" : ""}
+        </summary>
+        <ol className="mt-2 space-y-1.5 rounded-md border border-slate-200 bg-slate-50 p-3 text-slate-700">
         <Step part="model">
           {finding.provider_label} ({finding.model}) answered:{" "}
           <strong>{STATUS_LABEL[finding.model_status]}</strong>
@@ -139,7 +149,11 @@ export function FindingCard({
             "Not decided yet."
           )}
         </Step>
-      </ol>
+        </ol>
+        <p className="mt-1">
+          {finding.model} · prompt {finding.prompt_version}
+        </p>
+      </details>
 
       <div className="mt-3 space-y-2">
         {finding.evidence.length === 0 && (
@@ -163,7 +177,7 @@ export function FindingCard({
       {finding.valid_until && (
         <p className="mt-2 text-sm">Date shown in the documents: {finding.valid_until}</p>
       )}
-      {finding.notes && <p className="mt-2 text-sm text-slate-700">{finding.notes}</p>}
+      {finding.notes && <p className="mt-2 text-xs text-slate-500">{finding.notes}</p>}
 
       <form onSubmit={onDecide} className="mt-4 space-y-3 border-t border-slate-100 pt-3">
         <fieldset>
@@ -221,13 +235,6 @@ export function FindingCard({
           <ErrorBox>{error}</ErrorBox>
         </div>
       )}
-
-      <p className="mt-3 text-xs text-slate-600">
-        <span className="mr-2 rounded border border-slate-300 bg-white px-1.5 py-0.5 font-medium">
-          {finding.provider_label}
-        </span>
-        {finding.model} · prompt {finding.prompt_version}
-      </p>
 
       <button type="button" onClick={toggleHistory} className="mt-2 text-xs text-slate-700 underline">
         {showHistory ? "Hide decision history" : "Show decision history"}

@@ -29,26 +29,31 @@ export function HowItWasMade({ findings }: { findings: Finding[] }) {
     { part: "person", text: WHO_TEXT.person },
   ];
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5 text-xs text-slate-500">
       {simulated && (
-        <div role="note" className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p role="note" className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-amber-900">
           {WHO_TEXT.scripted}
-        </div>
+        </p>
       )}
-      <div className="rounded-lg border border-slate-200 bg-white p-3">
-        <h3 className="mb-2 text-sm font-medium">How each finding is made</h3>
-        <ol className="grid gap-3 text-xs text-slate-700 sm:grid-cols-2 lg:grid-cols-4">
-          {parts.map((p, i) => (
-            <li key={p.part} className="space-y-1">
-              <span className="mr-1 text-slate-500">{i + 1}.</span>
-              <Tag part={p.part} />
-              {p.detail && <p className="font-medium text-slate-900">{p.detail}</p>}
-              <p>{p.text}</p>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-2 text-xs text-slate-500">Prompt version: {first.prompt_version}</p>
-      </div>
+      <details>
+        <summary className="cursor-pointer select-none hover:text-slate-700">
+          About these results: {first.provider_label}
+          {!simulated && ` (${first.model})`}
+        </summary>
+        <div className="mt-2 rounded-lg border border-slate-200 bg-white p-3">
+          <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {parts.map((p, i) => (
+              <li key={p.part} className="space-y-1">
+                <span className="mr-1 text-slate-400">{i + 1}.</span>
+                <Tag part={p.part} />
+                {p.detail && <p className="font-medium text-slate-700">{p.detail}</p>}
+                <p>{p.text}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-2 text-slate-400">Prompt version: {first.prompt_version}</p>
+        </div>
+      </details>
     </div>
   );
 }
