@@ -317,7 +317,7 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 ### Stage 6: Evals and hand-in (day 7)
 - [ ] 6 to 10 packets, including the injection and personnummer packets (4 so far: complete, missing items, expired + personnummer, injection)
 - [x] `evals/run.py` with the three numbers, results saved
-- [ ] README with setup, the demo script, and known limits
+- [x] README with setup, the demo script, and known limits
 - [ ] School report drawn from `docs/journal.md` and `docs/decisions.md`
 
 ### Stage 7: Multi-agent experiment (in scope since 2026-11-16)
