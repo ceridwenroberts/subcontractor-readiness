@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/config.py -> project root
@@ -25,6 +25,19 @@ class Settings(BaseSettings):
         default="http://localhost:3000",
         pattern=r"^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$",
     )
+
+    # Host names the backend answers to. Anything else (for example a web page whose domain
+    # was re-pointed at 127.0.0.1, "DNS rebinding") gets a 400. Never "*".
+    allowed_hosts: list[str] = ["localhost", "127.0.0.1"]
+
+    @field_validator("allowed_hosts")
+    @classmethod
+    def _no_wildcard_hosts(cls, hosts: list[str]) -> list[str]:
+        if not hosts or any(h.strip() in ("", "*") or "*" in h for h in hosts):
+            raise ValueError(
+                "allowed_hosts must be a non-empty list of exact host names"
+            )
+        return hosts
 
     # Folder with one requirement template JSON file per trade.
     templates_dir: Path = PROJECT_ROOT / "templates"

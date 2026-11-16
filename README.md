@@ -85,6 +85,7 @@ Prints overall accuracy, false `found` rate (target: zero), and the `unclear` ra
 - Uploads: magic bytes, size, page count and file count checked; encrypted PDFs rejected; files stored under UUID names, never client filenames.
 - The decision log's name comes from a server-side session. The sign-in is simulated (fixed demo users), not real authentication.
 - The review viewer receives redacted text only. The "open original" link serves the uploaded PDF, which may still show personal numbers, and is labeled as such.
+- The backend refuses requests whose `Host` header is not `localhost` or `127.0.0.1` (setting `ALLOWED_HOSTS`), so a website cannot reach it by re-pointing its own domain at your machine (DNS rebinding). CORS alone does not stop that.
 - Secrets only in `.env`. Backend binds to `127.0.0.1`; CORS allows only the frontend origin. Logs hold ids and counts, never document text.
 
 ## Known limits

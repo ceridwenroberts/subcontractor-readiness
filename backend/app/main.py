@@ -2,6 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.config import Settings, get_settings
 from app.db.session import make_engine, make_session_factory
@@ -35,6 +36,11 @@ def create_app(settings: Settings) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type", "Authorization"],
     )
+
+    # Added after CORS so it runs first. CORS stops other sites from reading responses, but a
+    # page whose domain was re-pointed at 127.0.0.1 (DNS rebinding) is "same origin" to the
+    # browser. Refusing unknown Host headers closes that route.
+    app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
     app.include_router(assess_router)
     app.include_router(templates_router)
