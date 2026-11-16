@@ -1,0 +1,22 @@
+[
+  {
+    "key": "expired",
+    "label": "The document has expired"
+  },
+  {
+    "key": "wrong_document",
+    "label": "This is not the type of document required"
+  },
+  {
+    "key": "unreadable",
+    "label": "The document is unreadable or is a scan"
+  },
+  {
+    "key": "incomplete",
+    "label": "Information is missing from the document"
+  },
+  {
+    "key": "other",
+    "label": "Other reason (see the note)"
+  }
+]

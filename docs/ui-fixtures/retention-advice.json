@@ -1,0 +1,15 @@
+{
+  "reviewed_by": null,
+  "placeholder": true,
+  "suggested_date": "2027-05-18",
+  "summary": "Keep the uploaded documents and stored text only as long as the engagement needs them. A common starting point is to set the date a few months after the engagement ends, and to shorten it when you can.",
+  "basis": [
+    "GDPR, Article 5(1)(e) (storage limitation): personal data must not be kept longer than necessary for the purpose.",
+    "Swedish rules on accounting records (Bokföringslagen) set longer periods for bookkeeping material. They apply to the originals you keep elsewhere, not automatically to the copies uploaded here."
+  ],
+  "caveats": [
+    "Placeholder, not legal advice, and not reviewed by a data protection specialist.",
+    "Confirm the period with your data protection officer before real use.",
+    "This version does not delete anything. After the date, the data must be removed by hand."
+  ]
+}

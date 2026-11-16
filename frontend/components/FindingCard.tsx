@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { Card, ErrorBox, StatusBadge, buttonClass, inputClass } from "@/components/ui";
 import { decideFinding, listDecisions, viewerPath } from "@/lib/api";
+import { buildDecision, evaluateDecision, initialAgree } from "@/lib/decisionForm";
 import { DECISION_TEXT, REQUEST_TEXT, STATUSES, STATUS_LABEL, WHO } from "@/lib/labels";
 import { verifierOutcome } from "@/lib/provenance";
 import type { Decision, Finding, Reason, Status, User } from "@/lib/schemas";
@@ -42,9 +43,7 @@ export function FindingCard({
   reasons: Reason[];
   onChanged: (updated: Finding) => void;
 }) {
-  // Only a result that shows evidence is pre-selected as "agree". Anything else makes the
-  // reviewer choose on purpose.
-  const [agree, setAgree] = useState<boolean | null>(finding.ai_status === "found" ? true : null);
+  const [agree, setAgree] = useState<boolean | null>(() => initialAgree(finding.ai_status));
   const [otherStatus, setOtherStatus] = useState<Status | "">("");
   const [wantRequest, setWantRequest] = useState(false);
   const [reason, setReason] = useState("");
@@ -56,20 +55,20 @@ export function FindingCard({
   const [history, setHistory] = useState<Decision[] | null>(null);
   const [showHistory, setShowHistory] = useState(false);
 
-  // The status the reviewer is about to record.
-  const chosen: Status | "" =
-    agree === true ? finding.ai_status : agree === false ? otherStatus : "";
-  const canRequest = chosen !== "" && chosen !== "found";
-  const requesting = wantRequest && canRequest;
-  const needsComment = agree === false || requesting;
-
-  const blocked =
-    saving ||
-    !user ||
-    agree === null ||
-    chosen === "" ||
-    (needsComment && !comment.trim()) ||
-    (requesting && !reason);
+  // All the rules live in lib/decisionForm.ts (tested). This component only draws them.
+  const input = {
+    aiStatus: finding.ai_status,
+    agree,
+    otherStatus,
+    wantRequest,
+    reason,
+    sendEmail,
+    comment,
+    hasUser: !!user,
+    hasContactEmail: !!contactEmail,
+    saving,
+  };
+  const { canRequest, requesting, needsComment, blocked } = evaluateDecision(input);
 
   async function loadHistory() {
     try {
@@ -81,23 +80,24 @@ export function FindingCard({
 
   async function onDecide(e: React.FormEvent) {
     e.preventDefault();
-    if (chosen === "" || blocked) return;
+    const decision = buildDecision(input);
+    if (!decision) return;
     setSaving(true);
     setError(null);
     setRecorded(null);
     try {
       const updated = await decideFinding(
         finding.id,
-        chosen,
-        comment.trim(),
-        requesting ? { reason, sendEmail: sendEmail && !!contactEmail } : undefined,
+        decision.status,
+        decision.comment,
+        decision.requestUpload,
       );
       onChanged(updated);
       setComment("");
-      const asked = requesting
-        ? ` ${REQUEST_TEXT.recorded}${sendEmail && contactEmail ? ` ${REQUEST_TEXT.recordedEmail}` : ""}`
+      const asked = decision.requestUpload
+        ? ` ${REQUEST_TEXT.recorded}${decision.requestUpload.sendEmail ? ` ${REQUEST_TEXT.recordedEmail}` : ""}`
         : "";
-      setRecorded(`Decision recorded: ${STATUS_LABEL[chosen]}.${asked}`);
+      setRecorded(`Decision recorded: ${STATUS_LABEL[decision.status]}.${asked}`);
       setWantRequest(false);
       setReason("");
       setSendEmail(false);

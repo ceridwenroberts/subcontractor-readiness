@@ -1,0 +1,93 @@
+{
+  "id": "vvs",
+  "name": "VVS",
+  "version": "0.1-placeholder",
+  "reviewedBy": null,
+  "requirements": [
+    {
+      "code": "VVS-01",
+      "title": "F-skattsedel",
+      "description": "Proof that the company is approved for F-tax.",
+      "mandatory": true,
+      "expires": false,
+      "evidenceHints": [
+        "F-skatt",
+        "Skatteverket",
+        "godkänd för F-skatt"
+      ]
+    },
+    {
+      "code": "VVS-02",
+      "title": "Employer and VAT registration",
+      "description": "Proof that the company is registered as an employer and for VAT.",
+      "mandatory": true,
+      "expires": false,
+      "evidenceHints": [
+        "arbetsgivare",
+        "momsregistrerad",
+        "registreringsbevis"
+      ]
+    },
+    {
+      "code": "VVS-03",
+      "title": "Liability insurance",
+      "description": "A valid liability insurance certificate covering the work.",
+      "mandatory": true,
+      "expires": true,
+      "evidenceHints": [
+        "ansvarsförsäkring",
+        "försäkringsbevis",
+        "giltig till"
+      ]
+    },
+    {
+      "code": "VVS-04",
+      "title": "Collective agreement",
+      "description": "Proof that the company has a collective agreement or equivalent terms.",
+      "mandatory": false,
+      "expires": false,
+      "evidenceHints": [
+        "kollektivavtal",
+        "hängavtal",
+        "VVS-avtalet"
+      ]
+    },
+    {
+      "code": "VVS-05",
+      "title": "Säker Vatten authorisation",
+      "description": "A valid company authorisation under the Säker Vatten industry rules.",
+      "mandatory": true,
+      "expires": true,
+      "evidenceHints": [
+        "Säker Vatten",
+        "auktoriserat företag",
+        "behörighet"
+      ]
+    },
+    {
+      "code": "VVS-06",
+      "title": "Self-inspection plan",
+      "description": "A quality and self-inspection plan for the installation work.",
+      "mandatory": false,
+      "expires": false,
+      "evidenceHints": [
+        "egenkontroll",
+        "kvalitetsplan",
+        "kontrollplan"
+      ]
+    },
+    {
+      "code": "VVS-07",
+      "title": "Hot work certificate",
+      "description": "A valid hot work certificate for staff who will do hot work on site.",
+      "mandatory": true,
+      "expires": true,
+      "evidenceHints": [
+        "heta arbeten",
+        "certifikat",
+        "giltigt till"
+      ]
+    }
+  ],
+  "placeholder": true
+}

@@ -1,0 +1,64 @@
+{
+  "title": "Documentation summary: Exempelrör AB on Harbour Building 4",
+  "intro": "Based on 5 uploaded documents and 7 requirements in the VVS template, which is a placeholder list not reviewed by a domain expert.",
+  "groups": [
+    {
+      "status": "found",
+      "label": "Documents show evidence",
+      "items": [
+        {
+          "code": "VVS-01",
+          "title": "F-skattsedel",
+          "reviewed_by_person": true,
+          "note": ""
+        },
+        {
+          "code": "VVS-02",
+          "title": "Employer and VAT registration",
+          "reviewed_by_person": false,
+          "note": ""
+        },
+        {
+          "code": "VVS-04",
+          "title": "Collective agreement",
+          "reviewed_by_person": false,
+          "note": ""
+        },
+        {
+          "code": "VVS-05",
+          "title": "Säker Vatten authorisation",
+          "reviewed_by_person": false,
+          "note": "date shown in the documents: 2027-06-30"
+        },
+        {
+          "code": "VVS-06",
+          "title": "Self-inspection plan",
+          "reviewed_by_person": false,
+          "note": ""
+        },
+        {
+          "code": "VVS-07",
+          "title": "Hot work certificate",
+          "reviewed_by_person": false,
+          "note": "date shown in the documents: 2027-09-30"
+        }
+      ]
+    },
+    {
+      "status": "expired",
+      "label": "Documents show an expired date",
+      "items": [
+        {
+          "code": "VVS-03",
+          "title": "Liability insurance",
+          "reviewed_by_person": true,
+          "note": "date shown in the documents: 2025-06-30; a new upload was requested (the document has expired)"
+        }
+      ]
+    }
+  ],
+  "not_reviewed_count": 5,
+  "not_reviewed_text": "5 requirements not yet reviewed by a person. Their status is the result of the automatic checks.",
+  "assessed_by": "Simulated (fixture)",
+  "disclaimer": "This summary describes what the uploaded documents show. It is not an approval. A person must review and decide."
+}

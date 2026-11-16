@@ -1,0 +1,202 @@
+[
+  {
+    "id": "09f942ee-ea71-465d-b637-901be7d946cd",
+    "engagement_id": "c508c781-a6a9-4fcc-b76a-f5f22ea25015",
+    "requirement_code": "VVS-01",
+    "requirement_title": "F-skattsedel",
+    "mandatory": true,
+    "model_status": "found",
+    "ai_status": "found",
+    "human_status": "found",
+    "evidence": [
+      {
+        "document_id": "b7a48c43-1c9d-452d-8974-4dd4766afbbb",
+        "document_name": "f-skatt.pdf",
+        "page": 1,
+        "quote": "är godkänd för F-skatt",
+        "verified": true
+      }
+    ],
+    "valid_until": null,
+    "notes": "Model note: Simulated answer from a fixture pattern.",
+    "provider": "scripted",
+    "provider_label": "Simulated",
+    "model": "fixture",
+    "prompt_version": "assess-v2+verify-v1",
+    "latest_request": null,
+    "created_at": "2026-11-16T18:28:43.236793"
+  },
+  {
+    "id": "2f22d200-8e77-4129-b995-df5da33a9168",
+    "engagement_id": "c508c781-a6a9-4fcc-b76a-f5f22ea25015",
+    "requirement_code": "VVS-02",
+    "requirement_title": "Employer and VAT registration",
+    "mandatory": true,
+    "model_status": "found",
+    "ai_status": "found",
+    "human_status": null,
+    "evidence": [
+      {
+        "document_id": "09b8aa0b-589d-499d-b528-3aaf64af95fd",
+        "document_name": "registreringsbevis.pdf",
+        "page": 1,
+        "quote": "registrerad som arbetsgivare och är momsregistrerad",
+        "verified": true
+      }
+    ],
+    "valid_until": null,
+    "notes": "Model note: Simulated answer from a fixture pattern.",
+    "provider": "scripted",
+    "provider_label": "Simulated",
+    "model": "fixture",
+    "prompt_version": "assess-v2+verify-v1",
+    "latest_request": null,
+    "created_at": "2026-11-16T18:28:43.236797"
+  },
+  {
+    "id": "617f5246-c590-4fc1-aa47-e5276edafaa0",
+    "engagement_id": "c508c781-a6a9-4fcc-b76a-f5f22ea25015",
+    "requirement_code": "VVS-03",
+    "requirement_title": "Liability insurance",
+    "mandatory": true,
+    "model_status": "found",
+    "ai_status": "expired",
+    "human_status": "expired",
+    "evidence": [
+      {
+        "document_id": "e206f05e-4f24-4ebb-814e-ead4773de78e",
+        "document_name": "forsakring.pdf",
+        "page": 1,
+        "quote": "Giltig till 2025-06-30",
+        "verified": true
+      }
+    ],
+    "valid_until": "2025-06-30",
+    "notes": "The documents show an expiry date in the past. Model note: Simulated answer from a fixture pattern.",
+    "provider": "scripted",
+    "provider_label": "Simulated",
+    "model": "fixture",
+    "prompt_version": "assess-v2",
+    "latest_request": {
+      "id": "366b801b-8d82-494c-938f-30e395c6b337",
+      "finding_id": "617f5246-c590-4fc1-aa47-e5276edafaa0",
+      "reason": "expired",
+      "reason_label": "The document has expired",
+      "email_recorded": true,
+      "email_to": "kontakt@exempelror.example",
+      "email_subject": "New upload needed: Liability insurance (Harbour Building 4)",
+      "email_body": "Hello Exempelrör AB,\n\nFor the project Harbour Building 4, we need a new upload for: Liability insurance.\nReason: The document has expired.\nNote from the reviewer: Policy ended 2025-06-30. Renewal needed.\n\nPlease upload a new document that shows this. If you have questions, reply to this message.\n\nRegards,\nTest PM (demo)",
+      "requested_by": "Test PM (demo)",
+      "created_at": "2026-11-16T18:28:43.323632"
+    },
+    "created_at": "2026-11-16T18:28:43.236799"
+  },
+  {
+    "id": "0eccdcf1-f694-492f-9b5d-388fad95fae3",
+    "engagement_id": "c508c781-a6a9-4fcc-b76a-f5f22ea25015",
+    "requirement_code": "VVS-04",
+    "requirement_title": "Collective agreement",
+    "mandatory": false,
+    "model_status": "found",
+    "ai_status": "found",
+    "human_status": null,
+    "evidence": [
+      {
+        "document_id": "f2560a5d-ccdd-4ce7-bd06-b31747f9cf61",
+        "document_name": "avtal-och-kvalitet.pdf",
+        "page": 1,
+        "quote": "bundet av VVS-avtalet genom hängavtal",
+        "verified": true
+      }
+    ],
+    "valid_until": null,
+    "notes": "Model note: Simulated answer from a fixture pattern.",
+    "provider": "scripted",
+    "provider_label": "Simulated",
+    "model": "fixture",
+    "prompt_version": "assess-v2+verify-v1",
+    "latest_request": null,
+    "created_at": "2026-11-16T18:28:43.236801"
+  },
+  {
+    "id": "c8d3681a-9fab-40c8-a8da-d3556b471ba7",
+    "engagement_id": "c508c781-a6a9-4fcc-b76a-f5f22ea25015",
+    "requirement_code": "VVS-05",
+    "requirement_title": "Säker Vatten authorisation",
+    "mandatory": true,
+    "model_status": "found",
+    "ai_status": "found",
+    "human_status": null,
+    "evidence": [
+      {
+        "document_id": "61e6c710-0d5e-4478-9127-a7ec3f4efcb9",
+        "document_name": "behorigheter.pdf",
+        "page": 1,
+        "quote": "Behörighet giltig till 2027-06-30",
+        "verified": true
+      }
+    ],
+    "valid_until": "2027-06-30",
+    "notes": "Model note: Simulated answer from a fixture pattern.",
+    "provider": "scripted",
+    "provider_label": "Simulated",
+    "model": "fixture",
+    "prompt_version": "assess-v2+verify-v1",
+    "latest_request": null,
+    "created_at": "2026-11-16T18:28:43.236803"
+  },
+  {
+    "id": "6bd3d163-27d0-4184-aaaa-ee06dd1141b1",
+    "engagement_id": "c508c781-a6a9-4fcc-b76a-f5f22ea25015",
+    "requirement_code": "VVS-06",
+    "requirement_title": "Self-inspection plan",
+    "mandatory": false,
+    "model_status": "found",
+    "ai_status": "found",
+    "human_status": null,
+    "evidence": [
+      {
+        "document_id": "f2560a5d-ccdd-4ce7-bd06-b31747f9cf61",
+        "document_name": "avtal-och-kvalitet.pdf",
+        "page": 2,
+        "quote": "Egenkontrollplan för installationsarbetet",
+        "verified": true
+      }
+    ],
+    "valid_until": null,
+    "notes": "Model note: Simulated answer from a fixture pattern.",
+    "provider": "scripted",
+    "provider_label": "Simulated",
+    "model": "fixture",
+    "prompt_version": "assess-v2+verify-v1",
+    "latest_request": null,
+    "created_at": "2026-11-16T18:28:43.236805"
+  },
+  {
+    "id": "c3767817-5ee3-428c-abb6-41161f119bf8",
+    "engagement_id": "c508c781-a6a9-4fcc-b76a-f5f22ea25015",
+    "requirement_code": "VVS-07",
+    "requirement_title": "Hot work certificate",
+    "mandatory": true,
+    "model_status": "found",
+    "ai_status": "found",
+    "human_status": null,
+    "evidence": [
+      {
+        "document_id": "61e6c710-0d5e-4478-9127-a7ec3f4efcb9",
+        "document_name": "behorigheter.pdf",
+        "page": 2,
+        "quote": "Certifikat för heta arbeten, giltigt till 2027-09-30",
+        "verified": true
+      }
+    ],
+    "valid_until": "2027-09-30",
+    "notes": "Model note: Simulated answer from a fixture pattern.",
+    "provider": "scripted",
+    "provider_label": "Simulated",
+    "model": "fixture",
+    "prompt_version": "assess-v2+verify-v1",
+    "latest_request": null,
+    "created_at": "2026-11-16T18:28:43.236806"
+  }
+]

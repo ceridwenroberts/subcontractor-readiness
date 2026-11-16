@@ -61,6 +61,9 @@ backend/.venv/bin/python evals/run.py            # from project root; uses LLM_P
 
 # before every commit, from the project root
 ./check.sh
+
+# on a UI redesign branch, also (see "UI redesign boundary")
+./check_ui_boundary.sh main
 ```
 
 Providers: `LLM_PROVIDER=scripted` (default, tests and demo), `ollama` (with `OLLAMA_MODEL`, `OLLAMA_URL`), or `anthropic` (with `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL`).
@@ -92,6 +95,17 @@ Also:
 - Code, docs, and UI text are in English.
 - Prompts live in one place per feature, with a `PROMPT_VERSION` constant.
 - Test deterministic logic with unit tests. Test LLM behavior with evals.
+
+## UI redesign boundary
+
+A design or layout tool (or an AI) may redesign the screens. It must not touch the logic layer. Brief it with `docs/ui-handoff.md` and `docs/ui-states.md`; sample data is in `docs/ui-fixtures/`.
+
+- **Protected, never changed in a redesign:** `backend/`, `templates/`, `evals/`, `frontend/lib/` (API client, zod schemas, wording, `decisionForm.ts`, sign-in token, highlighter and their tests), `check.sh`, `check_ui_boundary.sh`, `CLAUDE.md`, `PLAN.md`.
+- **Editable:** markup and styling in `frontend/app/**/page.tsx`, `frontend/app/layout.tsx`, `frontend/components/`, `globals.css`.
+- The UI calls the backend only through `frontend/lib/api.ts`. No `fetch`, browser storage, `NEXT_PUBLIC_` values, `dangerouslySetInnerHTML` or `any` in `app/` or `components/`. The decision form must keep using `lib/decisionForm.ts`; its rules are never re-implemented in a component.
+- Product rules still apply to every screen: no verdict words or scores, the provider label on every finding, the placeholder and Simulated banners, the disclaimer, three separate statuses, and model detail kept quiet and collapsed.
+- Work on a branch (for example `ui/redesign`). Before merging, `./check_ui_boundary.sh main` and `./check.sh` must both pass. If a tool changed a protected file, revert that file instead of adjusting the test or the script.
+- A change to a protected file is a normal slice, with its own goal, tests and approval, never part of a redesign.
 
 ## Not in v1
 

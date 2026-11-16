@@ -1,0 +1,11 @@
+[
+  {
+    "id": "f6a5bf56-8c8b-4921-9971-f2bc55cd2c27",
+    "finding_id": "617f5246-c590-4fc1-aa47-e5276edafaa0",
+    "old_human_status": null,
+    "new_human_status": "expired",
+    "comment": "Policy ended 2025-06-30. Renewal needed.",
+    "decided_by": "Test PM (demo)",
+    "decided_at": "2026-11-16T18:28:43.322687"
+  }
+]

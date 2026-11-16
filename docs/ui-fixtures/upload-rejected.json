@@ -1,0 +1,14 @@
+{
+  "files": [
+    {
+      "filename": "README.md",
+      "status": "rejected",
+      "document_id": null,
+      "code": "not_pdf",
+      "message": "README.md: The file is not a PDF.",
+      "hint": "Only PDF files are accepted. Save or export the document as a PDF.",
+      "warnings": []
+    }
+  ],
+  "message": "None of the files could be used. See the details below."
+}
