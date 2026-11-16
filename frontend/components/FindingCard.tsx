@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { Card, ErrorBox, StatusBadge, buttonClass, inputClass } from "@/components/ui";
-import { decideFinding, listDecisions } from "@/lib/api";
+import { decideFinding, listDecisions, viewerPath } from "@/lib/api";
 import { DECISION_TEXT, STATUSES, STATUS_LABEL, WHO } from "@/lib/labels";
 import { verifierOutcome } from "@/lib/provenance";
-import type { Decision, Finding, Status } from "@/lib/schemas";
+import type { Decision, Finding, Status, User } from "@/lib/schemas";
 import { formatWhen } from "@/lib/time";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
@@ -36,11 +37,11 @@ function Step({
 
 export function FindingCard({
   finding,
-  reviewer,
+  user,
   onChanged,
 }: {
   finding: Finding;
-  reviewer: string;
+  user: User | null;
   onChanged: (updated: Finding) => void;
 }) {
   const [agree, setAgree] = useState(true);
@@ -68,7 +69,7 @@ export function FindingCard({
     try {
       // The person chooses the status: "confirm" sends the shown status, "change" the chosen one.
       const status = agree ? finding.ai_status : otherStatus;
-      const updated = await decideFinding(finding.id, status, comment.trim(), reviewer.trim());
+      const updated = await decideFinding(finding.id, status, comment.trim());
       onChanged(updated);
       setComment("");
       if (showHistory) await loadHistory();
@@ -164,6 +165,13 @@ export function FindingCard({
             <blockquote className="whitespace-pre-wrap break-words">&ldquo;{e.quote}&rdquo;</blockquote>
             <figcaption className="mt-1 text-xs text-slate-600">
               {e.document_name}, page {e.page} ·{" "}
+              <Link
+                href={viewerPath(e.document_id, e.page, e.quote)}
+                className="text-slate-900 underline underline-offset-2"
+              >
+                View in document
+              </Link>{" "}
+              ·{" "}
               {e.verified ? (
                 <span className="text-emerald-800">quote found in the document text</span>
               ) : (
@@ -223,12 +231,14 @@ export function FindingCard({
             placeholder={DECISION_TEXT.reasonPlaceholder}
           />
         </label>
-        <button className={buttonClass} disabled={saving || !comment.trim() || !reviewer.trim()}>
+        <button className={buttonClass} disabled={saving || !comment.trim() || !user}>
           {saving ? "Saving…" : "Record decision"}
         </button>
-        {!reviewer.trim() && (
-          <p className="text-xs text-slate-600">Enter your name above the list to record a decision.</p>
-        )}
+        <p className="text-xs text-slate-600">
+          {user
+            ? `Recording as ${user.name} (simulated sign-in).`
+            : "Sign in at the top of the page to record a decision."}
+        </p>
       </form>
       {error && (
         <div className="mt-2">

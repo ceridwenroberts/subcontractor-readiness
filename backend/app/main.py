@@ -10,6 +10,7 @@ from app.routes.assess import router as assess_router
 from app.routes.documents import router as documents_router
 from app.routes.findings import router as findings_router
 from app.routes.projects import router as projects_router
+from app.routes.session import router as session_router
 from app.routes.templates import router as templates_router
 from app.templates import load_templates
 
@@ -20,6 +21,7 @@ def create_app(settings: Settings) -> FastAPI:
     # Fail at startup if any template is invalid. Routes read them from app.state.
     app.state.templates = load_templates(settings.templates_dir)
     app.state.settings = settings
+    app.state.sessions = {}  # token -> User, in memory (simulated sign-in)
     app.state.engine = make_engine(settings.database_url)
     app.state.session_factory = make_session_factory(app.state.engine)
     # Built once: fails at startup if the provider is misconfigured (for example no OLLAMA_MODEL).
@@ -30,7 +32,7 @@ def create_app(settings: Settings) -> FastAPI:
         CORSMiddleware,
         allow_origins=[settings.frontend_origin],
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
-        allow_headers=["Content-Type"],
+        allow_headers=["Content-Type", "Authorization"],
     )
 
     app.include_router(assess_router)
@@ -38,6 +40,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(projects_router)
     app.include_router(documents_router)
     app.include_router(findings_router)
+    app.include_router(session_router)
 
     @app.get("/health")
     def health() -> dict[str, str]:

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { SessionBar } from "@/components/SessionBar";
+
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,6 +22,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             <p className="text-xs text-slate-600">
               Documentation status only. A person reviews and decides.
             </p>
+          </div>
+          <div className="mx-auto max-w-5xl px-4 pb-2">
+            <SessionBar />
           </div>
         </header>
         <div className="mx-auto max-w-5xl px-4 py-6">{children}</div>

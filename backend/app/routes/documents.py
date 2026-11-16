@@ -6,10 +6,12 @@ file does not discard the others.
 """
 
 import logging
+import re
 from datetime import datetime
+from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
 from app.config import Settings
@@ -107,3 +109,57 @@ def list_documents(engagement_id: str, db: Db) -> list[DocumentOut]:
     return [
         _document(d) for d in sorted(engagement.documents, key=lambda d: d.created_at)
     ]
+
+
+class PagesOut(BaseModel):
+    id: str
+    engagement_id: str
+    filename: str
+    page_count: int
+    pages: list[str]  # REDACTED text only: personal numbers are already hidden
+
+
+@router.get("/documents/{document_id}/pages")
+def document_pages(document_id: str, db: Db) -> PagesOut:
+    """Redacted page text for the review viewer. Never the original text."""
+    document = db.get(Document, document_id)
+    if document is None:
+        raise HTTPException(404, "That document was not found.")
+    return PagesOut(
+        id=document.id,
+        engagement_id=document.engagement_id,
+        filename=document.original_filename,
+        page_count=document.page_count,
+        pages=document.pages_json,
+    )
+
+
+_STORED_NAME = re.compile(
+    r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.pdf$"
+)
+
+
+@router.get("/documents/{document_id}/file")
+def document_file(document_id: str, request: Request, db: Db) -> FileResponse:
+    """The ORIGINAL PDF, for the "open original" link. It may show personal numbers that the
+    viewer hides, so the UI labels the link. The path comes from our own UUID name, checked
+    again here, never from the uploader's filename."""
+    document = db.get(Document, document_id)
+    if document is None:
+        raise HTTPException(404, "That document was not found.")
+    settings: Settings = request.app.state.settings
+    folder = Path(settings.uploads_dir).resolve()
+    path = (folder / document.stored_name).resolve()
+    if not _STORED_NAME.match(document.stored_name) or path.parent != folder:
+        raise HTTPException(404, "That document was not found.")
+    if not path.is_file():
+        raise HTTPException(404, "The original file is no longer available.")
+    return FileResponse(
+        path,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'inline; filename="document.pdf"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "no-store",
+        },
+    )

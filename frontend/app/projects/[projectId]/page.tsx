@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 
-import { Card, ErrorBox, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
+import { Card, ErrorBox, OverdueBanner, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
 import { createEngagement, getProject, getTemplate } from "@/lib/api";
 import type { ProjectDetail, TemplateDetail } from "@/lib/schemas";
 
@@ -68,6 +68,10 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
         </p>
       </div>
       {template.placeholder && <PlaceholderBanner />}
+      {project.delete_overdue && <OverdueBanner date={project.delete_after} />}
+      {project.delete_after && !project.delete_overdue && (
+        <p className="text-xs text-slate-600">Delete the data for this project by {project.delete_after}.</p>
+      )}
 
       <Card>
         <h2 className="mb-3 text-lg font-medium">New subcontractor</h2>

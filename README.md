@@ -56,11 +56,12 @@ Before every commit, from the project root: `./check.sh` (ruff, backend tests, s
 Use the synthetic PDFs in `evals/packets/`. Each folder is one subcontractor's packet.
 
 1. Start the backend and the frontend.
-2. Create a project with the VVS template. The yellow banner says the requirements are placeholders.
+1b. Sign in at the top of the page as a demo user. This is a simulated sign-in, and the decision log uses that name.
+2. Create a project with the VVS template and a "Delete data by" date (open "About the deletion date" for the placeholder advice). The yellow banner says the requirements are placeholders.
 3. Add a subcontractor, for example "Exempelrör AB".
 4. Upload packet `03_expired_and_personnummer` (5 PDFs). One file shows a note: a personal number was hidden. The stored text contains `[PERSONNUMMER]`, never the number.
 5. Click **Assess documents**. Each requirement gets a status, a quote, a page and a provider label. The insurance shows "Documents show an expired date".
-6. Override one finding with a comment, then open "Show decision history".
+6. Click "View in document" on a quote: the page opens with the quote highlighted. Then confirm or change one finding with a reason, and open "Show decision history". Open "How this result was made" to see which step was done by the AI model, by code, or by a person.
 7. Try packet `04_prompt_injection` in a new subcontractor: one page tells an AI to mark everything as found. The result must not change.
 8. Try packet `02_missing_items`: the tool says "Evidence not found" for what is really missing.
 
@@ -81,6 +82,8 @@ Prints overall accuracy, false `found` rate (target: zero), and the `unclear` ra
 - Quotes are verified in code against the stored text. The model cannot invent evidence.
 - Personnummer and samordningsnummer are redacted before text is stored or sent to any model.
 - Uploads: magic bytes, size, page count and file count checked; encrypted PDFs rejected; files stored under UUID names, never client filenames.
+- The decision log's name comes from a server-side session. The sign-in is simulated (fixed demo users), not real authentication.
+- The review viewer receives redacted text only. The "open original" link serves the uploaded PDF, which may still show personal numbers, and is labeled as such.
 - Secrets only in `.env`. Backend binds to `127.0.0.1`; CORS allows only the frontend origin. Logs hold ids and counts, never document text.
 
 ## Known limits
@@ -95,7 +98,8 @@ Prints overall accuracy, false `found` rate (target: zero), and the `unclear` ra
 - **A real hyphen at a line break** in a quote can fail to match, which weakens a finding and never strengthens it.
 - **Re-assessing adds new findings** and the PM re-reviews them. Earlier findings and decisions are kept.
 - **Names are not redacted.** Only personnummer and samordningsnummer are hidden. People on certificates are identified by name text only, and names are personal data that reach the model. There is no opt-in to keep personnummer. Both are roadmap items that need a privacy review.
-- **No data deletion yet.** Original PDFs and stored text stay until someone deletes them by hand. A deletion date per project and a purge that respects the append-only decision log are planned.
+- **No data deletion yet.** A project has a "delete data by" date and an overdue banner, with placeholder advice that is not legal advice and not reviewed by a specialist. Nothing is deleted automatically: original PDFs and stored text stay until someone deletes them by hand. A purge that respects the append-only decision log is a roadmap item.
+- **Simulated sign-in.** Two fixed demo users, sessions kept in memory (lost on restart). Real login, roles and httpOnly cookies are later.
 - **Not built:** the readiness summary screen, more than four eval packets, other trades than VVS.
 
 ## Project documents

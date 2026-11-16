@@ -37,6 +37,22 @@ export const SIMULATED_NOTE =
 export const DISCLAIMER =
   "This tool describes what the uploaded documents show. It is not an approval. A person must review and decide.";
 
+export const RETENTION_TEXT = {
+  label: "Delete data by",
+  help: "The date by which this project's documents and stored text should be destroyed. Nothing is deleted automatically in this version.",
+  placeholder: "Placeholder advice, not legal advice and not reviewed by a data protection specialist.",
+  overdue:
+    "The deletion date for this project has passed. Its documents and stored text should now be destroyed. This version cannot delete them for you: remove them by hand or ask your administrator.",
+} as const;
+
+export const VIEWER_TEXT = {
+  note: "This is the text read from the PDF, with personal numbers hidden. It does not show the original layout.",
+  legend: "Highlighted: the quote this finding is based on.",
+  notFound: "The quote was not found on this page.",
+  original: "Open the original PDF at this page",
+  originalWarning: "The original may show personal numbers that are hidden here.",
+} as const;
+
 /** Who or what produced each part of a finding. Shown on every finding and above the list. */
 export const WHO = {
   model: { tag: "AI model", color: "bg-sky-100 text-sky-900 border-sky-300" },

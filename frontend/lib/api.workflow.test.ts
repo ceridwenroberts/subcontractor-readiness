@@ -17,7 +17,14 @@ function mockFetch(impl: (url: string, init?: RequestInit) => Promise<Response>)
 
 afterEach(() => vi.unstubAllGlobals());
 
-const project = { id: "p1", name: "Demo", template_id: "vvs", created_at: "2026-11-16T10:00:00Z" };
+const project = {
+  id: "p1",
+  name: "Demo",
+  template_id: "vvs",
+  delete_after: null,
+  delete_overdue: false,
+  created_at: "2026-11-16T10:00:00Z",
+};
 
 describe("messageFromBody", () => {
   it("prefers the backend's friendly message", () => {
@@ -75,7 +82,7 @@ describe("request helpers", () => {
 
   it("rejects a bad human status before sending is possible (types), and sends PATCH", async () => {
     const fn = mockFetch(async () => new Response("{}", { status: 422 }));
-    await expect(decideFinding("f1", "found", "ok", "PM")).rejects.toBeInstanceOf(ApiError);
+    await expect(decideFinding("f1", "found", "ok")).rejects.toBeInstanceOf(ApiError);
     expect(fn.mock.calls[0][1]?.method).toBe("PATCH");
   });
 });
@@ -115,5 +122,42 @@ describe("uploadDocuments", () => {
   it("still throws for a server failure", async () => {
     mockFetch(async () => Response.json({ message: "Something went wrong on our side." }, { status: 500 }));
     await expect(uploadDocuments("e1", [file])).rejects.toThrow(/went wrong/);
+  });
+});
+
+describe("retention date", () => {
+  it("sends delete_after only when a date is given", async () => {
+    const fn = mockFetch(async () => Response.json(project, { status: 201 }));
+    await createProject("Demo", "vvs", "2027-05-01");
+    expect(JSON.parse(fn.mock.calls[0][1]?.body as string)).toEqual({
+      name: "Demo",
+      template_id: "vvs",
+      delete_after: "2027-05-01",
+    });
+  });
+});
+
+
+describe("simulated sign-in token", () => {
+  it("sends the stored token, and sends no name with a decision", async () => {
+    const store: Record<string, string> = { "readiness.session": "tok123" };
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (k: string) => store[k] ?? null,
+        setItem: (k: string, v: string) => void (store[k] = v),
+        removeItem: (k: string) => void delete store[k],
+      },
+    });
+    const fn = mockFetch(async () => new Response("{}", { status: 422 }));
+    await expect(decideFinding("f1", "found", "ok")).rejects.toBeInstanceOf(ApiError);
+    const init = fn.mock.calls[0][1];
+    expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer tok123");
+    expect(JSON.parse(init?.body as string)).toEqual({ status: "found", comment: "ok" });
+  });
+
+  it("sends no Authorization header when nobody is signed in", async () => {
+    const fn = mockFetch(async () => Response.json([project]));
+    await listProjects();
+    expect(new Headers(fn.mock.calls[0][1]?.headers).get("Authorization")).toBeNull();
   });
 });

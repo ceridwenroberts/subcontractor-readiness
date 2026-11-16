@@ -12,13 +12,17 @@ from app.providers.base import ProviderError
 PACKET_3 = PROJECT_ROOT / "evals" / "packets" / "03_expired_and_personnummer"
 
 
-def make_client(tmp_path: Path) -> TestClient:
+def make_client(tmp_path: Path, signed_in: bool = True) -> TestClient:
     settings = Settings(
         _env_file=None,
         database_url=f"sqlite:///{tmp_path / 'test.db'}",
         uploads_dir=tmp_path / "uploads",
     )
-    return TestClient(create_app(settings))
+    client = TestClient(create_app(settings))
+    if signed_in:  # the decision log needs a signed-in (simulated) user
+        token = client.post("/session", json={"user_id": "demo-pm"}).json()["token"]
+        client.headers["Authorization"] = f"Bearer {token}"
+    return client
 
 
 def engagement_with_packet(client: TestClient) -> str:
@@ -112,7 +116,7 @@ def test_unknown_engagement_and_finding_are_404(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     assert client.post("/engagements/nope/assess").status_code == 404
     assert client.get("/engagements/nope/findings").status_code == 404
-    body = {"status": "found", "comment": "x", "decided_by": "PM"}
+    body = {"status": "found", "comment": "x"}
     assert client.patch("/findings/nope", json=body).status_code == 404
     assert client.get("/findings/nope/decisions").status_code == 404
 
@@ -128,7 +132,6 @@ def test_decision_sets_human_status_only_and_logs_it(tmp_path: Path) -> None:
     body = {
         "status": "partial",
         "comment": "Renewal letter seen.",
-        "decided_by": "Test PM",
     }
     response = client.patch(f"/findings/{finding['id']}", json=body)
     assert response.status_code == 200
@@ -142,7 +145,9 @@ def test_decision_sets_human_status_only_and_logs_it(tmp_path: Path) -> None:
     assert log[0]["old_human_status"] is None
     assert log[0]["new_human_status"] == "partial"
     assert log[0]["comment"] == "Renewal letter seen."
-    assert log[0]["decided_by"] == "Test PM"
+    assert (
+        log[0]["decided_by"] == "Test PM (demo)"
+    )  # set by the server from the session
 
 
 def test_second_decision_appends_and_records_the_old_status(tmp_path: Path) -> None:
@@ -150,11 +155,9 @@ def test_second_decision_appends_and_records_the_old_status(tmp_path: Path) -> N
     fid = _first_finding(client)["id"]
     client.patch(
         f"/findings/{fid}",
-        json={"status": "partial", "comment": "a", "decided_by": "PM"},
+        json={"status": "partial", "comment": "a"},
     )
-    client.patch(
-        f"/findings/{fid}", json={"status": "found", "comment": "b", "decided_by": "PM"}
-    )
+    client.patch(f"/findings/{fid}", json={"status": "found", "comment": "b"})
     log = client.get(f"/findings/{fid}/decisions").json()
     assert [(d["old_human_status"], d["new_human_status"]) for d in log] == [
         (None, "partial"),
@@ -163,13 +166,15 @@ def test_second_decision_appends_and_records_the_old_status(tmp_path: Path) -> N
     assert count(client, DecisionLog) == 2
 
 
-def test_decision_needs_a_comment_a_name_and_a_valid_status(tmp_path: Path) -> None:
+def test_decision_needs_a_comment_a_valid_status_and_no_client_supplied_name(
+    tmp_path: Path,
+) -> None:
     client = make_client(tmp_path)
     fid = _first_finding(client)["id"]
-    good = {"status": "found", "comment": "ok", "decided_by": "PM"}
+    good = {"status": "found", "comment": "ok"}
     for bad in [
         {**good, "comment": ""},
-        {**good, "decided_by": ""},
+        {**good, "decided_by": "Someone Else"},  # the server decides who you are
         {**good, "status": "approved"},
         {**good, "extra": 1},
     ]:
@@ -180,9 +185,7 @@ def test_decision_needs_a_comment_a_name_and_a_valid_status(tmp_path: Path) -> N
 def test_there_is_no_way_to_edit_or_delete_decisions_over_http(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     fid = _first_finding(client)["id"]
-    client.patch(
-        f"/findings/{fid}", json={"status": "found", "comment": "a", "decided_by": "PM"}
-    )
+    client.patch(f"/findings/{fid}", json={"status": "found", "comment": "a"})
     did = client.get(f"/findings/{fid}/decisions").json()[0]["id"]
     for method in ("put", "patch", "delete"):
         for url in (
@@ -200,7 +203,7 @@ def test_reassess_does_not_carry_over_or_lose_a_decision(tmp_path: Path) -> None
     old = client.post(f"/engagements/{eid}/assess").json()[0]
     client.patch(
         f"/findings/{old['id']}",
-        json={"status": "found", "comment": "a", "decided_by": "PM"},
+        json={"status": "found", "comment": "a"},
     )
     new = client.post(f"/engagements/{eid}/assess").json()[0]
     assert new["human_status"] is None  # a fresh finding needs a fresh decision

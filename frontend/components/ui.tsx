@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { PLACEHOLDER_BANNER, STATUS_HELP, STATUS_LABEL, STATUS_STYLE } from "@/lib/labels";
+import { PLACEHOLDER_BANNER, RETENTION_TEXT, STATUS_HELP, STATUS_LABEL, STATUS_STYLE } from "@/lib/labels";
 import type { Status } from "@/lib/schemas";
 
 export function StatusBadge({ status, prefix }: { status: Status; prefix?: string }) {
@@ -44,3 +44,12 @@ export const inputClass =
 export const buttonClass =
   "inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50";
 export const linkClass = "text-slate-900 underline underline-offset-2 hover:text-slate-600";
+
+export function OverdueBanner({ date }: { date: string | null }) {
+  return (
+    <ErrorBox>
+      {RETENTION_TEXT.overdue}
+      {date ? ` (Date set: ${date}.)` : ""}
+    </ErrorBox>
+  );
+}

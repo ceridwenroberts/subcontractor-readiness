@@ -23,8 +23,8 @@ A subcontractor readiness tool. A PM picks a template (for example VVS), uploads
 - **Redact personnummer and samordningsnummer** in `backend/app/ingest/redact.py` before text is stored or sent anywhere. Only redacted text goes in the database or to a model. Do not bypass or weaken this.
 - **Uploads:** check `%PDF-` magic bytes, size, page count, and file count, with limits read from config. Reject encrypted PDFs. Store files under a UUID name in `data/uploads/`. Never use a client filename as a path.
 - **Secrets** live only in `.env` (gitignored). Read all keys, model names, and URLs from environment variables. Never log keys or document text; log ids and counts.
-- The backend binds to `127.0.0.1`. CORS allows only the frontend origin. v1 has no auth, so it must never be deployed.
-- LLM calls happen only in the backend, only through `backend/app/providers/`. Never call an SDK from feature code. Never expose keys or document text to the frontend.
+- The backend binds to `127.0.0.1`. CORS allows only the frontend origin. v1 has no real auth (only a simulated sign-in), so it must never be deployed.
+- LLM calls happen only in the backend, only through `backend/app/providers/`. Never call an SDK from feature code. Never expose keys to the frontend. The frontend may receive only *redacted* page text (for the review viewer) and, through the explicit "open original" link, the uploaded PDF; document text is never logged or sent to any other service. (Amended 2026-11-16, see `docs/decisions.md`.)
 - The Anthropic provider is opt-in (`LLM_PROVIDER=anthropic`). Never switch to it on your own.
 - **Synthetic data only.** No real companies, people, org numbers, or documents. If something looks real, stop and ask.
 
@@ -95,4 +95,4 @@ Also:
 
 ## Not in v1
 
-Auth, deployment, subcontractor portal (except the SIMULATED demo page), OCR, ID06 or other integrations, staff monitoring, subcontractor chains, automatic approval, and multi-agent pipelines outside the Stage 7 experiment. Never present simulated behavior as real.
+Real authentication (only the SIMULATED sign-in exists: it sets the name in the decision log from a server-side session), deployment, subcontractor portal (except the SIMULATED demo page), OCR, ID06 or other integrations, staff monitoring, subcontractor chains, automatic approval, and multi-agent pipelines outside the Stage 7 experiment. Never present simulated behavior as real.

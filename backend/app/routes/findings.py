@@ -21,6 +21,7 @@ from app.db.session import Db
 from app.domain.status import Status
 from app.providers.base import LLMProvider, ProviderError
 from app.routes.assess import PROVIDER_DOWN, SERVER_ERROR
+from app.routes.session import CurrentUser
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -57,7 +58,7 @@ class DecisionIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Status
     comment: str = Field(min_length=1, max_length=2000)
-    decided_by: str = Field(min_length=1, max_length=100)
+    # No `decided_by`: the server takes the name from the signed-in session.
 
 
 class DecisionOut(BaseModel):
@@ -213,7 +214,9 @@ def list_findings(engagement_id: str, request: Request, db: Db) -> list[FindingO
 
 
 @router.patch("/findings/{finding_id}")
-def decide(finding_id: str, body: DecisionIn, request: Request, db: Db) -> FindingOut:
+def decide(
+    finding_id: str, body: DecisionIn, request: Request, db: Db, user: CurrentUser
+) -> FindingOut:
     finding = db.get(Finding, finding_id)
     if finding is None:
         raise HTTPException(404, "That finding was not found.")
@@ -224,7 +227,7 @@ def decide(finding_id: str, body: DecisionIn, request: Request, db: Db) -> Findi
             old_human_status=finding.human_status,
             new_human_status=body.status,
             comment=body.comment.strip(),
-            decided_by=body.decided_by.strip(),
+            decided_by=user.name,
         )
     )
     finding.human_status = body.status

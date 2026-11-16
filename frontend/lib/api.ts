@@ -37,16 +37,21 @@ export function getHealth(): Promise<Health> {
 
 import {
   DecisionSchema,
+  DocumentPagesSchema,
   DocumentSchema,
   EngagementSchema,
   FindingSchema,
   ProjectDetailSchema,
   ProjectSchema,
+  RetentionAdviceSchema,
+  SignInSchema,
+  UserSchema,
   TemplateDetailSchema,
   TemplateSummarySchema,
   UploadResponseSchema,
   type Status,
 } from "./schemas";
+import { getToken } from "./token";
 
 /** An error whose message is safe and useful to show to the PM. */
 export class ApiError extends Error {
@@ -79,6 +84,12 @@ async function request<T>(
 ): Promise<T> {
   let res: Response;
   try {
+    const token = getToken();
+    if (token) {
+      const headers = new Headers(init?.headers);
+      headers.set("Authorization", `Bearer ${token}`);
+      init = { ...init, headers };
+    }
     res = await fetch(`${API_URL}${path}`, init);
   } catch {
     throw new ApiError(
@@ -109,8 +120,17 @@ export const getTemplate = (id: string) =>
   request(`/templates/${encodeURIComponent(id)}`, TemplateDetailSchema);
 
 export const listProjects = () => request("/projects", z.array(ProjectSchema));
-export const createProject = (name: string, templateId: string) =>
-  request("/projects", ProjectSchema, json("POST", { name, template_id: templateId }));
+export const getRetentionAdvice = () => request("/retention", RetentionAdviceSchema);
+export const createProject = (name: string, templateId: string, deleteAfter?: string) =>
+  request(
+    "/projects",
+    ProjectSchema,
+    json("POST", {
+      name,
+      template_id: templateId,
+      ...(deleteAfter ? { delete_after: deleteAfter } : {}),
+    }),
+  );
 export const getProject = (id: string) =>
   request(`/projects/${encodeURIComponent(id)}`, ProjectDetailSchema);
 export const createEngagement = (projectId: string, subcontractorName: string) =>
@@ -152,16 +172,31 @@ export const assessEngagement = (engagementId: string) =>
   );
 export const listFindings = (engagementId: string) =>
   request(`/engagements/${encodeURIComponent(engagementId)}/findings`, z.array(FindingSchema));
-export const decideFinding = (
-  findingId: string,
-  status: Status,
-  comment: string,
-  decidedBy: string,
-) =>
+/** The name in the decision log comes from the signed-in session on the server, not from here. */
+export const decideFinding = (findingId: string, status: Status, comment: string) =>
   request(
     `/findings/${encodeURIComponent(findingId)}`,
     FindingSchema,
-    json("PATCH", { status, comment, decided_by: decidedBy }),
+    json("PATCH", { status, comment }),
   );
 export const listDecisions = (findingId: string) =>
   request(`/findings/${encodeURIComponent(findingId)}/decisions`, z.array(DecisionSchema));
+
+// Simulated sign-in (see lib/token.ts).
+export const listDemoUsers = () => request("/session/users", z.array(UserSchema));
+export const signIn = (userId: string) =>
+  request("/session", SignInSchema, json("POST", { user_id: userId }));
+export const getMe = () => request("/session/me", UserSchema);
+export const signOut = () => request("/session", z.null(), { method: "DELETE" });
+
+/** Redacted page text for the viewer. */
+export const getDocumentPages = (documentId: string) =>
+  request(`/documents/${encodeURIComponent(documentId)}/pages`, DocumentPagesSchema);
+
+/** Link to the ORIGINAL PDF, which may show personal numbers the viewer hides. */
+export const documentFileUrl = (documentId: string, page: number) =>
+  `${API_URL}/documents/${encodeURIComponent(documentId)}/file#page=${page}`;
+
+/** Link to the viewer page for a quote. The quote is redacted text, already stored. */
+export const viewerPath = (documentId: string, page: number, quote: string) =>
+  `/documents/${encodeURIComponent(documentId)}?page=${page}&quote=${encodeURIComponent(quote)}`;

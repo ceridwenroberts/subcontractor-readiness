@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, Request
-from sqlalchemy import Engine, create_engine, event
+from sqlalchemy import Engine, create_engine, event, inspect, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.db.models import Base
@@ -22,7 +22,21 @@ def make_engine(url: str) -> Engine:
             dbapi_connection.execute("PRAGMA foreign_keys=ON")
 
     Base.metadata.create_all(engine)
+    _add_missing_columns(engine)
     return engine
+
+
+def _add_missing_columns(engine: Engine) -> None:
+    """Add columns introduced after a database file was created. Never drops or rewrites data.
+
+    create_all only creates missing tables. Without this, a database made before
+    Project.delete_after existed would fail on every project query. Only nullable columns
+    can be added this way.
+    """
+    columns = {c["name"] for c in inspect(engine).get_columns("projects")}
+    if "delete_after" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE projects ADD COLUMN delete_after DATE"))
 
 
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:

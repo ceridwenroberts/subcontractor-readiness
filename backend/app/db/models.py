@@ -30,6 +30,8 @@ class Project(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     name: Mapped[str] = mapped_column(String(200))
     template_id: Mapped[str] = mapped_column(String(100))
+    # Date by which the project's data should be destroyed. Nothing deletes it automatically.
+    delete_after: Mapped[date | None] = mapped_column(Date, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     engagements: Mapped[list["Engagement"]] = relationship(back_populates="project")
 

@@ -100,3 +100,12 @@ Each entry: date, decision, reason. Newest at the bottom.
 
 ## 2026-11-16: Known privacy gaps to state in the report
 **Names are not redacted.** Only personnummer and samordningsnummer are. People on certificates are identified by name text only, and the tool never links a person across documents. Names are personal data and go to the model. An opt-in for personnummer (if ever built) should apply to local models only, with a stated justification, and names need their own decision.
+
+## 2026-11-16: Assessment shows progress by streaming; UI notes from the developer's review
+**Decision:** `POST /engagements/{id}/assess/stream` reports `start`, a `working` event before each requirement, then `done` or `error` as newline-delimited JSON. The page shows "Checking requirement 3 of 7: <title>" and a progress bar. The plain `/assess` endpoint stays. Findings are still saved only after every requirement finishes. Small UI fixes made with it: a confirmation after a decision is recorded, no pre-selected choice unless the documents show evidence, and a neutral "Choose a status…" placeholder.
+**Reason:** A one to two minute wait with no sign of life looks like a freeze.
+
+## 2026-11-16: Notes for later (developer's UI review), not built yet
+- **Optional "reviewer must open the document before confirming"** (a project setting). Needs a record that a signed-in reviewer opened that document, so it is a data-model change and waits for a decision.
+- **Confirming the shown result should not require a comment**; a comment stays required when the reviewer changes the result.
+- **Request a new upload by email**, **a dashboard of documents that need a new upload**, and **rejection reasons**. Wording rule: the UI says "needs a new upload" and "documents do not show evidence", never "failed" or "does not pass" (CLAUDE.md bans verdict words). Email is not in v1, so any email is SIMULATED: a draft is recorded and shown, and nothing is sent.

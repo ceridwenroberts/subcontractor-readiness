@@ -132,7 +132,7 @@ Any dependency not in this table needs approval first. Record it here and in `do
 ## 7. Data model
 
 ```
-Project      id, name, templateId, createdAt
+Project      id, name, templateId, deleteAfter (optional date; nothing deletes automatically), createdAt
 Engagement   id, projectId, subcontractorName, orgNumber (optional, fictional), createdAt
 Document     id, engagementId, originalFilename, storedName (UUID), sha256,
              pageCount, pagesJson (redacted text per page), redactionCount,
@@ -243,8 +243,8 @@ The school version runs only on localhost with synthetic data. These rules still
 | Malicious or huge upload | Crash, zip bomb, path traversal | Check `%PDF-` magic bytes, max file size, max page count, max files per request (all from config). Store under UUID name. Never use the client filename as a path. Reject encrypted PDFs. | `ingest/upload.py` |
 | Secrets leak | API key in git or logs | `.env` gitignored, `.env.example` committed. `check.sh` scans for key patterns. Logs contain ids and counts, never document text or keys. | `config.py`, `check.sh` |
 | Exposed API | Someone on the network calls the API | Bind to 127.0.0.1. CORS allows only the frontend origin. No auth in v1, so never deploy v1. | `main.py` |
-| Data sent to client | Keys or raw text in the browser | Frontend calls only the backend. No `NEXT_PUBLIC_` secrets. | `frontend/` |
-| Decisions tampered with | Audit trail lost | DecisionLog is append-only. No update or delete endpoint. | `db/`, `routes/` |
+| Data sent to client | Keys or text in the browser | Frontend calls only the backend. No `NEXT_PUBLIC_` secrets. The frontend gets only redacted page text (viewer) and the original PDF through an explicit, labeled link. | `frontend/`, `routes/documents.py` |
+| Decisions tampered with | Audit trail lost | DecisionLog is append-only. No update or delete endpoint. The name comes from the server-side (simulated) session, never from the request. | `db/`, `routes/` |
 | Misleading output | Tool reads as a verdict | Banned words list tested in code (summary and UI strings). Provider label on every finding. Placeholder-template banner. | `summary.py`, UI |
 
 Before any real use (LATER): login and access control, a data processing agreement with any hosted LLM provider, EU hosting, a retention policy, encryption at rest, and a security review.

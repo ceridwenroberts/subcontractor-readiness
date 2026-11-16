@@ -5,7 +5,7 @@ import { use, useCallback, useEffect, useRef, useState } from "react";
 
 import { FindingCard } from "@/components/FindingCard";
 import { HowItWasMade } from "@/components/HowItWasMade";
-import { Card, ErrorBox, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
+import { Card, ErrorBox, OverdueBanner, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
 import {
   assessEngagement,
   getEngagement,
@@ -16,11 +16,13 @@ import {
   uploadDocuments,
 } from "@/lib/api";
 import { DISCLAIMER } from "@/lib/labels";
+import { useSession } from "@/lib/useSession";
 import type {
   DocumentInfo,
   Engagement,
   FileReport,
   Finding,
+  Project,
   TemplateDetail,
 } from "@/lib/schemas";
 
@@ -30,6 +32,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   const { engagementId } = use(params);
   const [engagement, setEngagement] = useState<Engagement | null>(null);
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -42,7 +45,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
 
   const [assessing, setAssessing] = useState(false);
   const [assessError, setAssessError] = useState<string | null>(null);
-  const [reviewer, setReviewer] = useState("");
+  const { user } = useSession();
 
   const refresh = useCallback(async () => {
     const [docs, found] = await Promise.all([listDocuments(engagementId), listFindings(engagementId)]);
@@ -60,6 +63,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
       if (ignore) return;
       setEngagement(e);
       setTemplate(t);
+      setProject(p);
       setDocuments(docs);
       setFindings(found);
     })().catch((err: unknown) => {
@@ -120,6 +124,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
         <p className="text-sm text-slate-600">Template: {template.name}</p>
       </div>
       {template.placeholder && <PlaceholderBanner />}
+      {project?.delete_overdue && <OverdueBanner date={project.delete_after} />}
 
       <Card>
         <h2 className="mb-1 text-lg font-medium">1. Upload documents</h2>
@@ -218,20 +223,10 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
         <section className="space-y-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <h2 className="text-lg font-medium">3. Findings ({findings.length})</h2>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium">Your name (for the decision log)</span>
-              <input
-                className={inputClass}
-                value={reviewer}
-                onChange={(e) => setReviewer(e.target.value)}
-                maxLength={100}
-                placeholder="For example: Test PM"
-              />
-            </label>
           </div>
           <HowItWasMade findings={findings} />
           {findings.map((f) => (
-            <FindingCard key={f.id} finding={f} reviewer={reviewer} onChanged={onFindingChanged} />
+            <FindingCard key={f.id} finding={f} user={user} onChanged={onFindingChanged} />
           ))}
         </section>
       )}

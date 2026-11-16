@@ -37,6 +37,8 @@ export const ProjectSchema = z.object({
   id: z.string(),
   name: z.string(),
   template_id: z.string(),
+  delete_after: z.string().nullable(),
+  delete_overdue: z.boolean(),
   created_at: z.string(),
 });
 export type Project = z.infer<typeof ProjectSchema>;
@@ -120,3 +122,27 @@ export const DecisionSchema = z.object({
   decided_at: z.string(),
 });
 export type Decision = z.infer<typeof DecisionSchema>;
+
+export const RetentionAdviceSchema = z.object({
+  reviewed_by: z.string().nullable(),
+  placeholder: z.boolean(),
+  suggested_date: z.string(),
+  summary: z.string(),
+  basis: z.array(z.string()),
+  caveats: z.array(z.string()),
+});
+export type RetentionAdvice = z.infer<typeof RetentionAdviceSchema>;
+
+export const UserSchema = z.object({ id: z.string(), name: z.string() });
+export type User = z.infer<typeof UserSchema>;
+
+export const SignInSchema = z.object({ token: z.string(), user: UserSchema });
+
+export const DocumentPagesSchema = z.object({
+  id: z.string(),
+  engagement_id: z.string(),
+  filename: z.string(),
+  page_count: z.number(),
+  pages: z.array(z.string()),
+});
+export type DocumentPages = z.infer<typeof DocumentPagesSchema>;

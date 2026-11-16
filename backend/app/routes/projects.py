@@ -1,6 +1,6 @@
 """Projects and engagements."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
@@ -8,6 +8,7 @@ from sqlalchemy import select
 
 from app.db.models import Engagement, Project
 from app.db.session import Db
+from app.retention import RetentionAdvice, retention_advice
 
 router = APIRouter()
 
@@ -16,6 +17,7 @@ class ProjectIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     name: str = Field(min_length=1, max_length=200)
     template_id: str = Field(min_length=1, max_length=100)
+    delete_after: date | None = None
 
 
 class EngagementIn(BaseModel):
@@ -36,6 +38,8 @@ class ProjectOut(BaseModel):
     id: str
     name: str
     template_id: str
+    delete_after: date | None
+    delete_overdue: bool  # the date has passed; the data should now be deleted
     created_at: datetime
 
 
@@ -55,15 +59,32 @@ def _engagement(e: Engagement) -> EngagementOut:
 
 def _project(p: Project) -> ProjectOut:
     return ProjectOut(
-        id=p.id, name=p.name, template_id=p.template_id, created_at=p.created_at
+        id=p.id,
+        name=p.name,
+        template_id=p.template_id,
+        delete_after=p.delete_after,
+        delete_overdue=p.delete_after is not None and p.delete_after < date.today(),
+        created_at=p.created_at,
     )
+
+
+@router.get("/retention")
+def get_retention_advice() -> RetentionAdvice:
+    """Placeholder advice for the "delete data by" date. See app/retention.py."""
+    return retention_advice(date.today())
 
 
 @router.post("/projects", status_code=201)
 def create_project(body: ProjectIn, request: Request, db: Db) -> ProjectOut:
     if body.template_id not in request.app.state.templates:
         raise HTTPException(404, "That template was not found.")
-    project = Project(name=body.name.strip(), template_id=body.template_id)
+    if body.delete_after is not None and body.delete_after < date.today():
+        raise HTTPException(400, "The deletion date must be today or later.")
+    project = Project(
+        name=body.name.strip(),
+        template_id=body.template_id,
+        delete_after=body.delete_after,
+    )
     db.add(project)
     db.commit()
     return _project(project)

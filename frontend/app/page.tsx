@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Card, ErrorBox, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
-import { API_URL, createProject, getHealth, listProjects, listTemplates } from "@/lib/api";
-import type { Project, TemplateSummary } from "@/lib/schemas";
+import { API_URL, createProject, getHealth, getRetentionAdvice, listProjects, listTemplates } from "@/lib/api";
+import { RETENTION_TEXT } from "@/lib/labels";
+import type { Project, RetentionAdvice, TemplateSummary } from "@/lib/schemas";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
 
@@ -15,16 +16,20 @@ export default function Home() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState("");
+  const [advice, setAdvice] = useState<RetentionAdvice | null>(null);
+  const [deleteAfter, setDeleteAfter] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
-    Promise.all([getHealth(), listProjects(), listTemplates()])
-      .then(([, p, t]) => {
+    Promise.all([getHealth(), listProjects(), listTemplates(), getRetentionAdvice()])
+      .then(([, p, t, a]) => {
         if (ignore) return;
         setProjects(p);
         setTemplates(t);
+        setAdvice(a);
+        setDeleteAfter((current) => current || a.suggested_date);
         setTemplateId((current) => current || t[0]?.id || "");
       })
       .catch((err: unknown) => {
@@ -45,7 +50,7 @@ export default function Home() {
     setSaving(true);
     setFormError(null);
     try {
-      const created = await createProject(name.trim(), templateId);
+      const created = await createProject(name.trim(), templateId, deleteAfter);
       setProjects((prev) => [created, ...(prev ?? [])]);
       setName("");
     } catch (err) {
@@ -62,7 +67,7 @@ export default function Home() {
 
       <Card>
         <h2 className="mb-3 text-lg font-medium">New project</h2>
-        <form onSubmit={onCreate} className="grid gap-3 sm:grid-cols-[1fr_12rem_auto] sm:items-end">
+        <form onSubmit={onCreate} className="grid gap-3 sm:grid-cols-[1fr_12rem_11rem_auto] sm:items-end">
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Project name</span>
             <input
@@ -89,10 +94,43 @@ export default function Home() {
               ))}
             </select>
           </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">{RETENTION_TEXT.label}</span>
+            <input
+              type="date"
+              className={inputClass}
+              value={deleteAfter}
+              onChange={(e) => setDeleteAfter(e.target.value)}
+            />
+          </label>
           <button className={buttonClass} disabled={saving || !name.trim() || !templateId}>
             {saving ? "Creating…" : "Create project"}
           </button>
         </form>
+        <details className="mt-3 text-sm text-slate-700">
+          <summary className="cursor-pointer select-none text-slate-600 hover:text-slate-900">
+            About the deletion date
+          </summary>
+          <div className="mt-2 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-950">
+            <p className="font-medium">{RETENTION_TEXT.placeholder}</p>
+            <p>{RETENTION_TEXT.help}</p>
+            {advice && (
+              <>
+                <p>{advice.summary}</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  {advice.basis.map((b) => (
+                    <li key={b}>{b}</li>
+                  ))}
+                </ul>
+                <ul className="list-disc space-y-1 pl-5">
+                  {advice.caveats.map((c) => (
+                    <li key={c}>{c}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        </details>
         {selected?.placeholder && (
           <div className="mt-3">
             <PlaceholderBanner />
@@ -119,6 +157,11 @@ export default function Home() {
               </Link>
               <span className="text-xs text-slate-600">
                 Template: {templates.find((t) => t.id === p.template_id)?.name ?? p.template_id}
+                {p.delete_after && (
+                  <span className={p.delete_overdue ? "ml-2 font-medium text-rose-800" : "ml-2"}>
+                    · {p.delete_overdue ? "Deletion overdue" : "Delete by"} {p.delete_after}
+                  </span>
+                )}
               </span>
             </li>
           ))}
