@@ -7,7 +7,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # backend/app/config.py -> project root
@@ -41,6 +41,22 @@ class Settings(BaseSettings):
 
     # Folder with one requirement template JSON file per trade.
     templates_dir: Path = PROJECT_ROOT / "templates"
+
+    # Expiry warnings on the home page: days before a date in the documents runs out.
+    # Placeholder values, to be set with the business. Must be urgent < soon < upcoming.
+    expiry_urgent_days: int = Field(default=14, gt=0)
+    expiry_soon_days: int = Field(default=30, gt=0)
+    expiry_upcoming_days: int = Field(default=60, gt=0)
+
+    @model_validator(mode="after")
+    def _expiry_tiers_in_order(self) -> "Settings":
+        if (
+            not self.expiry_urgent_days
+            < self.expiry_soon_days
+            < self.expiry_upcoming_days
+        ):
+            raise ValueError("Expiry tiers must satisfy urgent < soon < upcoming.")
+        return self
 
     # Upload limits (PLAN.md section 12). Checked in app/ingest/upload.py.
     max_file_mb: int = Field(default=10, gt=0)

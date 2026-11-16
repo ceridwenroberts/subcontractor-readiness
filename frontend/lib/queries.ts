@@ -9,6 +9,7 @@ import {
   getProject,
   getTemplate,
   listDocuments,
+  listExpiring,
   listFindings,
   listOpenRequests,
   listProjects,
@@ -25,6 +26,7 @@ export const queryKeys = {
   documents: (engagementId: string) => ["engagements", engagementId, "documents"] as const,
   findings: (engagementId: string) => ["engagements", engagementId, "findings"] as const,
   openRequests: ["upload-requests", "open"] as const,
+  expiring: ["issues", "expiring"] as const,
   reasons: ["upload-requests", "reasons"] as const,
 };
 
@@ -52,3 +54,4 @@ export const useOpenRequests = () =>
   useQuery({ queryKey: queryKeys.openRequests, queryFn: listOpenRequests });
 export const useRequestReasons = () =>
   useQuery({ queryKey: queryKeys.reasons, queryFn: listRequestReasons, staleTime: Infinity });
+export const useExpiring = () => useQuery({ queryKey: queryKeys.expiring, queryFn: listExpiring });

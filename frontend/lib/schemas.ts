@@ -198,6 +198,35 @@ export const OpenRequestSchema = z.object({
 });
 export type OpenRequest = z.infer<typeof OpenRequestSchema>;
 
+export const ExpiryTierSchema = z.enum(["expired", "urgent", "soon", "upcoming"]);
+export type ExpiryTier = z.infer<typeof ExpiryTierSchema>;
+
+/** A SIMULATED reminder draft: shown on screen, never sent. */
+export const ReminderDraftSchema = z.object({
+  kind: z.enum(["before_expiry", "at_expiry"]),
+  to: z.string(),
+  subject: z.string(),
+  body: z.string(),
+});
+export type ReminderDraft = z.infer<typeof ReminderDraftSchema>;
+
+export const ExpiringItemSchema = z.object({
+  finding_id: z.string(),
+  project_id: z.string(),
+  project_name: z.string(),
+  engagement_id: z.string(),
+  subcontractor_name: z.string(),
+  requirement_code: z.string(),
+  requirement_title: z.string(),
+  valid_until: z.string(),
+  days_left: z.number(), // negative once the date has ended
+  tier: ExpiryTierSchema,
+  status: StatusSchema,
+  new_upload_requested: z.boolean(),
+  reminder: ReminderDraftSchema.nullable(),
+});
+export type ExpiringItem = z.infer<typeof ExpiringItemSchema>;
+
 export const SummarySchema = z.object({
   title: z.string(),
   intro: z.string(),

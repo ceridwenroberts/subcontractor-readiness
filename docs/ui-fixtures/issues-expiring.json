@@ -1,0 +1,72 @@
+[
+  {
+    "finding_id": "a1",
+    "project_id": "11450c43-ddfe-4966-bce0-ca57b8b9a581",
+    "project_name": "Hamnen 4",
+    "engagement_id": "22e56e7b-b07e-4c2c-b6d8-1c13c2ecb828",
+    "subcontractor_name": "Exempelrör AB",
+    "requirement_code": "VVS-03",
+    "requirement_title": "Liability insurance",
+    "valid_until": "2026-11-13",
+    "days_left": -4,
+    "tier": "expired",
+    "status": "found",
+    "new_upload_requested": true,
+    "reminder": {
+      "kind": "at_expiry",
+      "to": "kontakt@exempelror.example",
+      "subject": "Action needed: Liability insurance ran out on 2026-11-13",
+      "body": "Hello Exempelrör AB,\n\nFor the project Hamnen 4, this concerns: Liability insurance.\nThe document we hold shows a date of 2026-11-13, which has ended.\nPlease upload a renewed document.\n\nRegards,\nThe project team"
+    }
+  },
+  {
+    "finding_id": "a2",
+    "project_id": "11450c43-ddfe-4966-bce0-ca57b8b9a581",
+    "project_name": "Hamnen 4",
+    "engagement_id": "22e56e7b-b07e-4c2c-b6d8-1c13c2ecb828",
+    "subcontractor_name": "Exempelrör AB",
+    "requirement_code": "VVS-05",
+    "requirement_title": "Säker Vatten authorisation",
+    "valid_until": "2026-11-26",
+    "days_left": 9,
+    "tier": "urgent",
+    "status": "found",
+    "new_upload_requested": false,
+    "reminder": {
+      "kind": "before_expiry",
+      "to": "kontakt@exempelror.example",
+      "subject": "Reminder: Säker Vatten authorisation runs out on 2026-11-26",
+      "body": "Hello Exempelrör AB,\n\nFor the project Hamnen 4, this concerns: Liability insurance.\nThe document we hold shows a date of 2026-11-26, in 9 days.\nPlease upload a renewed document.\n\nRegards,\nThe project team"
+    }
+  },
+  {
+    "finding_id": "a3",
+    "project_id": "11450c43-ddfe-4966-bce0-ca57b8b9a581",
+    "project_name": "Hamnen 4",
+    "engagement_id": "c2e0712a-e6e4-45f9-8287-e839360a731b",
+    "subcontractor_name": "Andra Rör AB",
+    "requirement_code": "VVS-07",
+    "requirement_title": "Hot work certificate",
+    "valid_until": "2026-12-10",
+    "days_left": 23,
+    "tier": "soon",
+    "status": "partial",
+    "new_upload_requested": false,
+    "reminder": null
+  },
+  {
+    "finding_id": "a4",
+    "project_id": "11450c43-ddfe-4966-bce0-ca57b8b9a581",
+    "project_name": "Hamnen 4",
+    "engagement_id": "c2e0712a-e6e4-45f9-8287-e839360a731b",
+    "subcontractor_name": "Andra Rör AB",
+    "requirement_code": "VVS-03",
+    "requirement_title": "Liability insurance",
+    "valid_until": "2027-01-10",
+    "days_left": 54,
+    "tier": "upcoming",
+    "status": "found",
+    "new_upload_requested": false,
+    "reminder": null
+  }
+]

@@ -42,6 +42,7 @@ import {
   DocumentSchema,
   EngagementSchema,
   FindingSchema,
+  ExpiringItemSchema,
   OpenRequestSchema,
   ReasonSchema,
   ProjectDetailSchema,
@@ -306,6 +307,9 @@ export async function assessEngagementStream(
 
 export const listRequestReasons = () => request("/upload-requests/reasons", z.array(ReasonSchema));
 export const listOpenRequests = () => request("/upload-requests/open", z.array(OpenRequestSchema));
+
+/** Documents whose date is close to running out, or has. Most urgent first. */
+export const listExpiring = () => request("/issues/expiring", z.array(ExpiringItemSchema));
 
 export const getSummary = (engagementId: string) =>
   request(`/engagements/${encodeURIComponent(engagementId)}/summary`, SummarySchema);

@@ -7,6 +7,7 @@ import {
   decideFinding,
   getSummary,
   listProjects,
+  listExpiring,
   listOpenRequests,
   messageFromBody,
   uploadDocuments,
@@ -296,6 +297,39 @@ describe("recording a decision", () => {
       ),
     );
     await expect(decideFinding("f1", { status: "partial", comment: "" })).rejects.toThrow(/Choose a reason/);
+  });
+});
+
+describe("expiring documents", () => {
+  const item = {
+    finding_id: "f1",
+    project_id: "p1",
+    project_name: "Hamnen 4",
+    engagement_id: "e1",
+    subcontractor_name: "Exempelrör AB",
+    requirement_code: "VVS-03",
+    requirement_title: "Liability insurance",
+    valid_until: "2026-11-26",
+    days_left: 9,
+    tier: "urgent",
+    status: "found",
+    new_upload_requested: false,
+    reminder: {
+      kind: "before_expiry",
+      to: "k@exempel.example",
+      subject: "Reminder: Liability insurance runs out on 2026-11-26",
+      body: "Hello",
+    },
+  };
+  it("parses the list, including an item with no reminder", async () => {
+    mockFetch(async () => Response.json([item, { ...item, finding_id: "f2", reminder: null }]));
+    const got = await listExpiring();
+    expect(got).toHaveLength(2);
+    expect(got[1].reminder).toBeNull();
+  });
+  it("rejects an unknown tier", async () => {
+    mockFetch(async () => Response.json([{ ...item, tier: "critical" }]));
+    await expect(listExpiring()).rejects.toThrow(/unexpected format/);
   });
 });
 

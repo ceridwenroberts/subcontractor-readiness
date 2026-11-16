@@ -110,5 +110,6 @@ Next.js 16 (App Router), React 19, TypeScript in strict mode (no `any`), Tailwin
 | `findings-all-states.json` | **Hand-made:** one of every status, a model answer lowered by the second check, an unverified quote, an expired finding with a request. Use this for the findings screen. |
 | `summary.json` | The summary screen data. |
 | `open-requests.json` | The "Needs a new upload" dashboard table. |
+| `issues-expiring.json` | Documents close to running out, one per tier (expired, urgent, soon, upcoming), with simulated reminder drafts. Hand-made. |
 | `upload-rejected.json` | A rejected upload with a message and a hint. |
 | `upload-reasons.json`, `session-users.json`, `retention-advice.json`, `document-pages.json`, `decisions.json` | Smaller responses. |
