@@ -20,14 +20,6 @@ export const STATUS_HELP: Record<Status, string> = {
   expired: "A verified quote shows a date that has passed.",
 };
 
-export const STATUS_STYLE: Record<Status, string> = {
-  found: "bg-emerald-100 text-emerald-900 border-emerald-300",
-  partial: "bg-amber-100 text-amber-900 border-amber-300",
-  missing: "bg-slate-100 text-slate-800 border-slate-300",
-  unclear: "bg-violet-100 text-violet-900 border-violet-300",
-  expired: "bg-rose-100 text-rose-900 border-rose-300",
-};
-
 export const STATUSES = Object.keys(STATUS_LABEL) as Status[];
 
 export const PLACEHOLDER_BANNER =

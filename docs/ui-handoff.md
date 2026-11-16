@@ -15,7 +15,7 @@ It is a school project and a first step toward a real product. It runs on localh
 ## Content rules (these are product rules, not style)
 
 1. **Never use these words anywhere in the UI:** approved, compliant, qualified, pass, passed, fail, failed, score. No percentages, ratios, grades or traffic-light verdicts. Use "documents show", "evidence not found", "needs human review", "needs a new upload".
-2. **Status wording is fixed.** Use exactly these labels (they live in `frontend/lib/labels.ts`):
+2. **Status wording is fixed.** Use exactly these labels (the wording lives in `frontend/lib/labels.ts` and is protected; the colours live in `STATUS_STYLE` in `frontend/components/ui.tsx` and are yours to change):
 
    | Status key | Label | Colour family now |
    |---|---|---|

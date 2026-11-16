@@ -1,7 +1,17 @@
 import type { ReactNode } from "react";
 
-import { PLACEHOLDER_BANNER, RETENTION_TEXT, STATUS_HELP, STATUS_LABEL, STATUS_STYLE } from "@/lib/labels";
+import { PLACEHOLDER_BANNER, RETENTION_TEXT, STATUS_HELP, STATUS_LABEL } from "@/lib/labels";
 import type { Status } from "@/lib/schemas";
+
+// Colours only. Restyle freely, but keep five clearly distinct styles and never imply good or bad.
+// The wording (STATUS_LABEL) stays in lib/labels.ts.
+export const STATUS_STYLE: Record<Status, string> = {
+  found: "bg-emerald-100 text-emerald-900 border-emerald-300",
+  partial: "bg-amber-100 text-amber-900 border-amber-300",
+  missing: "bg-slate-100 text-slate-800 border-slate-300",
+  unclear: "bg-violet-100 text-violet-900 border-violet-300",
+  expired: "bg-rose-100 text-rose-900 border-rose-300",
+};
 
 export function StatusBadge({ status, prefix }: { status: Status; prefix?: string }) {
   return (
