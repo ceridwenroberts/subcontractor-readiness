@@ -304,7 +304,7 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 ### Stage 4: Data and workflow (day 5)
 - [x] SQLAlchemy models: Project, Engagement, Document, Finding, DecisionLog
 - [x] Project, engagement, and document endpoints
-- [ ] Assess all requirements for an engagement and store findings
+- [x] Assess all requirements for an engagement and store findings
 - [ ] Summary from stored findings, with disclaimer and banned-words test
 
 ### Stage 5: Review UI (day 6)
