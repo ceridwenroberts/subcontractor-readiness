@@ -152,3 +152,11 @@ def test_scripted_provider_pattern_and_unknown_code(code: str, expected: str) ->
     scripted = ScriptedProvider({"VVS-01": {"pattern": "är godkänd för F-skatt"}})
     req = FSKATT.model_copy(update={"code": code})
     assert assess_requirement(scripted, req, DOCS, TODAY).ai_status == expected
+
+
+def test_task_is_repeated_after_the_documents() -> None:
+    prompt = build_user_prompt(FSKATT, DOCS, TODAY, nonce="abc123")
+    after_documents = prompt.rsplit("<<END-abc123>>", 1)[1]
+    assert "VVS-01" in after_documents
+    assert "F-skatt" in after_documents  # the evidence hints are used as search terms
+    assert PROMPT_VERSION == "assess-v2"

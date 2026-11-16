@@ -73,3 +73,7 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-16: OCR for scanned PDFs is not built for the Thursday demo
 **Decision:** No OCR in v1. A PDF page with no text layer gets a visible warning ("No readable text found on page N. This may be a scan. Text from scans is not supported yet, so requirements may show as not found."). OCR is the first roadmap item after the school version.
 **Reason:** It needs 2-3 new dependencies (Tesseract with the Swedish pack, a PDF page renderer, a Python wrapper) and about half a day, and `CLAUDE.md` lists OCR as not in v1. When built it must run locally and before redaction: sending page images to a hosted model would expose personnummer before they can be redacted, which breaks the hard rule that only redacted text goes to a model.
+
+## 2026-11-16: Demo model is qwen2.5:7b with prompt assess-v2
+**Decision:** Use `qwen2.5:7b` via Ollama as the demo model, with `PROMPT_VERSION = "assess-v2"`. The 3B model is kept only for quick plumbing tests.
+**Reason:** On packet 03 the 3B model got 0 of 7 right, the 7B model with v1 got 3 of 7, and with v2 got 6 of 7. No false `found` in any run. A likely cause of the early misses was the language mismatch (English requirements, Swedish documents), which v2 addresses by asking for matching on meaning. Single runs, labeled "local model, not representative of production quality". Cost: about 8 seconds per requirement.
