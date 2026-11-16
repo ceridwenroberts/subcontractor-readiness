@@ -5,6 +5,7 @@ Settings are added here only when a slice needs them. Never log secret values.
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -32,6 +33,15 @@ class Settings(BaseSettings):
     max_file_mb: int = Field(default=10, gt=0)
     max_pages: int = Field(default=50, gt=0)
     max_files: int = Field(default=10, gt=0)
+
+    # Which LLM provider answers. "scripted" (default) never touches the network.
+    llm_provider: Literal["scripted", "ollama", "anthropic"] = "scripted"
+    ollama_url: str = Field(
+        default="http://127.0.0.1:11434", pattern=r"^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$"
+    )
+    ollama_model: str = ""
+    ollama_timeout_seconds: int = Field(default=120, gt=0)
+    ollama_num_ctx: int = Field(default=8192, gt=0)
 
     # Uploaded PDFs, stored under UUID names. Gitignored (data/).
     uploads_dir: Path = PROJECT_ROOT / "data" / "uploads"

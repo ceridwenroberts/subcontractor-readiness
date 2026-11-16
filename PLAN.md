@@ -295,8 +295,8 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 ### Stage 3: Assessment (days 3 and 4)
 - [x] Quote normalization and verification in `domain/`, with tests
 - [x] Status rules (only weaken, `found` without quote → `unclear`, expiry) with tests
-- [ ] Provider interface plus `scripted` provider
-- [ ] Prompt and output schema for one requirement, with untrusted-data delimiters
+- [x] Provider interface plus `scripted` provider
+- [x] Prompt and output schema for one requirement, with untrusted-data delimiters
 - [ ] `POST /assess/...` end to end with the scripted provider
 - [ ] Ollama provider, run once end to end
 - [ ] Anthropic provider: on hold until a key and approval exist. The interface is designed so it can be added later without changing other code.

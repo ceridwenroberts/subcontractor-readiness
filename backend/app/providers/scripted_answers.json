@@ -1,0 +1,9 @@
+{
+  "VVS-01": {"pattern": "är godkänd för F-skatt"},
+  "VVS-02": {"pattern": "registrerad som arbetsgivare och är momsregistrerad"},
+  "VVS-03": {"pattern": "Giltig till \\d{4}-\\d{2}-\\d{2}"},
+  "VVS-04": {"pattern": "bundet av VVS-avtalet genom hängavtal"},
+  "VVS-05": {"pattern": "Behörighet giltig till \\d{4}-\\d{2}-\\d{2}"},
+  "VVS-06": {"pattern": "Egenkontrollplan för installationsarbetet"},
+  "VVS-07": {"pattern": "Certifikat för heta arbeten, giltigt till \\d{4}-\\d{2}-\\d{2}"}
+}
