@@ -26,17 +26,24 @@ def make_engine(url: str) -> Engine:
     return engine
 
 
+# Columns added after the first release. Only nullable columns can be added this way.
+_NEW_COLUMNS = [
+    ("projects", "delete_after", "DATE"),
+    ("engagements", "contact_email", "VARCHAR(200)"),
+]
+
+
 def _add_missing_columns(engine: Engine) -> None:
     """Add columns introduced after a database file was created. Never drops or rewrites data.
 
-    create_all only creates missing tables. Without this, a database made before
-    Project.delete_after existed would fail on every project query. Only nullable columns
-    can be added this way.
+    create_all only creates missing tables. Without this, a database made before a column
+    existed would fail on every query that touches it.
     """
-    columns = {c["name"] for c in inspect(engine).get_columns("projects")}
-    if "delete_after" not in columns:
-        with engine.begin() as conn:
-            conn.execute(text("ALTER TABLE projects ADD COLUMN delete_after DATE"))
+    for table, column, ddl in _NEW_COLUMNS:
+        existing = {c["name"] for c in inspect(engine).get_columns(table)}
+        if column not in existing:
+            with engine.begin() as conn:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {ddl}"))
 
 
 def make_session_factory(engine: Engine) -> sessionmaker[Session]:

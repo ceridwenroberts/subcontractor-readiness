@@ -10,7 +10,7 @@ import json
 import logging
 from collections.abc import Iterator
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
@@ -20,13 +20,15 @@ from sqlalchemy.orm import Session
 
 from app.assess import DocumentText, assess_requirement
 from app.config import Settings
-from app.db.models import DecisionLog, Engagement, Finding, Project
+from app.db.models import DecisionLog, Engagement, Finding, Project, UploadRequest
 from app.db.session import Db
 from app.domain.status import Status
 from app.models import AssessmentResult
 from app.providers.base import LLMProvider, ProviderError
 from app.routes.assess import PROVIDER_DOWN, SERVER_ERROR
 from app.routes.session import CurrentUser
+from app.routes.upload_requests import UploadRequestOut, request_out
+from app.upload_requests import build_draft
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -56,13 +58,25 @@ class FindingOut(BaseModel):
     provider_label: str
     model: str
     prompt_version: str
+    latest_request: UploadRequestOut | None  # newest request for a new upload, if any
     created_at: datetime
+
+
+UploadReason = Literal["expired", "wrong_document", "unreadable", "incomplete", "other"]
+
+
+class UploadRequestIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    reason: UploadReason
+    send_email: bool = False  # SIMULATED: records a draft, sends nothing
 
 
 class DecisionIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Status
-    comment: str = Field(min_length=1, max_length=2000)
+    # Optional only when confirming the shown result (see `decide`).
+    comment: str = Field(default="", max_length=2000)
+    request_upload: UploadRequestIn | None = None
     # No `decided_by`: the server takes the name from the signed-in session.
 
 
@@ -118,6 +132,11 @@ def _finding_out(
         provider_label=f.provider_label,
         model=f.model,
         prompt_version=f.prompt_version,
+        latest_request=(
+            request_out(max(f.upload_requests, key=lambda r: r.created_at))
+            if f.upload_requests
+            else None
+        ),
         created_at=f.created_at,
     )
 
@@ -315,6 +334,26 @@ def list_findings(engagement_id: str, request: Request, db: Db) -> list[FindingO
     return _latest_findings(_engagement_or_404(db, engagement_id), request)
 
 
+def _check_decision(finding: Finding, body: DecisionIn) -> None:
+    """Rules for a decision. All are checked before anything is written."""
+    comment = body.comment.strip()
+    confirming = body.status == finding.ai_status and body.request_upload is None
+    if not confirming and not comment:
+        raise HTTPException(
+            422, "Add a comment when you change the result or request a new upload."
+        )
+    if body.request_upload is not None:
+        if body.status == "found":
+            raise HTTPException(
+                422,
+                "A new upload can only be requested when the documents do not clearly show evidence.",
+            )
+        if body.request_upload.send_email and not finding.engagement.contact_email:
+            raise HTTPException(
+                422, "Add a contact email for this subcontractor to send a request."
+            )
+
+
 @router.patch("/findings/{finding_id}")
 def decide(
     finding_id: str, body: DecisionIn, request: Request, db: Db, user: CurrentUser
@@ -322,19 +361,61 @@ def decide(
     finding = db.get(Finding, finding_id)
     if finding is None:
         raise HTTPException(404, "That finding was not found.")
-    # Decision row and new status are saved in one transaction.
-    db.add(
-        DecisionLog(
-            finding_id=finding.id,
-            old_human_status=finding.human_status,
-            new_human_status=body.status,
-            comment=body.comment.strip(),
-            decided_by=user.name,
-        )
+    _check_decision(finding, body)
+
+    engagement = finding.engagement
+    comment = body.comment.strip()
+    # Decision, new status and any upload request are saved in one transaction.
+    decision = DecisionLog(
+        finding_id=finding.id,
+        old_human_status=finding.human_status,
+        new_human_status=body.status,
+        comment=comment,
+        decided_by=user.name,
     )
+    db.add(decision)
+    db.flush()  # gives the decision its id
+    if body.request_upload is not None:
+        email: dict[str, str | None] = {"to": None, "subject": None, "body": None}
+        if body.request_upload.send_email and engagement.contact_email:
+            requirement = next(
+                (
+                    r
+                    for r in request.app.state.templates[
+                        engagement.project.template_id
+                    ].requirements
+                    if r.code == finding.requirement_code
+                ),
+                None,
+            )
+            draft = build_draft(
+                to=engagement.contact_email,
+                subcontractor=engagement.subcontractor_name,
+                project=engagement.project.name,
+                requirement=requirement.title
+                if requirement
+                else finding.requirement_code,
+                reason_key=body.request_upload.reason,
+                note=comment,
+                reviewer=user.name,
+            )
+            email = {"to": draft.to, "subject": draft.subject, "body": draft.body}
+        db.add(
+            UploadRequest(
+                decision_id=decision.id,
+                finding_id=finding.id,
+                engagement_id=finding.engagement_id,
+                requirement_code=finding.requirement_code,
+                reason=body.request_upload.reason,
+                email_to=email["to"],
+                email_subject=email["subject"],
+                email_body=email["body"],
+                requested_by=user.name,
+            )
+        )
     finding.human_status = body.status
     db.commit()
-    engagement = finding.engagement
+    db.refresh(finding)
     names = {d.id: d.original_filename for d in engagement.documents}
     return _finding_out(finding, request, engagement.project, names)
 

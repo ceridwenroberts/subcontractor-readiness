@@ -95,4 +95,4 @@ Also:
 
 ## Not in v1
 
-Real authentication (only the SIMULATED sign-in exists: it sets the name in the decision log from a server-side session), deployment, subcontractor portal (except the SIMULATED demo page), OCR, ID06 or other integrations, staff monitoring, subcontractor chains, automatic approval, and multi-agent pipelines outside the Stage 7 experiment. Never present simulated behavior as real.
+Real authentication (only the SIMULATED sign-in exists: it sets the name in the decision log from a server-side session), email or any other outbound message (the request-a-new-upload email is only a SIMULATED draft: it is recorded and shown, never sent), deployment, subcontractor portal (except the SIMULATED demo page), OCR, ID06 or other integrations, staff monitoring, subcontractor chains, automatic approval, and multi-agent pipelines outside the Stage 7 experiment. Never present simulated behavior as real.

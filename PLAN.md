@@ -133,7 +133,8 @@ Any dependency not in this table needs approval first. Record it here and in `do
 
 ```
 Project      id, name, templateId, deleteAfter (optional date; nothing deletes automatically), createdAt
-Engagement   id, projectId, subcontractorName, orgNumber (optional, fictional), createdAt
+Engagement   id, projectId, subcontractorName, orgNumber (optional, fictional),
+             contactEmail (optional, reserved fictional domains only), createdAt
 Document     id, engagementId, originalFilename, storedName (UUID), sha256,
              pageCount, pagesJson (redacted text per page), redactionCount,
              redactionNotesJson (list of {page, kind, count}: what a person should
@@ -147,7 +148,12 @@ Finding      id, engagementId, requirementCode,
              notes, provider, model, promptVersion, createdAt
 DecisionLog  id, findingId, oldHumanStatus, newHumanStatus, comment,
              decidedBy (free text until login exists), decidedAt
-             Append-only. Never updated or deleted.
+             Append-only. Never updated or deleted. comment may be empty only when the
+             PM confirms the shown result.
+UploadRequest id, decisionId, findingId, engagementId, requirementCode, reason,
+             emailTo/emailSubject/emailBody (a SIMULATED draft, nothing is sent),
+             requestedBy, createdAt. Append-only. Open while its decision is still the
+             latest decision for that requirement in that engagement.
 ```
 
 Statuses: `found`, `partial`, `missing`, `unclear`, `expired`.
@@ -212,6 +218,7 @@ Stage 4 onward:
 - `GET /engagements/{id}/findings`
 - `PATCH /findings/{id}` (human decision, writes to DecisionLog)
 - `GET /findings/{id}/decisions`
+- `GET /upload-requests/reasons`, `GET /upload-requests/open` (the "needs a new upload" dashboard)
 - `GET /engagements/{id}/summary`
 
 ## 11. LLM providers

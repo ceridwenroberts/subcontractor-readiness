@@ -5,6 +5,7 @@ import { use, useEffect, useState } from "react";
 
 import { Card, ErrorBox, OverdueBanner, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
 import { createEngagement, getProject, getTemplate } from "@/lib/api";
+import { REQUEST_TEXT } from "@/lib/labels";
 import type { ProjectDetail, TemplateDetail } from "@/lib/schemas";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
@@ -15,6 +16,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -41,9 +43,10 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
     setSaving(true);
     setFormError(null);
     try {
-      const created = await createEngagement(projectId, name.trim());
+      const created = await createEngagement(projectId, name.trim(), contact.trim());
       setProject((prev) => (prev ? { ...prev, engagements: [...prev.engagements, created] } : prev));
       setName("");
+      setContact("");
     } catch (err) {
       setFormError(errorText(err));
     } finally {
@@ -75,7 +78,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
 
       <Card>
         <h2 className="mb-3 text-lg font-medium">New subcontractor</h2>
-        <form onSubmit={onCreate} className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <form onSubmit={onCreate} className="grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
           <label className="block flex-1 text-sm">
             <span className="mb-1 block font-medium">Subcontractor name (fictional)</span>
             <input
@@ -86,6 +89,18 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
               required
               placeholder="For example: Exempelrör AB"
             />
+          </label>
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium">{REQUEST_TEXT.contactLabel}</span>
+            <input
+              type="email"
+              className={inputClass}
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              maxLength={200}
+              placeholder="kontakt@exempelror.example"
+            />
+            <span className="mt-1 block text-xs text-slate-600">{REQUEST_TEXT.contactHelp}</span>
           </label>
           <button className={buttonClass} disabled={saving || !name.trim()}>
             {saving ? "Adding…" : "Add subcontractor"}

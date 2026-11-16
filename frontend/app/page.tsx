@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Card, ErrorBox, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
-import { API_URL, createProject, getHealth, getRetentionAdvice, listProjects, listTemplates } from "@/lib/api";
-import { RETENTION_TEXT } from "@/lib/labels";
-import type { Project, RetentionAdvice, TemplateSummary } from "@/lib/schemas";
+import { API_URL, createProject, getHealth, getRetentionAdvice, listOpenRequests, listProjects, listTemplates } from "@/lib/api";
+import { REQUEST_TEXT, RETENTION_TEXT } from "@/lib/labels";
+import { formatWhen } from "@/lib/time";
+import type { OpenRequest, Project, RetentionAdvice, TemplateSummary } from "@/lib/schemas";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
 
@@ -17,18 +18,26 @@ export default function Home() {
   const [name, setName] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [advice, setAdvice] = useState<RetentionAdvice | null>(null);
+  const [openRequests, setOpenRequests] = useState<OpenRequest[]>([]);
   const [deleteAfter, setDeleteAfter] = useState("");
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
     let ignore = false;
-    Promise.all([getHealth(), listProjects(), listTemplates(), getRetentionAdvice()])
-      .then(([, p, t, a]) => {
+    Promise.all([
+      getHealth(),
+      listProjects(),
+      listTemplates(),
+      getRetentionAdvice(),
+      listOpenRequests(),
+    ])
+      .then(([, p, t, a, o]) => {
         if (ignore) return;
         setProjects(p);
         setTemplates(t);
         setAdvice(a);
+        setOpenRequests(o);
         setDeleteAfter((current) => current || a.suggested_date);
         setTemplateId((current) => current || t[0]?.id || "");
       })
@@ -64,6 +73,74 @@ export default function Home() {
     <main className="space-y-6">
       <h1 className="text-2xl font-semibold">Projects</h1>
       {loadError && <ErrorBox>{loadError}</ErrorBox>}
+
+      <Card>
+        <h2 className="mb-1 text-lg font-medium">
+          {REQUEST_TEXT.dashboardTitle}
+          {openRequests.length > 0 && (
+            <span className="ml-2 rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-900">
+              {openRequests.length}
+            </span>
+          )}
+        </h2>
+        <p className="mb-3 text-xs text-slate-600">{REQUEST_TEXT.dashboardHelp}</p>
+        {openRequests.length === 0 ? (
+          <p className="text-sm text-slate-600">{REQUEST_TEXT.dashboardEmpty}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[40rem] text-left text-sm">
+              <thead className="text-xs text-slate-600">
+                <tr>
+                  <th className="py-1 pr-3 font-medium">Project</th>
+                  <th className="py-1 pr-3 font-medium">Subcontractor</th>
+                  <th className="py-1 pr-3 font-medium">Requirement</th>
+                  <th className="py-1 pr-3 font-medium">Reason</th>
+                  <th className="py-1 pr-3 font-medium">Request</th>
+                  <th className="py-1 font-medium">
+                    <span className="sr-only">Open</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 align-top">
+                {openRequests.map((r) => (
+                  <tr key={r.request_id}>
+                    <td className="py-2 pr-3">
+                      <Link href={`/projects/${r.project_id}`} className={linkClass}>
+                        {r.project_name}
+                      </Link>
+                    </td>
+                    <td className="py-2 pr-3">{r.subcontractor_name}</td>
+                    <td className="py-2 pr-3">
+                      <span className="font-mono text-xs text-slate-600">{r.requirement_code}</span>{" "}
+                      {r.requirement_title}
+                    </td>
+                    <td className="py-2 pr-3">{r.reason_label}</td>
+                    <td className="py-2 pr-3 text-xs text-slate-700">
+                      <span
+                        className={`rounded border px-1.5 py-0.5 ${
+                          r.email_recorded
+                            ? "border-sky-300 bg-sky-50 text-sky-900"
+                            : "border-slate-300 bg-slate-50 text-slate-700"
+                        }`}
+                      >
+                        {r.email_recorded ? REQUEST_TEXT.emailRecorded : REQUEST_TEXT.noEmail}
+                      </span>
+                      <span className="mt-1 block text-slate-500">
+                        {r.requested_by} · {formatWhen(r.created_at)}
+                      </span>
+                    </td>
+                    <td className="py-2 text-right">
+                      <Link href={`/engagements/${r.engagement_id}`} className={linkClass}>
+                        Open documents
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       <Card>
         <h2 className="mb-3 text-lg font-medium">New project</h2>

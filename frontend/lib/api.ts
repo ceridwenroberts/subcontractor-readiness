@@ -42,6 +42,8 @@ import {
   DocumentSchema,
   EngagementSchema,
   FindingSchema,
+  OpenRequestSchema,
+  ReasonSchema,
   ProjectDetailSchema,
   ProjectSchema,
   RetentionAdviceSchema,
@@ -138,11 +140,18 @@ export const createProject = (name: string, templateId: string, deleteAfter?: st
   );
 export const getProject = (id: string) =>
   request(`/projects/${encodeURIComponent(id)}`, ProjectDetailSchema);
-export const createEngagement = (projectId: string, subcontractorName: string) =>
+export const createEngagement = (
+  projectId: string,
+  subcontractorName: string,
+  contactEmail?: string,
+) =>
   request(
     `/projects/${encodeURIComponent(projectId)}/engagements`,
     EngagementSchema,
-    json("POST", { subcontractor_name: subcontractorName }),
+    json("POST", {
+      subcontractor_name: subcontractorName,
+      ...(contactEmail ? { contact_email: contactEmail } : {}),
+    }),
   );
 export const getEngagement = (id: string) =>
   request(`/engagements/${encodeURIComponent(id)}`, EngagementSchema);
@@ -177,12 +186,29 @@ export const assessEngagement = (engagementId: string) =>
   );
 export const listFindings = (engagementId: string) =>
   request(`/engagements/${encodeURIComponent(engagementId)}/findings`, z.array(FindingSchema));
-/** The name in the decision log comes from the signed-in session on the server, not from here. */
-export const decideFinding = (findingId: string, status: Status, comment: string) =>
+export type UploadRequestChoice = { reason: string; sendEmail: boolean };
+
+/**
+ * Record a decision. The name in the decision log comes from the signed-in session on the
+ * server, not from here. `requestUpload` asks the subcontractor for a new upload; its email
+ * is a SIMULATED draft and nothing is sent.
+ */
+export const decideFinding = (
+  findingId: string,
+  status: Status,
+  comment: string,
+  requestUpload?: UploadRequestChoice,
+) =>
   request(
     `/findings/${encodeURIComponent(findingId)}`,
     FindingSchema,
-    json("PATCH", { status, comment }),
+    json("PATCH", {
+      status,
+      comment,
+      ...(requestUpload
+        ? { request_upload: { reason: requestUpload.reason, send_email: requestUpload.sendEmail } }
+        : {}),
+    }),
   );
 export const listDecisions = (findingId: string) =>
   request(`/findings/${encodeURIComponent(findingId)}/decisions`, z.array(DecisionSchema));
@@ -277,3 +303,6 @@ export async function assessEngagementStream(
   if (!findings) throw new ApiError("The assessment ended unexpectedly. Nothing was saved.", 0);
   return findings;
 }
+
+export const listRequestReasons = () => request("/upload-requests/reasons", z.array(ReasonSchema));
+export const listOpenRequests = () => request("/upload-requests/open", z.array(OpenRequestSchema));

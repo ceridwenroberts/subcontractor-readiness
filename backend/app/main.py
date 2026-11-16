@@ -12,6 +12,7 @@ from app.routes.findings import router as findings_router
 from app.routes.projects import router as projects_router
 from app.routes.session import router as session_router
 from app.routes.templates import router as templates_router
+from app.routes.upload_requests import router as upload_requests_router
 from app.templates import load_templates
 
 
@@ -41,6 +42,7 @@ def create_app(settings: Settings) -> FastAPI:
     app.include_router(documents_router)
     app.include_router(findings_router)
     app.include_router(session_router)
+    app.include_router(upload_requests_router)
 
     @app.get("/health")
     def health() -> dict[str, str]:

@@ -5,9 +5,9 @@ import { useState } from "react";
 
 import { Card, ErrorBox, StatusBadge, buttonClass, inputClass } from "@/components/ui";
 import { decideFinding, listDecisions, viewerPath } from "@/lib/api";
-import { DECISION_TEXT, STATUSES, STATUS_LABEL, WHO } from "@/lib/labels";
+import { DECISION_TEXT, REQUEST_TEXT, STATUSES, STATUS_LABEL, WHO } from "@/lib/labels";
 import { verifierOutcome } from "@/lib/provenance";
-import type { Decision, Finding, Status, User } from "@/lib/schemas";
+import type { Decision, Finding, Reason, Status, User } from "@/lib/schemas";
 import { formatWhen } from "@/lib/time";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
@@ -20,13 +20,7 @@ function Tag({ part }: { part: keyof typeof WHO }) {
   );
 }
 
-function Step({
-  part,
-  children,
-}: {
-  part: keyof typeof WHO;
-  children: React.ReactNode;
-}) {
+function Step({ part, children }: { part: keyof typeof WHO; children: React.ReactNode }) {
   return (
     <li className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
       <Tag part={part} />
@@ -38,22 +32,44 @@ function Step({
 export function FindingCard({
   finding,
   user,
+  contactEmail,
+  reasons,
   onChanged,
 }: {
   finding: Finding;
   user: User | null;
+  contactEmail: string | null;
+  reasons: Reason[];
   onChanged: (updated: Finding) => void;
 }) {
   // Only a result that shows evidence is pre-selected as "agree". Anything else makes the
   // reviewer choose on purpose.
   const [agree, setAgree] = useState<boolean | null>(finding.ai_status === "found" ? true : null);
   const [otherStatus, setOtherStatus] = useState<Status | "">("");
-  const [recorded, setRecorded] = useState<string | null>(null);
+  const [wantRequest, setWantRequest] = useState(false);
+  const [reason, setReason] = useState("");
+  const [sendEmail, setSendEmail] = useState(false);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recorded, setRecorded] = useState<string | null>(null);
   const [history, setHistory] = useState<Decision[] | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+
+  // The status the reviewer is about to record.
+  const chosen: Status | "" =
+    agree === true ? finding.ai_status : agree === false ? otherStatus : "";
+  const canRequest = chosen !== "" && chosen !== "found";
+  const requesting = wantRequest && canRequest;
+  const needsComment = agree === false || requesting;
+
+  const blocked =
+    saving ||
+    !user ||
+    agree === null ||
+    chosen === "" ||
+    (needsComment && !comment.trim()) ||
+    (requesting && !reason);
 
   async function loadHistory() {
     try {
@@ -65,17 +81,26 @@ export function FindingCard({
 
   async function onDecide(e: React.FormEvent) {
     e.preventDefault();
-    const status = agree ? finding.ai_status : otherStatus;
-    if (agree === null || !status) return;
+    if (chosen === "" || blocked) return;
     setSaving(true);
     setError(null);
     setRecorded(null);
     try {
-      // The person chooses the status: "confirm" sends the shown status, "change" the chosen one.
-      const updated = await decideFinding(finding.id, status, comment.trim());
+      const updated = await decideFinding(
+        finding.id,
+        chosen,
+        comment.trim(),
+        requesting ? { reason, sendEmail: sendEmail && !!contactEmail } : undefined,
+      );
       onChanged(updated);
       setComment("");
-      setRecorded(`Decision recorded: ${STATUS_LABEL[status]}.`);
+      const asked = requesting
+        ? ` ${REQUEST_TEXT.recorded}${sendEmail && contactEmail ? ` ${REQUEST_TEXT.recordedEmail}` : ""}`
+        : "";
+      setRecorded(`Decision recorded: ${STATUS_LABEL[chosen]}.${asked}`);
+      setWantRequest(false);
+      setReason("");
+      setSendEmail(false);
       if (showHistory) await loadHistory();
     } catch (err) {
       setError(errorText(err));
@@ -92,6 +117,7 @@ export function FindingCard({
 
   const verifier = verifierOutcome(finding);
   const modelDiffers = finding.model_status !== finding.ai_status;
+  const request = finding.latest_request;
 
   return (
     <Card>
@@ -120,40 +146,40 @@ export function FindingCard({
           How this result was made{modelDiffers ? " · adjusted by automatic checks" : ""}
         </summary>
         <ol className="mt-2 space-y-1.5 rounded-md border border-slate-200 bg-slate-50 p-3 text-slate-700">
-        <Step part="model">
-          {finding.provider_label} ({finding.model}) answered:{" "}
-          <strong>{STATUS_LABEL[finding.model_status]}</strong>
-        </Step>
-        <Step part="code">
-          {finding.evidence.length === 0
-            ? "No quote to check."
-            : `${finding.evidence.filter((e) => e.verified).length} of ${finding.evidence.length} quote(s) found in the document text.`}{" "}
-          {modelDiffers ? (
-            <>
-              Result: <strong>{STATUS_LABEL[finding.ai_status]}</strong> (changed from the model&apos;s
-              answer).
-            </>
-          ) : (
-            "The model's answer was kept."
-          )}
-        </Step>
-        {verifier !== "not_run" && (
-          <Step part="verifier">
-            {verifier === "supported" && "The quotes support the requirement."}
-            {verifier === "not_supported" &&
-              "The quotes do not show evidence for the requirement, so the result was lowered to Needs human review."}
-            {verifier === "unavailable" && "No valid answer. It changed nothing."}
+          <Step part="model">
+            {finding.provider_label} ({finding.model}) answered:{" "}
+            <strong>{STATUS_LABEL[finding.model_status]}</strong>
           </Step>
-        )}
-        <Step part="person">
-          {finding.human_status ? (
-            <>
-              Your decision: <strong>{STATUS_LABEL[finding.human_status]}</strong>
-            </>
-          ) : (
-            "Not decided yet."
+          <Step part="code">
+            {finding.evidence.length === 0
+              ? "No quote to check."
+              : `${finding.evidence.filter((e) => e.verified).length} of ${finding.evidence.length} quote(s) found in the document text.`}{" "}
+            {modelDiffers ? (
+              <>
+                Result: <strong>{STATUS_LABEL[finding.ai_status]}</strong> (changed from the
+                model&apos;s answer).
+              </>
+            ) : (
+              "The model's answer was kept."
+            )}
+          </Step>
+          {verifier !== "not_run" && (
+            <Step part="verifier">
+              {verifier === "supported" && "The quotes support the requirement."}
+              {verifier === "not_supported" &&
+                "The quotes do not show evidence for the requirement, so the result was lowered to Needs human review."}
+              {verifier === "unavailable" && "No valid answer. It changed nothing."}
+            </Step>
           )}
-        </Step>
+          <Step part="person">
+            {finding.human_status ? (
+              <>
+                Your decision: <strong>{STATUS_LABEL[finding.human_status]}</strong>
+              </>
+            ) : (
+              "Not decided yet."
+            )}
+          </Step>
         </ol>
         <p className="mt-1">
           {finding.model} · prompt {finding.prompt_version}
@@ -179,7 +205,9 @@ export function FindingCard({
               {e.verified ? (
                 <span className="text-emerald-800">quote found in the document text</span>
               ) : (
-                <span className="text-rose-800">quote not found in the document text, so it is not used as evidence</span>
+                <span className="text-rose-800">
+                  quote not found in the document text, so it is not used as evidence
+                </span>
               )}
             </figcaption>
           </figure>
@@ -190,6 +218,26 @@ export function FindingCard({
         <p className="mt-2 text-sm">Date shown in the documents: {finding.valid_until}</p>
       )}
       {finding.notes && <p className="mt-2 text-xs text-slate-500">{finding.notes}</p>}
+
+      {request && (
+        <div className="mt-3 rounded-md border border-sky-200 bg-sky-50 p-3 text-sm text-sky-950">
+          <p className="font-medium">
+            {REQUEST_TEXT.panelTitle}: {request.reason_label}
+          </p>
+          <p className="text-xs text-sky-900">
+            {request.requested_by} · {formatWhen(request.created_at)}
+            {request.email_recorded ? ` · ${REQUEST_TEXT.emailRecorded}` : ` · ${REQUEST_TEXT.noEmail}`}
+          </p>
+          {request.email_recorded && (
+            <details className="mt-1 text-xs">
+              <summary className="cursor-pointer select-none">{REQUEST_TEXT.draftHeading}</summary>
+              <p className="mt-1">To: {request.email_to}</p>
+              <p>Subject: {request.email_subject}</p>
+              <pre className="mt-1 whitespace-pre-wrap break-words font-sans">{request.email_body}</pre>
+            </details>
+          )}
+        </div>
+      )}
 
       <form onSubmit={onDecide} className="mt-4 space-y-3 border-t border-slate-100 pt-3">
         <fieldset>
@@ -226,21 +274,73 @@ export function FindingCard({
             </label>
           </div>
         </fieldset>
+
+        {canRequest && (
+          <fieldset className="space-y-2 rounded-md border border-slate-200 p-3 text-sm">
+            <label className="flex items-center gap-2 font-medium">
+              <input
+                type="checkbox"
+                checked={wantRequest}
+                onChange={(e) => setWantRequest(e.target.checked)}
+              />
+              {REQUEST_TEXT.checkbox}
+            </label>
+            {requesting && (
+              <>
+                <label className="block">
+                  <span className="mb-1 block">{REQUEST_TEXT.reasonLabel}</span>
+                  <select
+                    className={`${inputClass} w-auto`}
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    required
+                  >
+                    <option value="" disabled>
+                      {REQUEST_TEXT.reasonPlaceholder}
+                    </option>
+                    {reasons.map((r) => (
+                      <option key={r.key} value={r.key}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={sendEmail && !!contactEmail}
+                    disabled={!contactEmail}
+                    onChange={(e) => setSendEmail(e.target.checked)}
+                  />
+                  <span>
+                    {REQUEST_TEXT.emailLabel}
+                    {contactEmail ? ` (${contactEmail})` : ""}
+                    <span className="block text-xs text-slate-600">
+                      {contactEmail ? REQUEST_TEXT.emailSimulated : REQUEST_TEXT.noContact}
+                    </span>
+                  </span>
+                </label>
+              </>
+            )}
+          </fieldset>
+        )}
+
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">{DECISION_TEXT.reasonLabel}</span>
+          <span className="mb-1 block font-medium">
+            {needsComment ? REQUEST_TEXT.commentRequired : REQUEST_TEXT.commentOptional}
+          </span>
           <textarea
             className={inputClass}
             rows={2}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             maxLength={2000}
-            required
+            required={needsComment}
             placeholder={DECISION_TEXT.reasonPlaceholder}
           />
         </label>
-        <button className={buttonClass} disabled={
-            saving || !comment.trim() || !user || agree === null || (agree === false && !otherStatus)
-          }>
+        <button className={buttonClass} disabled={blocked}>
           {saving ? "Saving…" : "Record decision"}
         </button>
         {agree === null && (
@@ -281,8 +381,12 @@ export function FindingCard({
               {formatWhen(d.decided_at)} · {d.decided_by}:{" "}
               {d.old_human_status ? STATUS_LABEL[d.old_human_status] : "no earlier decision"} →{" "}
               <strong>{STATUS_LABEL[d.new_human_status]}</strong>
-              <br />
-              &ldquo;{d.comment}&rdquo;
+              {d.comment && (
+                <>
+                  <br />
+                  &ldquo;{d.comment}&rdquo;
+                </>
+              )}
             </li>
           ))}
         </ul>

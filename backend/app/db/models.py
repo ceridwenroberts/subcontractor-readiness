@@ -44,6 +44,8 @@ class Engagement(Base):
     org_number: Mapped[str | None] = mapped_column(
         String(20), default=None
     )  # fictional only
+    # Where a (simulated) request for a new upload would go. Reserved fictional domains only.
+    contact_email: Mapped[str | None] = mapped_column(String(200), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     project: Mapped[Project] = relationship(back_populates="engagements")
     documents: Mapped[list["Document"]] = relationship(back_populates="engagement")
@@ -89,6 +91,9 @@ class Finding(Base):
     prompt_version: Mapped[str] = mapped_column(String(50))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     engagement: Mapped[Engagement] = relationship(back_populates="findings")
+    upload_requests: Mapped[list["UploadRequest"]] = relationship(
+        back_populates="finding"
+    )
 
 
 class DecisionLog(Base):
@@ -104,16 +109,43 @@ class DecisionLog(Base):
     decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 
+class UploadRequest(Base):
+    """A reviewer's request for a new upload. Append-only, like the decision log.
+
+    The email is SIMULATED: the draft is recorded so it can be shown, and nothing is sent.
+    A request is "open" while its decision is still the latest one for that requirement.
+    """
+
+    __tablename__ = "upload_requests"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    decision_id: Mapped[str] = mapped_column(ForeignKey("decision_log.id"), index=True)
+    finding_id: Mapped[str] = mapped_column(ForeignKey("findings.id"), index=True)
+    engagement_id: Mapped[str] = mapped_column(ForeignKey("engagements.id"), index=True)
+    requirement_code: Mapped[str] = mapped_column(String(50))
+    reason: Mapped[str] = mapped_column(String(40))
+    email_to: Mapped[str | None] = mapped_column(String(200), default=None)
+    email_subject: Mapped[str | None] = mapped_column(String(300), default=None)
+    email_body: Mapped[str | None] = mapped_column(Text, default=None)
+    requested_by: Mapped[str] = mapped_column(String(100))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    finding: Mapped[Finding] = relationship(back_populates="upload_requests")
+
+
 class AppendOnlyError(Exception):
-    """Something tried to change or delete a DecisionLog row."""
+    """Something tried to change or delete a DecisionLog or UploadRequest row."""
+
+
+_APPEND_ONLY = (DecisionLog, UploadRequest)
 
 
 @event.listens_for(Session, "before_flush")
-def _decision_log_is_append_only(
+def _append_only_tables_are_append_only(
     session: Session, flush_context: object, instances: object
 ) -> None:
     for obj in (*session.dirty, *session.deleted):
-        if isinstance(obj, DecisionLog) and (
+        if isinstance(obj, _APPEND_ONLY) and (
             obj in session.deleted or session.is_modified(obj)
         ):
-            raise AppendOnlyError("DecisionLog rows are never updated or deleted.")
+            raise AppendOnlyError(
+                "Decision and upload-request rows are never updated or deleted."
+            )

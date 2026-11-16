@@ -6,6 +6,7 @@ import {
   createProject,
   decideFinding,
   listProjects,
+  listOpenRequests,
   messageFromBody,
   uploadDocuments,
 } from "./api";
@@ -180,6 +181,7 @@ describe("assessEngagementStream", () => {
     provider_label: "Simulated",
     model: "fixture",
     prompt_version: "assess-v2",
+    latest_request: null,
     created_at: "2026-11-16T10:00:00Z",
   };
   const lines = (...events: unknown[]) => events.map((e) => JSON.stringify(e)).join("\n") + "\n";
@@ -247,5 +249,57 @@ describe("assessEngagementStream", () => {
   it("rejects an event with the wrong shape", async () => {
     mockFetch(async () => new Response(lines({ type: "working", index: "one" })));
     await expect(assessEngagementStream("e1", () => {})).rejects.toThrow(/unexpected format/);
+  });
+});
+
+describe("requesting a new upload", () => {
+  it("sends request_upload only when one is chosen, and no name", async () => {
+    const fn = mockFetch(async () => new Response("{}", { status: 422 }));
+    await expect(
+      decideFinding("f1", "expired", "Renewal needed.", { reason: "expired", sendEmail: true }),
+    ).rejects.toBeInstanceOf(ApiError);
+    expect(JSON.parse(fn.mock.calls[0][1]?.body as string)).toEqual({
+      status: "expired",
+      comment: "Renewal needed.",
+      request_upload: { reason: "expired", send_email: true },
+    });
+  });
+
+  it("can confirm with an empty comment", async () => {
+    const fn = mockFetch(async () => new Response("{}", { status: 422 }));
+    await expect(decideFinding("f1", "found", "")).rejects.toBeInstanceOf(ApiError);
+    expect(JSON.parse(fn.mock.calls[0][1]?.body as string)).toEqual({ status: "found", comment: "" });
+  });
+
+  it("shows the backend's message when the rule is broken", async () => {
+    mockFetch(async () =>
+      Response.json({ detail: "Add a comment when you change the result or request a new upload." }, { status: 422 }),
+    );
+    await expect(decideFinding("f1", "partial", "")).rejects.toThrow(/Add a comment/);
+  });
+});
+
+describe("open requests", () => {
+  it("parses the dashboard list", async () => {
+    const item = {
+      request_id: "r1",
+      project_id: "p1",
+      project_name: "Hamnen 4",
+      engagement_id: "e1",
+      subcontractor_name: "Exempelrör AB",
+      requirement_code: "VVS-03",
+      requirement_title: "Liability insurance",
+      reason_label: "The document has expired",
+      email_recorded: true,
+      requested_by: "Test PM (demo)",
+      created_at: "2026-11-16T10:00:00",
+    };
+    mockFetch(async () => Response.json([item]));
+    await expect(listOpenRequests()).resolves.toEqual([item]);
+  });
+
+  it("rejects a list with the wrong shape", async () => {
+    mockFetch(async () => Response.json([{ request_id: 1 }]));
+    await expect(listOpenRequests()).rejects.toThrow(/unexpected format/);
   });
 });

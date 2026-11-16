@@ -14,9 +14,10 @@ import {
   getTemplate,
   listDocuments,
   listFindings,
+  listRequestReasons,
   uploadDocuments,
 } from "@/lib/api";
-import { DISCLAIMER } from "@/lib/labels";
+import { DISCLAIMER, REQUEST_TEXT } from "@/lib/labels";
 import { useSession } from "@/lib/useSession";
 import type {
   DocumentInfo,
@@ -24,6 +25,7 @@ import type {
   FileReport,
   Finding,
   Project,
+  Reason,
   TemplateDetail,
 } from "@/lib/schemas";
 
@@ -34,6 +36,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   const [engagement, setEngagement] = useState<Engagement | null>(null);
   const [template, setTemplate] = useState<TemplateDetail | null>(null);
   const [project, setProject] = useState<Project | null>(null);
+  const [reasons, setReasons] = useState<Reason[]>([]);
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [findings, setFindings] = useState<Finding[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -61,8 +64,13 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
       const e = await getEngagement(engagementId);
       const p = await getProject(e.project_id);
       const t = await getTemplate(p.template_id);
-      const [docs, found] = await Promise.all([listDocuments(engagementId), listFindings(engagementId)]);
+      const [docs, found, why] = await Promise.all([
+        listDocuments(engagementId),
+        listFindings(engagementId),
+        listRequestReasons(),
+      ]);
       if (ignore) return;
+      setReasons(why);
       setEngagement(e);
       setTemplate(t);
       setProject(p);
@@ -126,6 +134,11 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
       <div>
         <h1 className="text-2xl font-semibold">{engagement.subcontractor_name}</h1>
         <p className="text-sm text-slate-600">Template: {template.name}</p>
+        <p className="text-xs text-slate-500">
+          {engagement.contact_email
+            ? `Contact (fictional): ${engagement.contact_email}`
+            : REQUEST_TEXT.noContactHere}
+        </p>
       </div>
       {template.placeholder && <PlaceholderBanner />}
       {project?.delete_overdue && <OverdueBanner date={project.delete_after} />}
@@ -243,7 +256,14 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
           </div>
           <HowItWasMade findings={findings} />
           {findings.map((f) => (
-            <FindingCard key={f.id} finding={f} user={user} onChanged={onFindingChanged} />
+            <FindingCard
+              key={f.id}
+              finding={f}
+              user={user}
+              contactEmail={engagement.contact_email}
+              reasons={reasons}
+              onChanged={onFindingChanged}
+            />
           ))}
         </section>
       )}

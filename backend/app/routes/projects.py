@@ -9,6 +9,7 @@ from sqlalchemy import select
 from app.db.models import Engagement, Project
 from app.db.session import Db
 from app.retention import RetentionAdvice, retention_advice
+from app.upload_requests import ADDRESS_RULE, is_fictional_address
 
 router = APIRouter()
 
@@ -24,6 +25,9 @@ class EngagementIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     subcontractor_name: str = Field(min_length=1, max_length=200)
     org_number: str | None = Field(default=None, max_length=20)  # fictional only
+    contact_email: str | None = Field(
+        default=None, max_length=200
+    )  # fictional domains only
 
 
 class EngagementOut(BaseModel):
@@ -31,6 +35,7 @@ class EngagementOut(BaseModel):
     project_id: str
     subcontractor_name: str
     org_number: str | None
+    contact_email: str | None
     created_at: datetime
 
 
@@ -53,6 +58,7 @@ def _engagement(e: Engagement) -> EngagementOut:
         project_id=e.project_id,
         subcontractor_name=e.subcontractor_name,
         org_number=e.org_number,
+        contact_email=e.contact_email,
         created_at=e.created_at,
     )
 
@@ -111,10 +117,14 @@ def get_project(project_id: str, db: Db) -> ProjectDetail:
 def create_engagement(project_id: str, body: EngagementIn, db: Db) -> EngagementOut:
     if db.get(Project, project_id) is None:
         raise HTTPException(404, "That project was not found.")
+    contact = (body.contact_email or "").strip() or None
+    if contact is not None and not is_fictional_address(contact):
+        raise HTTPException(422, ADDRESS_RULE)
     engagement = Engagement(
         project_id=project_id,
         subcontractor_name=body.subcontractor_name.strip(),
         org_number=body.org_number,
+        contact_email=contact,
     )
     db.add(engagement)
     db.commit()

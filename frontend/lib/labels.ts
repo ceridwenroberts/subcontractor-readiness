@@ -53,6 +53,29 @@ export const VIEWER_TEXT = {
   originalWarning: "The original may show personal numbers that are hidden here.",
 } as const;
 
+export const REQUEST_TEXT = {
+  checkbox: "Ask the subcontractor for a new upload",
+  reasonLabel: "Reason",
+  reasonPlaceholder: "Choose a reason…",
+  emailLabel: "Also send the request by email",
+  emailSimulated: "Simulated: a draft is recorded and nothing is sent.",
+  noContact: "Add a contact email for this subcontractor to use this.",
+  noContactHere: "No contact email is set for this subcontractor.",
+  recorded: "A new upload was requested.",
+  recordedEmail: "An email draft was recorded. Simulated: nothing was sent.",
+  panelTitle: "New upload requested",
+  draftHeading: "Email draft (simulated, not sent)",
+  dashboardTitle: "Needs a new upload",
+  dashboardEmpty: "Nothing needs a new upload right now.",
+  dashboardHelp: "Requests stay here until a later decision on the same requirement does not ask for a new upload.",
+  emailRecorded: "Request email recorded (simulated, nothing sent)",
+  noEmail: "No email request",
+  contactLabel: "Contact email (fictional)",
+  contactHelp: "Fictional addresses only: ending in .example, .test or example.com.",
+  commentRequired: "Your reason (required)",
+  commentOptional: "Your reason (optional when you confirm the result)",
+} as const;
+
 /** Who or what produced each part of a finding. Shown on every finding and above the list. */
 export const WHO = {
   model: { tag: "AI model", color: "bg-sky-100 text-sky-900 border-sky-300" },

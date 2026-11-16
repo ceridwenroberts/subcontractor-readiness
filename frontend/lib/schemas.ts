@@ -48,6 +48,7 @@ export const EngagementSchema = z.object({
   project_id: z.string(),
   subcontractor_name: z.string(),
   org_number: z.string().nullable(),
+  contact_email: z.string().nullable(),
   created_at: z.string(),
 });
 export type Engagement = z.infer<typeof EngagementSchema>;
@@ -92,6 +93,20 @@ export const EvidenceSchema = z.object({
   verified: z.boolean(),
 });
 
+export const UploadRequestSchema = z.object({
+  id: z.string(),
+  finding_id: z.string(),
+  reason: z.string(),
+  reason_label: z.string(),
+  email_recorded: z.boolean(),
+  email_to: z.string().nullable(),
+  email_subject: z.string().nullable(),
+  email_body: z.string().nullable(),
+  requested_by: z.string(),
+  created_at: z.string(),
+});
+export type UploadRequest = z.infer<typeof UploadRequestSchema>;
+
 export const FindingSchema = z.object({
   id: z.string(),
   engagement_id: z.string(),
@@ -108,6 +123,7 @@ export const FindingSchema = z.object({
   provider_label: z.string(),
   model: z.string(),
   prompt_version: z.string(),
+  latest_request: UploadRequestSchema.nullable(),
   created_at: z.string(),
 });
 export type Finding = z.infer<typeof FindingSchema>;
@@ -161,3 +177,21 @@ export const AssessEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("error"), status: z.number(), message: z.string() }),
 ]);
 export type AssessEvent = z.infer<typeof AssessEventSchema>;
+
+export const ReasonSchema = z.object({ key: z.string(), label: z.string() });
+export type Reason = z.infer<typeof ReasonSchema>;
+
+export const OpenRequestSchema = z.object({
+  request_id: z.string(),
+  project_id: z.string(),
+  project_name: z.string(),
+  engagement_id: z.string(),
+  subcontractor_name: z.string(),
+  requirement_code: z.string(),
+  requirement_title: z.string(),
+  reason_label: z.string(),
+  email_recorded: z.boolean(),
+  requested_by: z.string(),
+  created_at: z.string(),
+});
+export type OpenRequest = z.infer<typeof OpenRequestSchema>;
