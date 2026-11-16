@@ -315,8 +315,8 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 - [ ] Summary screen
 
 ### Stage 6: Evals and hand-in (day 7)
-- [ ] 6 to 10 packets, including the injection and personnummer packets
-- [ ] `evals/run.py` with the three numbers, results saved
+- [ ] 6 to 10 packets, including the injection and personnummer packets (4 so far: complete, missing items, expired + personnummer, injection)
+- [x] `evals/run.py` with the three numbers, results saved
 - [ ] README with setup, the demo script, and known limits
 - [ ] School report drawn from `docs/journal.md` and `docs/decisions.md`
 

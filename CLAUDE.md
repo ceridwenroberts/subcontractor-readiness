@@ -57,7 +57,7 @@ npm run dev                                       # http://localhost:3000
 npm test
 
 # evals
-cd backend && python -m evals.run                 # uses LLM_PROVIDER
+backend/.venv/bin/python evals/run.py            # from project root; uses LLM_PROVIDER; --runs 3 --verifier both
 
 # before every commit, from the project root
 ./check.sh
