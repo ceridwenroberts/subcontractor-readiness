@@ -146,3 +146,18 @@ export const DocumentPagesSchema = z.object({
   pages: z.array(z.string()),
 });
 export type DocumentPages = z.infer<typeof DocumentPagesSchema>;
+
+/** One line of the progress stream from POST /engagements/{id}/assess/stream. */
+export const AssessEventSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("start"), total: z.number() }),
+  z.object({
+    type: z.literal("working"),
+    index: z.number(),
+    total: z.number(),
+    code: z.string(),
+    title: z.string(),
+  }),
+  z.object({ type: z.literal("done"), findings: z.array(FindingSchema) }),
+  z.object({ type: z.literal("error"), status: z.number(), message: z.string() }),
+]);
+export type AssessEvent = z.infer<typeof AssessEventSchema>;

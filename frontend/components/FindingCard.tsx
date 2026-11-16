@@ -44,10 +44,11 @@ export function FindingCard({
   user: User | null;
   onChanged: (updated: Finding) => void;
 }) {
-  const [agree, setAgree] = useState(true);
-  const [otherStatus, setOtherStatus] = useState<Status>(
-    STATUSES.find((s) => s !== finding.ai_status) ?? "unclear",
-  );
+  // Only a result that shows evidence is pre-selected as "agree". Anything else makes the
+  // reviewer choose on purpose.
+  const [agree, setAgree] = useState<boolean | null>(finding.ai_status === "found" ? true : null);
+  const [otherStatus, setOtherStatus] = useState<Status | "">("");
+  const [recorded, setRecorded] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,14 +65,17 @@ export function FindingCard({
 
   async function onDecide(e: React.FormEvent) {
     e.preventDefault();
+    const status = agree ? finding.ai_status : otherStatus;
+    if (agree === null || !status) return;
     setSaving(true);
     setError(null);
+    setRecorded(null);
     try {
       // The person chooses the status: "confirm" sends the shown status, "change" the chosen one.
-      const status = agree ? finding.ai_status : otherStatus;
       const updated = await decideFinding(finding.id, status, comment.trim());
       onChanged(updated);
       setComment("");
+      setRecorded(`Decision recorded: ${STATUS_LABEL[status]}.`);
       if (showHistory) await loadHistory();
     } catch (err) {
       setError(errorText(err));
@@ -197,19 +201,22 @@ export function FindingCard({
           </legend>
           <div className="mt-2 space-y-2 text-sm">
             <label className="flex items-center gap-2">
-              <input type="radio" checked={agree} onChange={() => setAgree(true)} />
+              <input type="radio" checked={agree === true} onChange={() => setAgree(true)} />
               {DECISION_TEXT.confirm}
             </label>
             <label className="flex flex-wrap items-center gap-2">
-              <input type="radio" checked={!agree} onChange={() => setAgree(false)} />
+              <input type="radio" checked={agree === false} onChange={() => setAgree(false)} />
               {DECISION_TEXT.change}:
               <select
                 className={`${inputClass} w-auto`}
                 value={otherStatus}
-                disabled={agree}
+                disabled={agree !== false}
                 onChange={(e) => setOtherStatus(e.target.value as Status)}
                 aria-label="Status you read from the documents"
               >
+                <option value="" disabled>
+                  Choose a status…
+                </option>
                 {STATUSES.filter((s) => s !== finding.ai_status).map((s) => (
                   <option key={s} value={s}>
                     {STATUS_LABEL[s]}
@@ -231,15 +238,31 @@ export function FindingCard({
             placeholder={DECISION_TEXT.reasonPlaceholder}
           />
         </label>
-        <button className={buttonClass} disabled={saving || !comment.trim() || !user}>
+        <button className={buttonClass} disabled={
+            saving || !comment.trim() || !user || agree === null || (agree === false && !otherStatus)
+          }>
           {saving ? "Saving…" : "Record decision"}
         </button>
+        {agree === null && (
+          <p className="text-xs text-slate-600">
+            Choose one of the options above. Nothing is selected for you, because the documents
+            did not clearly show evidence.
+          </p>
+        )}
         <p className="text-xs text-slate-600">
           {user
             ? `Recording as ${user.name} (simulated sign-in).`
             : "Sign in at the top of the page to record a decision."}
         </p>
       </form>
+      {recorded && (
+        <p
+          role="status"
+          className="mt-2 rounded-md border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm text-emerald-900"
+        >
+          {recorded} It is saved in the decision history below.
+        </p>
+      )}
       {error && (
         <div className="mt-2">
           <ErrorBox>{error}</ErrorBox>

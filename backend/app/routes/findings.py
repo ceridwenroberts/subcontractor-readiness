@@ -6,19 +6,24 @@ decision goes in `human_status` and in the append-only DecisionLog, never into
 `model_status` or `ai_status`.
 """
 
+import json
 import logging
+from collections.abc import Iterator
 from datetime import date, datetime
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.assess import DocumentText, assess_requirement
 from app.config import Settings
 from app.db.models import DecisionLog, Engagement, Finding, Project
 from app.db.session import Db
 from app.domain.status import Status
+from app.models import AssessmentResult
 from app.providers.base import LLMProvider, ProviderError
 from app.routes.assess import PROVIDER_DOWN, SERVER_ERROR
 from app.routes.session import CurrentUser
@@ -137,6 +142,32 @@ def _latest_findings(engagement: Engagement, request: Request) -> list[FindingOu
     return [_finding_out(f, request, project, names) for f in ordered]
 
 
+def _store_results(
+    db: Session, engagement_id: str, results: list[AssessmentResult]
+) -> None:
+    """Save one new Finding per result. Earlier findings are kept (re-assessing never overwrites)."""
+    for r in results:
+        notes = list(r.notes)
+        if r.model_notes:
+            notes.append(f"Model note: {r.model_notes}")
+        db.add(
+            Finding(
+                engagement_id=engagement_id,
+                requirement_code=r.requirement_code,
+                model_status=r.model_status,
+                ai_status=r.ai_status,
+                evidence_json=[e.model_dump() for e in r.evidence],
+                valid_until=r.valid_until,
+                notes=" ".join(notes),
+                provider=r.provider,
+                provider_label=r.provider_label,
+                model=r.model,
+                prompt_version=r.prompt_version,
+            )
+        )
+    db.commit()
+
+
 @router.post("/engagements/{engagement_id}/assess")
 def assess_engagement(engagement_id: str, request: Request, db: Db) -> JSONResponse:
     engagement = _engagement_or_404(db, engagement_id)
@@ -175,26 +206,7 @@ def assess_engagement(engagement_id: str, request: Request, db: Db) -> JSONRespo
         logger.error("assess failed kind=%s", type(exc).__name__)
         return JSONResponse(status_code=500, content={"message": SERVER_ERROR})
 
-    for r in results:
-        notes = list(r.notes)
-        if r.model_notes:
-            notes.append(f"Model note: {r.model_notes}")
-        db.add(
-            Finding(
-                engagement_id=engagement_id,
-                requirement_code=r.requirement_code,
-                model_status=r.model_status,
-                ai_status=r.ai_status,
-                evidence_json=[e.model_dump() for e in r.evidence],
-                valid_until=r.valid_until,
-                notes=" ".join(notes),
-                provider=r.provider,
-                provider_label=r.provider_label,
-                model=r.model,
-                prompt_version=r.prompt_version,
-            )
-        )
-    db.commit()
+    _store_results(db, engagement_id, results)
     logger.info(
         "assess engagement=%s requirements=%d provider=%s",
         engagement_id,
@@ -206,6 +218,96 @@ def assess_engagement(engagement_id: str, request: Request, db: Db) -> JSONRespo
         f.model_dump(mode="json") for f in _latest_findings(engagement, request)
     ]
     return JSONResponse(status_code=201, content=findings)
+
+
+def _line(event: dict[str, Any]) -> bytes:
+    return (json.dumps(event, ensure_ascii=False) + "\n").encode()
+
+
+@router.post("/engagements/{engagement_id}/assess/stream")
+def assess_engagement_stream(engagement_id: str, request: Request, db: Db) -> Response:
+    """Same assessment as /assess, reported step by step so the page can show progress.
+
+    The reply is newline-delimited JSON: `start`, then a `working` event before each
+    requirement, then `done` with the findings (or `error`). As with /assess, every
+    requirement is assessed first and saved together at the end, so a failure leaves
+    nothing half-saved. Problems found before any work starts (unknown engagement, no
+    documents) are ordinary JSON errors.
+    """
+    engagement = _engagement_or_404(db, engagement_id)
+    if not engagement.documents:
+        return JSONResponse(
+            status_code=400,
+            content={"message": "Upload at least one document before assessing."},
+        )
+    provider: LLMProvider = request.app.state.provider
+    settings: Settings = request.app.state.settings
+    requirements = list(
+        request.app.state.templates[engagement.project.template_id].requirements
+    )
+    documents = [
+        DocumentText(id=d.id, pages=d.pages_json)
+        for d in sorted(engagement.documents, key=lambda d: d.created_at)
+    ]
+    session_factory = request.app.state.session_factory
+
+    def events() -> Iterator[bytes]:
+        total = len(requirements)
+        yield _line({"type": "start", "total": total})
+        results: list[AssessmentResult] = []
+        try:
+            for index, req in enumerate(requirements, start=1):
+                yield _line(
+                    {
+                        "type": "working",
+                        "index": index,
+                        "total": total,
+                        "code": req.code,
+                        "title": req.title,
+                    }
+                )
+                results.append(
+                    assess_requirement(
+                        provider,
+                        req,
+                        documents,
+                        today=date.today(),
+                        use_verifier=settings.verifier_enabled,
+                    )
+                )
+        except ProviderError as exc:
+            logger.warning(
+                "provider unavailable provider=%s kind=%s",
+                provider.name,
+                type(exc).__name__,
+            )
+            yield _line({"type": "error", "status": 503, "message": PROVIDER_DOWN})
+            return
+        except Exception as exc:  # noqa: BLE001  last resort: no stack trace or text to the client
+            logger.error("assess failed kind=%s", type(exc).__name__)
+            yield _line({"type": "error", "status": 500, "message": SERVER_ERROR})
+            return
+
+        # The request's own session is closed by now, so use a fresh one.
+        with session_factory() as session:
+            _store_results(session, engagement_id, results)
+            saved = session.get(Engagement, engagement_id)
+            findings = [
+                f.model_dump(mode="json") for f in _latest_findings(saved, request)
+            ]
+        logger.info(
+            "assess engagement=%s requirements=%d provider=%s",
+            engagement_id,
+            total,
+            provider.name,
+        )
+        yield _line({"type": "done", "findings": findings})
+
+    return StreamingResponse(
+        events(),
+        media_type="application/x-ndjson",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.get("/engagements/{engagement_id}/findings")

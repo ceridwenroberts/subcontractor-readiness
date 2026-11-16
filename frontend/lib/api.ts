@@ -36,6 +36,7 @@ export function getHealth(): Promise<Health> {
 // Everything below talks to the workflow endpoints. getHealth above is unchanged.
 
 import {
+  AssessEventSchema,
   DecisionSchema,
   DocumentPagesSchema,
   DocumentSchema,
@@ -49,6 +50,7 @@ import {
   TemplateDetailSchema,
   TemplateSummarySchema,
   UploadResponseSchema,
+  type Finding,
   type Status,
 } from "./schemas";
 import { getToken } from "./token";
@@ -77,6 +79,15 @@ export function messageFromBody(body: unknown, status: number): string {
   return `The request failed (${status}).`;
 }
 
+/** Add the simulated sign-in token, if there is one, without changing other options. */
+function withToken(init?: RequestInit): RequestInit | undefined {
+  const token = getToken();
+  if (!token) return init;
+  const headers = new Headers(init?.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  return { ...init, headers };
+}
+
 async function request<T>(
   path: string,
   schema: z.ZodType<T>,
@@ -84,13 +95,7 @@ async function request<T>(
 ): Promise<T> {
   let res: Response;
   try {
-    const token = getToken();
-    if (token) {
-      const headers = new Headers(init?.headers);
-      headers.set("Authorization", `Bearer ${token}`);
-      init = { ...init, headers };
-    }
-    res = await fetch(`${API_URL}${path}`, init);
+    res = await fetch(`${API_URL}${path}`, withToken(init));
   } catch {
     throw new ApiError(
       "Cannot reach the backend. Check that it is running on this computer, then try again.",
@@ -200,3 +205,75 @@ export const documentFileUrl = (documentId: string, page: number) =>
 /** Link to the viewer page for a quote. The quote is redacted text, already stored. */
 export const viewerPath = (documentId: string, page: number, quote: string) =>
   `/documents/${encodeURIComponent(documentId)}?page=${page}&quote=${encodeURIComponent(quote)}`;
+
+export type AssessProgress = { index: number; total: number; title: string };
+
+/**
+ * Assess an engagement and report progress. `onProgress` is called with index 0 when the
+ * run starts, then once before each requirement. Resolves with the findings. Nothing is
+ * saved by the backend unless every requirement finishes.
+ */
+export async function assessEngagementStream(
+  engagementId: string,
+  onProgress: (p: AssessProgress) => void,
+): Promise<Finding[]> {
+  let res: Response;
+  try {
+    res = await fetch(
+      `${API_URL}/engagements/${encodeURIComponent(engagementId)}/assess/stream`,
+      withToken({ method: "POST" }),
+    );
+  } catch {
+    throw new ApiError(
+      "Cannot reach the backend. Check that it is running on this computer, then try again.",
+      0,
+    );
+  }
+  if (!res.ok) {
+    let body: unknown = null;
+    try {
+      body = await res.json();
+    } catch {
+      // handled by messageFromBody
+    }
+    throw new ApiError(messageFromBody(body, res.status), res.status, body);
+  }
+  if (!res.body) throw new ApiError("The backend answered in an unexpected format.", res.status);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let findings: Finding[] | null = null;
+
+  const handle = (line: string) => {
+    let raw: unknown;
+    try {
+      raw = JSON.parse(line);
+    } catch {
+      throw new ApiError("The backend answered in an unexpected format.", res.status);
+    }
+    const event = AssessEventSchema.safeParse(raw);
+    if (!event.success) throw new ApiError("The backend answered in an unexpected format.", res.status);
+    const e = event.data;
+    if (e.type === "start") onProgress({ index: 0, total: e.total, title: "" });
+    else if (e.type === "working") onProgress({ index: e.index, total: e.total, title: e.title });
+    else if (e.type === "done") findings = e.findings;
+    else throw new ApiError(e.message, e.status);
+  };
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (value) buffer += decoder.decode(value, { stream: !done });
+    let newline = buffer.indexOf("\n");
+    while (newline !== -1) {
+      const line = buffer.slice(0, newline).trim();
+      buffer = buffer.slice(newline + 1);
+      if (line) handle(line);
+      newline = buffer.indexOf("\n");
+    }
+    if (done) break;
+  }
+  if (buffer.trim()) handle(buffer.trim());
+  if (!findings) throw new ApiError("The assessment ended unexpectedly. Nothing was saved.", 0);
+  return findings;
+}

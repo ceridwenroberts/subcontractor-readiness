@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  assessEngagementStream,
   createProject,
   decideFinding,
   listProjects,
@@ -159,5 +160,92 @@ describe("simulated sign-in token", () => {
     const fn = mockFetch(async () => Response.json([project]));
     await listProjects();
     expect(new Headers(fn.mock.calls[0][1]?.headers).get("Authorization")).toBeNull();
+  });
+});
+
+describe("assessEngagementStream", () => {
+  const finding = {
+    id: "f1",
+    engagement_id: "e1",
+    requirement_code: "VVS-01",
+    requirement_title: "F-skattsedel",
+    mandatory: true,
+    model_status: "found",
+    ai_status: "found",
+    human_status: null,
+    evidence: [],
+    valid_until: null,
+    notes: "",
+    provider: "scripted",
+    provider_label: "Simulated",
+    model: "fixture",
+    prompt_version: "assess-v2",
+    created_at: "2026-11-16T10:00:00Z",
+  };
+  const lines = (...events: unknown[]) => events.map((e) => JSON.stringify(e)).join("\n") + "\n";
+
+  it("reports progress and returns the findings", async () => {
+    mockFetch(async () =>
+      new Response(
+        lines(
+          { type: "start", total: 2 },
+          { type: "working", index: 1, total: 2, code: "VVS-01", title: "F-skattsedel" },
+          { type: "working", index: 2, total: 2, code: "VVS-02", title: "Registration" },
+          { type: "done", findings: [finding] },
+        ),
+      ),
+    );
+    const seen: unknown[] = [];
+    const result = await assessEngagementStream("e1", (p) => seen.push(p));
+    expect(seen).toEqual([
+      { index: 0, total: 2, title: "" },
+      { index: 1, total: 2, title: "F-skattsedel" },
+      { index: 2, total: 2, title: "Registration" },
+    ]);
+    expect(result).toHaveLength(1);
+  });
+
+  it("handles a line split across chunks", async () => {
+    const text = lines({ type: "start", total: 1 }, { type: "done", findings: [] });
+    const half = Math.floor(text.length / 2);
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      start(controller) {
+        controller.enqueue(encoder.encode(text.slice(0, half)));
+        controller.enqueue(encoder.encode(text.slice(half)));
+        controller.close();
+      },
+    });
+    mockFetch(async () => new Response(stream));
+    await expect(assessEngagementStream("e1", () => {})).resolves.toEqual([]);
+  });
+
+  it("throws the backend's message for an error event", async () => {
+    mockFetch(async () =>
+      new Response(
+        lines({ type: "start", total: 1 }, { type: "error", status: 503, message: "Ollama is not running." }),
+      ),
+    );
+    await expect(assessEngagementStream("e1", () => {})).rejects.toMatchObject({
+      status: 503,
+      message: "Ollama is not running.",
+    });
+  });
+
+  it("throws for plain JSON errors before the stream starts", async () => {
+    mockFetch(async () =>
+      Response.json({ message: "Upload at least one document before assessing." }, { status: 400 }),
+    );
+    await expect(assessEngagementStream("e1", () => {})).rejects.toThrow(/Upload at least one/);
+  });
+
+  it("says nothing was saved if the stream ends without a result", async () => {
+    mockFetch(async () => new Response(lines({ type: "start", total: 1 })));
+    await expect(assessEngagementStream("e1", () => {})).rejects.toThrow(/Nothing was saved/);
+  });
+
+  it("rejects an event with the wrong shape", async () => {
+    mockFetch(async () => new Response(lines({ type: "working", index: "one" })));
+    await expect(assessEngagementStream("e1", () => {})).rejects.toThrow(/unexpected format/);
   });
 });

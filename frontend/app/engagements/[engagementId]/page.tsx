@@ -7,7 +7,8 @@ import { FindingCard } from "@/components/FindingCard";
 import { HowItWasMade } from "@/components/HowItWasMade";
 import { Card, ErrorBox, OverdueBanner, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
 import {
-  assessEngagement,
+  assessEngagementStream,
+  type AssessProgress,
   getEngagement,
   getProject,
   getTemplate,
@@ -44,6 +45,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   const [reports, setReports] = useState<FileReport[]>([]);
 
   const [assessing, setAssessing] = useState(false);
+  const [progress, setProgress] = useState<AssessProgress | null>(null);
   const [assessError, setAssessError] = useState<string | null>(null);
   const { user } = useSession();
 
@@ -96,12 +98,14 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   async function onAssess() {
     setAssessing(true);
     setAssessError(null);
+    setProgress(null);
     try {
-      setFindings(await assessEngagement(engagementId));
+      setFindings(await assessEngagementStream(engagementId, setProgress));
     } catch (err) {
       setAssessError(errorText(err));
     } finally {
       setAssessing(false);
+      setProgress(null);
     }
   }
 
@@ -203,9 +207,22 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
           {assessing ? "Assessing… please wait" : findings.length ? "Assess again" : "Assess documents"}
         </button>
         {assessing && (
-          <p role="status" className="mt-2 text-sm text-slate-600">
-            Reading the documents and checking each requirement. Do not close this page.
-          </p>
+          <div role="status" aria-live="polite" className="mt-3 space-y-1">
+            <p className="text-sm text-slate-700">
+              {progress && progress.index > 0
+                ? `Checking requirement ${progress.index} of ${progress.total}: ${progress.title}`
+                : "Starting…"}
+            </p>
+            <progress
+              className="h-2 w-full"
+              value={progress ? Math.max(0, progress.index - 1) : 0}
+              max={progress?.total ?? 1}
+            />
+            <p className="text-xs text-slate-600">
+              Keep this page open. Each requirement can take several seconds with a local model.
+              Nothing is saved until all of them are done.
+            </p>
+          </div>
         )}
         {assessError && (
           <div className="mt-3">
