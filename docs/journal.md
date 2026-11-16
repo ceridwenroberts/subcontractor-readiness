@@ -22,6 +22,7 @@ What was built, what was learned, and any problems. Two or three lines per slice
 
 ## 2026-11-16 (day 3)
 - **Reframe.** The presentation moved to Thursday, and the assignment asks for agents that achieve a business outcome. I reframed the tool as an Assessor agent, code guardrails, a Verifier agent and a human decision. Ollama is now required because simulated behaviour can't be presented as real. Cuts are logged in `docs/decisions.md`.
+- **Domain checks.** Quote verification and status rules are pure code in `domain/`, with 31 tests including one that tries every combination of status, quotes and dates and asserts the result is never stronger than the model's answer.
 
 ## Troubleshooting notes
 - **CORS: only one frontend origin.** The backend accepts browser calls only from `FRONTEND_ORIGIN` (default `http://localhost:3000`, set in `.env`). If another project is already using port 3000, Next.js starts on 3001 instead. The UI then gets CORS errors in the browser console ("blocked by CORS policy"), even though `curl` and `/docs` still work. Fix: stop the other project, or set `FRONTEND_ORIGIN` to the new port and restart the backend. `localhost` and `127.0.0.1` count as different origins, too.
