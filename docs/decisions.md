@@ -57,3 +57,15 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-11: Redaction marks uncertain cases and asks a person to check
 **Decision:** Updates the 2026-11-10 redaction decision. A standard-layout number with a valid Luhn checksum becomes `[PERSONNUMMER]` or `[SAMORDNINGSNUMMER]`. One with a wrong checksum is still hidden, but as `[POSSIBLE PERSONNUMMER]`, and noted as uncertain. An unusual layout (`800101 12 31`) is hidden as possible only if the checksum is valid; otherwise it is left alone (most likely a phone number such as `070-123 45 67`). A number split across a page break is hidden and noted. `redact_pages` returns notes `{page, kind, count}`. The Document model gets `redactionNotesJson` (approved by the developer, built in Stage 4) so the UI can say "check the original document" (Stage 5).
 **Reason:** The developer pointed out that phone numbers matter to PMs. They stay available in the original PDF, and they aren't evidence for any requirement, so hiding them from the model costs nothing. The marker `[PERSONNUMMER]` on a phone number was misleading, though, and the PM should know when the tool was unsure. Notes never hold the number itself.
+
+## 2026-11-16: Presentation moved to Thursday; framed as an orchestrated agent system
+**Decision:** The assignment asks for one or many agents that achieve a business outcome. The project is framed as an orchestrated agent system: an Assessor agent proposes a status with quotes, code guardrails in `domain/` verify and can only weaken, a Verifier agent can only downgrade to `unclear`, and the PM decides. The Stage 7 verifier moves into scope. Presentation is Thursday 2026-11-19, which replaces the 2026-11-17 deadline.
+**Reason:** One LLM call per requirement is a pipeline, not an agent. Orchestration (Assessor plus Verifier plus code checks plus human) is the part the assignment asks for, and it was already designed as a safe pattern. The Verifier is kept only if evals show a benefit; the result gets logged either way.
+
+## 2026-11-16: Ollama is now required for the demo
+**Decision:** Supersedes the 2026-11-10 "Ollama setup deferred" decision. The Thursday demo runs on the `ollama` provider, labeled "Local model". `scripted` stays as the test and fallback provider.
+**Reason:** A real agent needs a real model, and simulated behaviour must not be presented as real. Results are reported as "local model, not representative of production quality". The Anthropic provider stays on hold (no key).
+
+## 2026-11-16: Scope cuts for the Thursday demo
+**Decision:** Cut the Anthropic provider, the summary screen (unless time remains), and extra packets beyond the existing 3 (except to cover a missing injection, expired or personnummer case). Stage 4 and 5 are built thin: only the endpoints and screens the demo needs. Redaction, upload checks, quote verification, status rules, DecisionLog, provider labels and the placeholder banner are not cut.
+**Reason:** About 3.5 working days remain and Stages 3 to 6 were not started. Security and verification are the point of the project.

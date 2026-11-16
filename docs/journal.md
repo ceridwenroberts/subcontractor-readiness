@@ -20,5 +20,8 @@ What was built, what was learned, and any problems. Two or three lines per slice
 - **Redaction.** Personnummer and samordningsnummer are hidden in many formats, and the date check keeps org numbers safe. After review I asked for uncertain cases (wrong checksum, odd layout, split across pages) to be marked `[POSSIBLE PERSONNUMMER]` and noted, so the PM can check the original. Phone numbers stay available in the original PDF. Learned how the Luhn checksum works and why it's a signal, not proof.
 - **Eval packets.** A deterministic fpdf2 generator makes three synthetic VVS packets, and a test fails if the committed packets don't match it. Packet 3 combines expired insurance with a fake personnummer for the demo.
 
+## 2026-11-16 (day 3)
+- **Reframe.** The presentation moved to Thursday, and the assignment asks for agents that achieve a business outcome. I reframed the tool as an Assessor agent, code guardrails, a Verifier agent and a human decision. Ollama is now required because simulated behaviour can't be presented as real. Cuts are logged in `docs/decisions.md`.
+
 ## Troubleshooting notes
 - **CORS: only one frontend origin.** The backend accepts browser calls only from `FRONTEND_ORIGIN` (default `http://localhost:3000`, set in `.env`). If another project is already using port 3000, Next.js starts on 3001 instead. The UI then gets CORS errors in the browser console ("blocked by CORS policy"), even though `curl` and `/docs` still work. Fix: stop the other project, or set `FRONTEND_ORIGIN` to the new port and restart the backend. `localhost` and `127.0.0.1` count as different origins, too.

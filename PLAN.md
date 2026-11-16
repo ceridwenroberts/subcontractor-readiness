@@ -1,6 +1,6 @@
 # Subcontractor readiness: project plan
 
-Last updated: 2026-11-10. Deadline for the school version: 2026-11-17.
+Last updated: 2026-11-16. Presentation of the school version: Thursday 2026-11-19 (moved from 2026-11-17, see `docs/decisions.md` 2026-11-16).
 
 This is a school assignment and the first step toward a real product. That gives the plan two jobs:
 
@@ -280,7 +280,7 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 ### Stage 1: Skeleton (day 1)
 - [x] Project folder, `git init`, `.gitignore`, `.env.example`, `docs/journal.md`, and `docs/decisions.md` seeded with the decisions made so far (pypdf, English UI, no API key, three status fields, SQLite)
 - [x] Python version chosen and the backend virtual environment created
-- [ ] Ollama installed and a small model pulled (needed by day 3). **Deferred** on day 1 because of download time, see `docs/decisions.md` 2026-11-10.
+- [ ] Ollama installed and a small model pulled. Deferred on day 1 (2026-11-10). **Required for the Thursday demo**, see `docs/decisions.md` 2026-11-16.
 - [x] `check.sh`: ruff, pytest, secret scan, (frontend checks once they exist), `git status`
 - [x] FastAPI app with `/health` and a test. `/docs` works.
 - [x] Template Pydantic model, VVS placeholder JSON, loader with tests (valid and invalid file)
@@ -320,8 +320,8 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 - [ ] README with setup, the demo script, and known limits
 - [ ] School report drawn from `docs/journal.md` and `docs/decisions.md`
 
-### Stage 7 (stretch): Multi-agent experiment
-Only after Stage 6 has eval numbers to compare against. Without an API key this runs on Ollama, so the comparison shows the method more than real quality.
+### Stage 7: Multi-agent experiment (in scope since 2026-11-16)
+The assignment asks for agents in orchestration, so the verifier is now planned, built after Stage 5. Without an API key this runs on Ollama, so the comparison shows the method more than real quality. Cut first if time runs out.
 
 - [ ] **Verifier agent.** A second LLM call that sees only the requirement and the verified quotes for each `found` or `partial` finding. It answers "do these quotes support this requirement?". It can downgrade to `unclear` but never upgrade.
 - [ ] Run evals with and without the verifier. Compare false `found` rate, accuracy, time, and cost.
