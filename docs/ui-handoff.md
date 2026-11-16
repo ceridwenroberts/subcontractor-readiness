@@ -15,20 +15,20 @@ It is a school project and a first step toward a real product. It runs on localh
 ## Content rules (these are product rules, not style)
 
 1. **Never use these words anywhere in the UI:** approved, compliant, qualified, pass, passed, fail, failed, score. No percentages, ratios, grades or traffic-light verdicts. Use "documents show", "evidence not found", "needs human review", "needs a new upload".
-2. **Status wording is fixed.** Use exactly these labels (the wording lives in `frontend/lib/labels.ts` and is protected; the colours live in `STATUS_STYLE` in `frontend/components/ui.tsx` and are yours to change):
+2. **Status wording is fixed.** Use exactly these labels (the wording lives in `frontend/lib/labels.ts` and is protected; the styles live in `STATUS_STYLE` in `frontend/components/StatusBadge.tsx` and are yours to change):
 
-   | Status key | Label | Colour family now |
+   | Status key | Label | Icon and fill now (black and white) |
    |---|---|---|
-   | `found` | Documents show evidence | emerald |
-   | `partial` | Documents show part of it | amber |
-   | `expired` | Documents show an expired date | rose |
-   | `unclear` | Needs human review | violet |
-   | `missing` | Evidence not found | slate |
+   | `found` | Documents show evidence | solid circle, inverted fill |
+   | `partial` | Documents show part of it | half circle, outline |
+   | `expired` | Documents show an expired date | clock, muted fill |
+   | `unclear` | Needs human review | question mark, muted fill |
+   | `missing` | Evidence not found | dashed circle, dashed outline |
 
-   You may change colours, but keep five clearly distinct, accessible styles, and never imply "good" or "bad". Colour must never be the only signal (keep the text label).
+   The screens are black and white on purpose: all colours are variables in `frontend/app/globals.css` (`--accent-1`, `--accent-2` are neutral placeholders for a future accent). No colour may carry a meaning such as success or error. Keep five clearly distinct, accessible styles, never imply "good" or "bad", and never rely on colour alone (keep the icon and the text label). `--model` (#B09FCA) is the only live colour and marks model and development detail only.
 3. **Three separate statuses per finding, never merged:** `model_status` (what the AI model said), `ai_status` (after automatic code checks and a second check), `human_status` (the person's decision, may be empty). The big badge shows `ai_status`; a person's decision is a second badge labelled "Your decision". Do not show a single combined status.
 4. **Always visible on every finding:** the provider label (`Simulated`, `Local model` or `Claude`). It may be small and quiet, but it must be there.
-5. **Model and development detail is secondary.** Keep it as quiet, collapsed notes ("How this result was made", "About these results"). The result, the quote and the decision are the focus.
+5. **Model and development detail is secondary and hideable.** Mark it with `className="dev-only"`: one CSS rule hides it unless the header switch "Model details" is on. The provider chip and the Simulated notice are never `dev-only`. The result, the quote and the decision are the focus.
 6. **Banners that must appear:** the placeholder banner when a template is not expert-reviewed; the "Simulated" notice when answers come from the scripted provider; the overdue banner when a project's deletion date has passed; the disclaimer on the engagement page and the summary page.
 7. **Simulated things are labelled Simulated:** the sign-in ("Simulated, not real authentication") and the request email ("Simulated: nothing was sent"). Never make them look real.
 8. **Fictional data only.** Never add real names, real companies or real email addresses to placeholders or examples. Use the fictional ones in the fixtures.
@@ -36,7 +36,7 @@ It is a school project and a first step toward a real product. It runs on localh
 
 ## What you may change
 
-- Layout, spacing, typography, colour, icons, motion, and component structure in:
+- Layout, spacing, typography, colour variables, icons, motion, and component structure in:
   - `frontend/app/**/page.tsx` and `frontend/app/layout.tsx` (markup and styling only)
   - `frontend/components/**`
   - `frontend/app/globals.css` and Tailwind configuration
@@ -75,6 +75,14 @@ Work on a branch, for example `ui/redesign`. Before it is merged, both of these 
 ```
 
 `check_ui_boundary.sh` lists protected files that changed, and greps the UI for forbidden things: `fetch(` outside `lib/`, `localStorage`, `dangerouslySetInnerHTML`, banned words, and missing required elements such as the provider label and the disclaimer.
+
+## Interaction rules
+
+- Every button has a pointer cursor and a visible hover. There is no "not allowed" cursor. A button that cannot act yet uses `unavailable` and `unavailableReason` on `Button` (`aria-disabled`, a tooltip, a toast on click, and a visible helper line), never the `disabled` attribute.
+- Button states: default, hover, focus-visible, pressed, loading (spinner and changed text), unavailable.
+- Toasts (sonner) are only for passing confirmations. Anything the product requires (banners, the Simulated notice, the disclaimer, the decision shown in the decision disclosure) stays on the page.
+- Light and dark theme: a header switch cycles system, light and dark (`lib/theme.ts`). Use only the variables.
+- Forms use TanStack Form with the zod rules in `lib/forms.ts`: errors show after the field is left, then update as the person types.
 
 ## Running it
 

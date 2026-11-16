@@ -1,9 +1,13 @@
 "use client";
 
+import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 
-import { Card, ErrorBox, StatusBadge, linkClass } from "@/components/ui";
+import { ErrorBox } from "@/components/Banners";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { getSummary } from "@/lib/api";
 import { SUMMARY_TEXT } from "@/lib/labels";
 import type { Summary } from "@/lib/schemas";
@@ -30,45 +34,53 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
   }, [engagementId]);
 
   if (error) return <ErrorBox>{error}</ErrorBox>;
-  if (!summary) return <p className="text-sm text-slate-600">Loading…</p>;
+  if (!summary) return <Skeleton className="h-40 w-full" />;
 
   return (
     <main className="space-y-4">
-      <p className="text-sm">
-        <Link href={`/engagements/${engagementId}`} className={linkClass}>
+      <p>
+        <Link
+          href={`/engagements/${engagementId}`}
+          className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="size-3.5" aria-hidden />
           {SUMMARY_TEXT.back}
         </Link>
       </p>
       <div>
-        <h1 className="text-2xl font-semibold">{summary.title}</h1>
-        <p className="mt-1 text-sm text-slate-700">{summary.intro}</p>
-        <p className="mt-1 text-xs text-slate-500">
+        <h1 className="text-xl font-semibold">{summary.title}</h1>
+        <p className="mt-1 text-sm">{summary.intro}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
           {SUMMARY_TEXT.assessedBy}: {summary.assessed_by}
         </p>
       </div>
 
       {summary.groups.map((g) => (
         <Card key={g.status}>
-          <h2 className="mb-2 flex items-center gap-2 text-base font-medium">
-            <StatusBadge status={g.status} />
-            <span className="text-sm font-normal text-slate-600">{g.items.length}</span>
-          </h2>
-          <ul className="space-y-2 text-sm">
+          <CardHeader>
+            <h2 className="flex items-center gap-2 text-sm font-medium">
+              <StatusBadge status={g.status} />
+              <span className="text-sm font-normal text-muted-foreground">{g.items.length}</span>
+            </h2>
+          </CardHeader>
+          <CardContent>
+          <ul className="divide-y divide-border text-sm">
             {g.items.map((i) => (
-              <li key={i.code}>
-                <span className="font-mono text-xs text-slate-600">{i.code}</span> {i.title}
-                <span className="block text-xs text-slate-600">
+              <li key={i.code} className="py-2 first:pt-0 last:pb-0">
+                <span className="font-mono text-xs text-muted-foreground">{i.code}</span> {i.title}
+                <span className="block text-xs text-muted-foreground">
                   {i.reviewed_by_person ? SUMMARY_TEXT.reviewed : SUMMARY_TEXT.notReviewed}
                   {i.note ? ` · ${i.note}` : ""}
                 </span>
               </li>
             ))}
           </ul>
+          </CardContent>
         </Card>
       ))}
 
-      <p className="text-sm text-slate-700">{summary.not_reviewed_text}</p>
-      <p className="border-t border-slate-200 pt-3 text-xs text-slate-600">{summary.disclaimer}</p>
+      <p className="text-sm">{summary.not_reviewed_text}</p>
+      <p className="border-t border-border pt-3 text-xs text-muted-foreground">{summary.disclaimer}</p>
     </main>
   );
 }

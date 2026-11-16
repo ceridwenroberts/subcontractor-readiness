@@ -1,9 +1,13 @@
 "use client";
 
+import { ChevronLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 
-import { Card, ErrorBox, linkClass } from "@/components/ui";
+import { ErrorBox } from "@/components/Banners";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { documentFileUrl, getDocumentPages } from "@/lib/api";
 import { findQuoteRange, splitAround } from "@/lib/highlight";
 import { VIEWER_TEXT } from "@/lib/labels";
@@ -49,68 +53,75 @@ export default function DocumentViewer({
   }, [current, range, doc]);
 
   if (error) return <ErrorBox>{error}</ErrorBox>;
-  if (!doc) return <p className="text-sm text-slate-600">Loading…</p>;
+  if (!doc) return <Skeleton className="h-60 w-full" />;
 
   return (
     <main className="space-y-4">
-      <p className="text-sm">
-        <Link href={`/engagements/${doc.engagement_id}`} className={linkClass}>
-          ← Back to the findings
+      <p>
+        <Link
+          href={`/engagements/${doc.engagement_id}`}
+          className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="size-3.5" aria-hidden />
+          Back to the findings
         </Link>
       </p>
       <div>
-        <h1 className="text-xl font-semibold">{doc.filename}</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-lg font-semibold">{doc.filename}</h1>
+        <p className="text-sm text-muted-foreground">
           Page {current} of {doc.page_count}
         </p>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          className="rounded border border-slate-300 bg-white px-3 py-1 text-sm disabled:opacity-40"
-          disabled={current <= 1}
+        <Button
+          variant="outline"
+          unavailable={current <= 1}
+          unavailableReason="This is the first page."
           onClick={() => setPage(current - 1)}
         >
           Previous page
-        </button>
-        <button
-          type="button"
-          className="rounded border border-slate-300 bg-white px-3 py-1 text-sm disabled:opacity-40"
-          disabled={current >= doc.page_count}
+        </Button>
+        <Button
+          variant="outline"
+          unavailable={current >= doc.page_count}
+          unavailableReason="This is the last page."
           onClick={() => setPage(current + 1)}
         >
           Next page
-        </button>
+        </Button>
         <a
           href={documentFileUrl(doc.id, current)}
           target="_blank"
           rel="noopener noreferrer"
-          className={`${linkClass} text-sm`}
+          className="inline-flex items-center gap-1 text-xs underline underline-offset-2 hover:text-muted-foreground"
         >
           {VIEWER_TEXT.original}
+          <ExternalLink className="size-3" aria-hidden />
         </a>
       </div>
-      <p className="text-xs text-slate-500">{VIEWER_TEXT.originalWarning}</p>
+      <p className="text-xs text-muted-foreground">{VIEWER_TEXT.originalWarning}</p>
 
       <Card>
+        <CardContent>
         {quote && (
-          <p className="mb-2 text-xs text-slate-600">
+          <p className="mb-2 text-xs text-muted-foreground">
             {range ? VIEWER_TEXT.legend : VIEWER_TEXT.notFound}
           </p>
         )}
         <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6">
           {parts.before}
           {parts.match && (
-            <mark ref={mark} className="rounded bg-yellow-200 px-0.5 text-slate-900">
+            <mark ref={mark} className="rounded bg-model/40 px-0.5 text-foreground underline decoration-model-ink decoration-2 underline-offset-2">
               {parts.match}
             </mark>
           )}
           {parts.after}
         </pre>
-        {!text && <p className="text-sm text-slate-600">No readable text on this page. It may be a scan.</p>}
+        {!text && <p className="text-sm text-muted-foreground">No readable text on this page. It may be a scan.</p>}
+        </CardContent>
       </Card>
-      <p className="text-xs text-slate-500">{VIEWER_TEXT.note}</p>
+      <p className="text-xs text-muted-foreground">{VIEWER_TEXT.note}</p>
     </main>
   );
 }

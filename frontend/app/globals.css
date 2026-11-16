@@ -1,1 +1,136 @@
 @import "tailwindcss";
+
+/*
+ * Design tokens. Black and white for now: every colour a component uses is a variable here,
+ * so the look can change in one place. --accent-1 and --accent-2 are neutral placeholders for
+ * a future accent colour. --model is the one live colour: it marks model and development
+ * detail only (provider chip, "how this was made"). Dark theme follows data-theme on <html>
+ * (set from lib/theme.ts) and, until a choice is made, the system setting.
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #5c5c5c;
+  --subtle: #fafafa;
+  --border: #e4e4e4;
+  --input: #d0d0d0;
+  --ring: #0a0a0a;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --primary-hover: #333333;
+  --accent-1: #0a0a0a;
+  --accent-2: #5c5c5c;
+  --model: #b09fca;
+  --model-ink: #5b4880;
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --background: #0a0a0a;
+  --foreground: #f2f2f2;
+  --muted: #1a1a1a;
+  --muted-foreground: #a3a3a3;
+  --subtle: #111111;
+  --border: #2c2c2c;
+  --input: #3d3d3d;
+  --ring: #f2f2f2;
+  --primary: #f2f2f2;
+  --primary-foreground: #0a0a0a;
+  --primary-hover: #cfcfcf;
+  --accent-1: #f2f2f2;
+  --accent-2: #a3a3a3;
+  --model-ink: #cfc3e6;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --background: #0a0a0a;
+    --foreground: #f2f2f2;
+    --muted: #1a1a1a;
+    --muted-foreground: #a3a3a3;
+    --subtle: #111111;
+    --border: #2c2c2c;
+    --input: #3d3d3d;
+    --ring: #f2f2f2;
+    --primary: #f2f2f2;
+    --primary-foreground: #0a0a0a;
+    --primary-hover: #cfcfcf;
+    --accent-1: #f2f2f2;
+    --accent-2: #a3a3a3;
+    --model-ink: #cfc3e6;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-subtle: var(--subtle);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent-1: var(--accent-1);
+  --color-accent-2: var(--accent-2);
+  --color-model: var(--model);
+  --color-model-ink: var(--model-ink);
+}
+
+html {
+  font-size: 14px;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  border-color: var(--border);
+}
+
+/* Every button-like control gets a pointer and a visible hover. There is no "not allowed" cursor. */
+button,
+[role="button"],
+[role="switch"],
+[role="checkbox"],
+[role="radio"],
+summary,
+select,
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]),
+input[type="file"] {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Model and development detail. Hidden unless the header switch is on (data-dev="on"). */
+[data-dev="off"] .dev-only {
+  display: none !important;
+}
+.dev-surface {
+  background: color-mix(in srgb, var(--model) 14%, transparent);
+  border-color: color-mix(in srgb, var(--model) 60%, transparent);
+  color: var(--model-ink);
+}
+.dev-ink {
+  color: var(--model-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
