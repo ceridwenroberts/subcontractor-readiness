@@ -69,3 +69,7 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-16: Scope cuts for the Thursday demo
 **Decision:** Cut the Anthropic provider, the summary screen (unless time remains), and extra packets beyond the existing 3 (except to cover a missing injection, expired or personnummer case). Stage 4 and 5 are built thin: only the endpoints and screens the demo needs. Redaction, upload checks, quote verification, status rules, DecisionLog, provider labels and the placeholder banner are not cut.
 **Reason:** About 3.5 working days remain and Stages 3 to 6 were not started. Security and verification are the point of the project.
+
+## 2026-11-16: OCR for scanned PDFs is not built for the Thursday demo
+**Decision:** No OCR in v1. A PDF page with no text layer gets a visible warning ("No readable text found on page N. This may be a scan. Text from scans is not supported yet, so requirements may show as not found."). OCR is the first roadmap item after the school version.
+**Reason:** It needs 2-3 new dependencies (Tesseract with the Swedish pack, a PDF page renderer, a Python wrapper) and about half a day, and `CLAUDE.md` lists OCR as not in v1. When built it must run locally and before redaction: sending page images to a hosted model would expose personnummer before they can be redacted, which breaks the hard rule that only redacted text goes to a model.
