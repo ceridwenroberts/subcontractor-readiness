@@ -89,3 +89,14 @@ Each entry: date, decision, reason. Newest at the bottom.
 ## 2026-11-16: Keep the verifier on, but do not claim it improved the numbers
 **Decision:** Keep `VERIFIER_ENABLED=true`. The eval (3 runs per setting, `qwen2.5:7b`) showed no measurable difference: false `found` was 0 with and without it, and the accuracy ranges overlap (79-89% without, 82-93% with). It adds about 30% run time. Report this plainly.
 **Reason:** The plan said to keep it only if the numbers show a benefit. They do not, but the baseline false `found` was already zero because the assessor was not swayed in these runs, so the packets could not show a difference. The direct probe shows the verifier catches what quote verification cannot (12 of 12 injected or vague quotes rejected, 4 of 4 real quotes accepted, 2 of 2 mismatched pairs rejected). It is cheap insurance and it only weakens. More packets where the assessor is actually fooled would be needed to measure a benefit.
+
+## 2026-11-16: Four changes from the developer's review of the UI
+**Decision (developer's answers):**
+1. **Document viewer with highlights: build it as a redacted-text viewer.** This amends the hard rule "never expose document text to the frontend": the frontend may receive *redacted* page text for the review screen (never original text, never keys). The viewer highlights the cited quote and links to the original PDF at that page. `CLAUDE.md` is amended in the same slice as the code.
+2. **Decision-log name from a simulated sign-in.** The server records the name from the session, not from the request. Labeled Simulated. Real authentication stays on the roadmap ("Not in v1" otherwise unchanged).
+3. **Data deletion date: add `delete_after` to Project** with a labeled placeholder recommendation (not legal advice) and an overdue banner. No deletion is built. **Note, open:** a purge (manual or automatic) needs a decision on how it interacts with the append-only DecisionLog, which holds PM comments and names, and on whether original PDFs, stored text and findings are removed together. Roadmap item.
+4. **Personnummer opt-in/out: not built.** Redaction stays always on.
+**Reason:** The viewer is the main way a PM can check a finding, so it is worth a narrow rule change. A server-decided identity is the correct architecture for the audit log even before real login exists. A deletion date states the retention intent without the unresolved audit-log question. Weakening redaction is the riskiest change and the least needed for the demo.
+
+## 2026-11-16: Known privacy gaps to state in the report
+**Names are not redacted.** Only personnummer and samordningsnummer are. People on certificates are identified by name text only, and the tool never links a person across documents. Names are personal data and go to the model. An opt-in for personnummer (if ever built) should apply to local models only, with a stated justification, and names need their own decision.

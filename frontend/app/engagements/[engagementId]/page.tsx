@@ -4,6 +4,7 @@ import Link from "next/link";
 import { use, useCallback, useEffect, useRef, useState } from "react";
 
 import { FindingCard } from "@/components/FindingCard";
+import { HowItWasMade } from "@/components/HowItWasMade";
 import { Card, ErrorBox, PlaceholderBanner, buttonClass, inputClass, linkClass } from "@/components/ui";
 import {
   assessEngagement,
@@ -228,6 +229,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
               />
             </label>
           </div>
+          <HowItWasMade findings={findings} />
           {findings.map((f) => (
             <FindingCard key={f.id} finding={f} reviewer={reviewer} onChanged={onFindingChanged} />
           ))}

@@ -94,6 +94,8 @@ Prints overall accuracy, false `found` rate (target: zero), and the `unclear` ra
 - **Dates are matched in ISO form (2027-12-31).** Other date formats weaken the finding instead of being read.
 - **A real hyphen at a line break** in a quote can fail to match, which weakens a finding and never strengthens it.
 - **Re-assessing adds new findings** and the PM re-reviews them. Earlier findings and decisions are kept.
+- **Names are not redacted.** Only personnummer and samordningsnummer are hidden. People on certificates are identified by name text only, and names are personal data that reach the model. There is no opt-in to keep personnummer. Both are roadmap items that need a privacy review.
+- **No data deletion yet.** Original PDFs and stored text stay until someone deletes them by hand. A deletion date per project and a purge that respects the append-only decision log are planned.
 - **Not built:** the readiness summary screen, more than four eval packets, other trades than VVS.
 
 ## Project documents

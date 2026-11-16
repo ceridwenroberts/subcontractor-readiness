@@ -4,11 +4,35 @@ import { useState } from "react";
 
 import { Card, ErrorBox, StatusBadge, buttonClass, inputClass } from "@/components/ui";
 import { decideFinding, listDecisions } from "@/lib/api";
-import { SIMULATED_NOTE, STATUSES, STATUS_LABEL } from "@/lib/labels";
+import { DECISION_TEXT, STATUSES, STATUS_LABEL, WHO } from "@/lib/labels";
+import { verifierOutcome } from "@/lib/provenance";
 import type { Decision, Finding, Status } from "@/lib/schemas";
 import { formatWhen } from "@/lib/time";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
+
+function Tag({ part }: { part: keyof typeof WHO }) {
+  return (
+    <span className={`rounded border px-1.5 py-0.5 text-xs font-medium ${WHO[part].color}`}>
+      {WHO[part].tag}
+    </span>
+  );
+}
+
+function Step({
+  part,
+  children,
+}: {
+  part: keyof typeof WHO;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+      <Tag part={part} />
+      <span>{children}</span>
+    </li>
+  );
+}
 
 export function FindingCard({
   finding,
@@ -19,7 +43,10 @@ export function FindingCard({
   reviewer: string;
   onChanged: (updated: Finding) => void;
 }) {
-  const [status, setStatus] = useState<Status>(finding.human_status ?? finding.ai_status);
+  const [agree, setAgree] = useState(true);
+  const [otherStatus, setOtherStatus] = useState<Status>(
+    STATUSES.find((s) => s !== finding.ai_status) ?? "unclear",
+  );
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,6 +66,8 @@ export function FindingCard({
     setSaving(true);
     setError(null);
     try {
+      // The person chooses the status: "confirm" sends the shown status, "change" the chosen one.
+      const status = agree ? finding.ai_status : otherStatus;
       const updated = await decideFinding(finding.id, status, comment.trim(), reviewer.trim());
       onChanged(updated);
       setComment("");
@@ -56,6 +85,7 @@ export function FindingCard({
     if (next) await loadHistory();
   }
 
+  const verifier = verifierOutcome(finding);
   const modelDiffers = finding.model_status !== finding.ai_status;
 
   return (
@@ -74,12 +104,42 @@ export function FindingCard({
         </div>
       </div>
 
-      {modelDiffers && (
-        <p className="mt-2 text-xs text-slate-600">
-          The model answered &ldquo;{STATUS_LABEL[finding.model_status]}&rdquo;. The code checks
-          changed this because the evidence did not support it.
-        </p>
-      )}
+      <ol className="mt-3 space-y-1.5 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700">
+        <Step part="model">
+          {finding.provider_label} ({finding.model}) answered:{" "}
+          <strong>{STATUS_LABEL[finding.model_status]}</strong>
+        </Step>
+        <Step part="code">
+          {finding.evidence.length === 0
+            ? "No quote to check."
+            : `${finding.evidence.filter((e) => e.verified).length} of ${finding.evidence.length} quote(s) found in the document text.`}{" "}
+          {modelDiffers ? (
+            <>
+              Result: <strong>{STATUS_LABEL[finding.ai_status]}</strong> (changed from the model&apos;s
+              answer).
+            </>
+          ) : (
+            "The model's answer was kept."
+          )}
+        </Step>
+        {verifier !== "not_run" && (
+          <Step part="verifier">
+            {verifier === "supported" && "The quotes support the requirement."}
+            {verifier === "not_supported" &&
+              "The quotes do not show evidence for the requirement, so the result was lowered to Needs human review."}
+            {verifier === "unavailable" && "No valid answer. It changed nothing."}
+          </Step>
+        )}
+        <Step part="person">
+          {finding.human_status ? (
+            <>
+              Your decision: <strong>{STATUS_LABEL[finding.human_status]}</strong>
+            </>
+          ) : (
+            "Not decided yet."
+          )}
+        </Step>
+      </ol>
 
       <div className="mt-3 space-y-2">
         {finding.evidence.length === 0 && (
@@ -91,9 +151,9 @@ export function FindingCard({
             <figcaption className="mt-1 text-xs text-slate-600">
               {e.document_name}, page {e.page} ·{" "}
               {e.verified ? (
-                <span className="text-emerald-800">quote verified in the document text</span>
+                <span className="text-emerald-800">quote found in the document text</span>
               ) : (
-                <span className="text-rose-800">quote could not be verified, so it is not used as evidence</span>
+                <span className="text-rose-800">quote not found in the document text, so it is not used as evidence</span>
               )}
             </figcaption>
           </figure>
@@ -105,50 +165,71 @@ export function FindingCard({
       )}
       {finding.notes && <p className="mt-2 text-sm text-slate-700">{finding.notes}</p>}
 
-      <p className="mt-3 text-xs text-slate-600">
-        <span className="mr-2 rounded border border-slate-300 bg-white px-1.5 py-0.5 font-medium">
-          {finding.provider_label}
-        </span>
-        {finding.model} · prompt {finding.prompt_version}
-        {finding.provider === "scripted" && <span className="block pt-1">{SIMULATED_NOTE}</span>}
-      </p>
-
-      <form onSubmit={onDecide} className="mt-4 grid gap-2 border-t border-slate-100 pt-3 sm:grid-cols-[14rem_1fr_auto] sm:items-end">
+      <form onSubmit={onDecide} className="mt-4 space-y-3 border-t border-slate-100 pt-3">
+        <fieldset>
+          <legend className="text-sm font-medium">
+            {DECISION_TEXT.question}{" "}
+            <span className="font-normal text-slate-600">
+              Result so far: {STATUS_LABEL[finding.ai_status]}.
+            </span>
+          </legend>
+          <div className="mt-2 space-y-2 text-sm">
+            <label className="flex items-center gap-2">
+              <input type="radio" checked={agree} onChange={() => setAgree(true)} />
+              {DECISION_TEXT.confirm}
+            </label>
+            <label className="flex flex-wrap items-center gap-2">
+              <input type="radio" checked={!agree} onChange={() => setAgree(false)} />
+              {DECISION_TEXT.change}:
+              <select
+                className={`${inputClass} w-auto`}
+                value={otherStatus}
+                disabled={agree}
+                onChange={(e) => setOtherStatus(e.target.value as Status)}
+                aria-label="Status you read from the documents"
+              >
+                {STATUSES.filter((s) => s !== finding.ai_status).map((s) => (
+                  <option key={s} value={s}>
+                    {STATUS_LABEL[s]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </fieldset>
         <label className="block text-sm">
-          <span className="mb-1 block font-medium">Your decision</span>
-          <select className={inputClass} value={status} onChange={(e) => setStatus(e.target.value as Status)}>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Comment (required)</span>
-          <input
+          <span className="mb-1 block font-medium">{DECISION_TEXT.reasonLabel}</span>
+          <textarea
             className={inputClass}
+            rows={2}
             value={comment}
             onChange={(e) => setComment(e.target.value)}
             maxLength={2000}
             required
-            placeholder="Why do you agree or disagree?"
+            placeholder={DECISION_TEXT.reasonPlaceholder}
           />
         </label>
         <button className={buttonClass} disabled={saving || !comment.trim() || !reviewer.trim()}>
           {saving ? "Saving…" : "Record decision"}
         </button>
+        {!reviewer.trim() && (
+          <p className="text-xs text-slate-600">Enter your name above the list to record a decision.</p>
+        )}
       </form>
-      {!reviewer.trim() && (
-        <p className="mt-1 text-xs text-slate-600">Enter your name above the list to record a decision.</p>
-      )}
       {error && (
         <div className="mt-2">
           <ErrorBox>{error}</ErrorBox>
         </div>
       )}
 
-      <button type="button" onClick={toggleHistory} className="mt-3 text-xs text-slate-700 underline">
+      <p className="mt-3 text-xs text-slate-600">
+        <span className="mr-2 rounded border border-slate-300 bg-white px-1.5 py-0.5 font-medium">
+          {finding.provider_label}
+        </span>
+        {finding.model} · prompt {finding.prompt_version}
+      </p>
+
+      <button type="button" onClick={toggleHistory} className="mt-2 text-xs text-slate-700 underline">
         {showHistory ? "Hide decision history" : "Show decision history"}
       </button>
       {showHistory && (

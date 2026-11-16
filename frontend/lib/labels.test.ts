@@ -8,6 +8,9 @@ import {
   STATUS_HELP,
   STATUS_LABEL,
   STATUSES,
+  DECISION_TEXT,
+  WHO,
+  WHO_TEXT,
 } from "./labels";
 
 describe("status wording", () => {
@@ -21,6 +24,9 @@ describe("status wording", () => {
       ...Object.values(STATUS_HELP),
       PLACEHOLDER_BANNER,
       SIMULATED_NOTE,
+      ...Object.values(WHO_TEXT),
+      ...Object.values(WHO).map((w) => w.tag),
+      ...Object.values(DECISION_TEXT),
     ];
     for (const text of strings) {
       for (const word of BANNED_WORDS) {

@@ -37,5 +37,29 @@ export const SIMULATED_NOTE =
 export const DISCLAIMER =
   "This tool describes what the uploaded documents show. It is not an approval. A person must review and decide.";
 
+/** Who or what produced each part of a finding. Shown on every finding and above the list. */
+export const WHO = {
+  model: { tag: "AI model", color: "bg-sky-100 text-sky-900 border-sky-300" },
+  code: { tag: "Automatic code check", color: "bg-slate-100 text-slate-800 border-slate-300" },
+  verifier: { tag: "AI model, second check", color: "bg-sky-100 text-sky-900 border-sky-300" },
+  person: { tag: "A person", color: "bg-emerald-100 text-emerald-900 border-emerald-300" },
+} as const;
+
+export const WHO_TEXT = {
+  model: "Reads the documents and proposes a status with quotes.",
+  code: "Checks that every quote exists in the document text and that dates are inside a quote. It can only lower a status.",
+  verifier: "Reads only the requirement and the verified quotes and says whether they support it. It can only lower a status.",
+  person: "Makes the final decision. Every decision is logged with a reason.",
+  scripted: "Simulated: these answers come from a fixed script, not from an AI model. Use it to see the screens, not to judge accuracy.",
+} as const;
+
+export const DECISION_TEXT = {
+  question: "Do you agree with this result?",
+  confirm: "Yes, the documents show this",
+  change: "No, I read the documents differently",
+  reasonLabel: "Your reason (required)",
+  reasonPlaceholder: "Which part of the document supports your decision?",
+} as const;
+
 /** Words the UI must never use (CLAUDE.md). Tested against every string above. */
 export const BANNED_WORDS = ["approved", "compliant", "qualified", "pass", "fail", "score"];
