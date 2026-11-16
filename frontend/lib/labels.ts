@@ -76,6 +76,14 @@ export const REQUEST_TEXT = {
   commentOptional: "Your reason (optional when you confirm the result)",
 } as const;
 
+export const SUMMARY_TEXT = {
+  link: "View summary",
+  back: "← Back to the findings",
+  reviewed: "reviewed by a person",
+  notReviewed: "not yet reviewed",
+  assessedBy: "Assessed by",
+} as const;
+
 /** Who or what produced each part of a finding. Shown on every finding and above the list. */
 export const WHO = {
   model: { tag: "AI model", color: "bg-sky-100 text-sky-900 border-sky-300" },

@@ -64,7 +64,8 @@ Use the synthetic PDFs in `evals/packets/`. Each folder is one subcontractor's p
 6. Click "View in document" on a quote: the page opens with the quote highlighted. Then confirm or change one finding with a reason, and open "Show decision history". Open "How this result was made" to see which step was done by the AI model, by code, or by a person.
 7. Try packet `04_prompt_injection` in a new subcontractor: one page tells an AI to mark everything as found. The result must not change.
 8. Try packet `02_missing_items`: the tool says "Evidence not found" for what is really missing.
-9. On a finding that does not show evidence, tick "Ask the subcontractor for a new upload", choose a reason, and tick the email option (give the subcontractor a fictional contact address first, for example `kontakt@firma.example`). The email is a simulated draft: nothing is sent. The request then appears under "Needs a new upload" on the home page, until a later decision on that requirement does not ask for one.
+9. Click "View summary" beside Findings: a short summary built from the stored findings and your decisions, with counts and lists (no scores) and the disclaimer. No model is involved.
+10. On a finding that does not show evidence, tick "Ask the subcontractor for a new upload", choose a reason, and tick the email option (give the subcontractor a fictional contact address first, for example `kontakt@firma.example`). The email is a simulated draft: nothing is sent. The request then appears under "Needs a new upload" on the home page, until a later decision on that requirement does not ask for one.
 
 ## Evaluation
 
@@ -104,7 +105,7 @@ Prints overall accuracy, false `found` rate (target: zero), and the `unclear` ra
 - **Simulated sign-in.** Two fixed demo users, sessions kept in memory (lost on restart). Real login, roles and httpOnly cookies are later.
 - **Emails are simulated.** A request for a new upload records an email draft and shows it; nothing is sent, and only fictional addresses (.example, .test, example.com) are accepted. Real sending needs an email service, consent and approved templates.
 - **Confirming needs no comment.** A comment is required only when changing the result or requesting a new upload. A project setting to require the reviewer to open the document first is a roadmap item.
-- **Not built:** the readiness summary screen, more than four eval packets, other trades than VVS.
+- **Not built:** more than four eval packets, other trades than VVS.
 
 ## Project documents
 

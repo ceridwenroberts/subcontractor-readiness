@@ -28,6 +28,7 @@ from app.providers.base import LLMProvider, ProviderError
 from app.routes.assess import PROVIDER_DOWN, SERVER_ERROR
 from app.routes.session import CurrentUser
 from app.routes.upload_requests import UploadRequestOut, request_out
+from app.summary import FindingView, Summary, build_summary
 from app.upload_requests import build_draft
 
 logger = logging.getLogger(__name__)
@@ -326,6 +327,34 @@ def assess_engagement_stream(engagement_id: str, request: Request, db: Db) -> Re
         events(),
         media_type="application/x-ndjson",
         headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.get("/engagements/{engagement_id}/summary")
+def engagement_summary(engagement_id: str, request: Request, db: Db) -> Summary:
+    """A short summary from the stored findings and decisions. No model is involved."""
+    engagement = _engagement_or_404(db, engagement_id)
+    template = request.app.state.templates[engagement.project.template_id]
+    views = [
+        FindingView(
+            code=f.requirement_code,
+            title=f.requirement_title,
+            ai_status=f.ai_status,
+            human_status=f.human_status,
+            valid_until=f.valid_until.isoformat() if f.valid_until else None,
+            open_request_reason=f.latest_request.reason_label if f.latest_request else None,
+            provider_label=f.provider_label,
+            model=f.model,
+        )
+        for f in _latest_findings(engagement, request)
+    ]
+    return build_summary(
+        subcontractor=engagement.subcontractor_name,
+        project=engagement.project.name,
+        template_name=template.name,
+        placeholder=template.reviewed_by is None,
+        document_count=len(engagement.documents),
+        findings=views,
     )
 
 

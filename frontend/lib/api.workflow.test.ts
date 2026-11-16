@@ -5,6 +5,7 @@ import {
   assessEngagementStream,
   createProject,
   decideFinding,
+  getSummary,
   listProjects,
   listOpenRequests,
   messageFromBody,
@@ -301,5 +302,34 @@ describe("open requests", () => {
   it("rejects a list with the wrong shape", async () => {
     mockFetch(async () => Response.json([{ request_id: 1 }]));
     await expect(listOpenRequests()).rejects.toThrow(/unexpected format/);
+  });
+});
+
+describe("summary", () => {
+  const summary = {
+    title: "Documentation summary: Exempelrör AB on Hamnen 4",
+    intro: "Based on 5 uploaded documents and 7 requirements in the VVS template.",
+    groups: [
+      {
+        status: "found",
+        label: "Documents show evidence",
+        items: [{ code: "VVS-01", title: "F-skattsedel", reviewed_by_person: false, note: "" }],
+      },
+    ],
+    not_reviewed_count: 7,
+    not_reviewed_text: "7 requirements not yet reviewed by a person.",
+    assessed_by: "Simulated (fixture)",
+    disclaimer: "This summary describes what the uploaded documents show. It is not an approval. A person must review and decide.",
+  };
+
+  it("parses a summary", async () => {
+    mockFetch(async () => Response.json(summary));
+    await expect(getSummary("e1")).resolves.toEqual(summary);
+  });
+
+  it("rejects an unknown status", async () => {
+    const bad = { ...summary, groups: [{ ...summary.groups[0], status: "approved" }] };
+    mockFetch(async () => Response.json(bad));
+    await expect(getSummary("e1")).rejects.toThrow(/unexpected format/);
   });
 });

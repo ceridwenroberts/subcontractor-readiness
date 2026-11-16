@@ -17,7 +17,7 @@ import {
   listRequestReasons,
   uploadDocuments,
 } from "@/lib/api";
-import { DISCLAIMER, REQUEST_TEXT } from "@/lib/labels";
+import { DISCLAIMER, REQUEST_TEXT, SUMMARY_TEXT } from "@/lib/labels";
 import { useSession } from "@/lib/useSession";
 import type {
   DocumentInfo,
@@ -252,7 +252,15 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
       {findings.length > 0 && (
         <section className="space-y-3">
           <div className="flex flex-wrap items-end justify-between gap-3">
-            <h2 className="text-lg font-medium">3. Findings ({findings.length})</h2>
+            <h2 className="text-lg font-medium">
+              3. Findings ({findings.length}){" "}
+              <Link
+                href={`/engagements/${engagementId}/summary`}
+                className={`${linkClass} text-sm font-normal`}
+              >
+                {SUMMARY_TEXT.link}
+              </Link>
+            </h2>
           </div>
           <HowItWasMade findings={findings} />
           {findings.map((f) => (

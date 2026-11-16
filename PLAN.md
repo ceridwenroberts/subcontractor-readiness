@@ -312,14 +312,14 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 - [x] SQLAlchemy models: Project, Engagement, Document, Finding, DecisionLog
 - [x] Project, engagement, and document endpoints
 - [x] Assess all requirements for an engagement and store findings
-- [ ] Summary from stored findings, with disclaimer and banned-words test
+- [x] Summary from stored findings, with disclaimer and banned-words test
 
 ### Stage 5: Review UI (day 6)
 - [x] Project and engagement screens
 - [x] Document upload screen
 - [x] Findings list: status, quote, page, provider label, placeholder-template banner
 - [x] Human decision with comment, stored separately, audit log visible
-- [ ] Summary screen
+- [x] Summary screen
 
 ### Stage 6: Evals and hand-in (day 7)
 - [ ] 6 to 10 packets, including the injection and personnummer packets (4 so far: complete, missing items, expired + personnummer, injection)

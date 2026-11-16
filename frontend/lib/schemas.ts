@@ -195,3 +195,27 @@ export const OpenRequestSchema = z.object({
   created_at: z.string(),
 });
 export type OpenRequest = z.infer<typeof OpenRequestSchema>;
+
+export const SummarySchema = z.object({
+  title: z.string(),
+  intro: z.string(),
+  groups: z.array(
+    z.object({
+      status: StatusSchema,
+      label: z.string(),
+      items: z.array(
+        z.object({
+          code: z.string(),
+          title: z.string(),
+          reviewed_by_person: z.boolean(),
+          note: z.string(),
+        }),
+      ),
+    }),
+  ),
+  not_reviewed_count: z.number(),
+  not_reviewed_text: z.string(),
+  assessed_by: z.string(),
+  disclaimer: z.string(),
+});
+export type Summary = z.infer<typeof SummarySchema>;

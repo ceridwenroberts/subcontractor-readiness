@@ -48,6 +48,7 @@ import {
   ProjectSchema,
   RetentionAdviceSchema,
   SignInSchema,
+  SummarySchema,
   UserSchema,
   TemplateDetailSchema,
   TemplateSummarySchema,
@@ -306,3 +307,6 @@ export async function assessEngagementStream(
 
 export const listRequestReasons = () => request("/upload-requests/reasons", z.array(ReasonSchema));
 export const listOpenRequests = () => request("/upload-requests/open", z.array(OpenRequestSchema));
+
+export const getSummary = (engagementId: string) =>
+  request(`/engagements/${encodeURIComponent(engagementId)}/summary`, SummarySchema);
