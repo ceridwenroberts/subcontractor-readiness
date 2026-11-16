@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     ollama_timeout_seconds: int = Field(default=120, gt=0)
     ollama_num_ctx: int = Field(default=8192, gt=0)
 
+    # SQLite file under data/ (gitignored). Postgres later: change only this URL.
+    database_url: str = f"sqlite:///{PROJECT_ROOT / 'data' / 'app.db'}"
+
     # Uploaded PDFs, stored under UUID names. Gitignored (data/).
     uploads_dir: Path = PROJECT_ROOT / "data" / "uploads"
 
