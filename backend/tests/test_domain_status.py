@@ -24,9 +24,15 @@ GOOD_FSKATT = Citation(
 )
 GOOD_FUTURE = Citation(document_id="doc2", page=1, quote="Giltig till 2027-12-31")
 GOOD_PAST = Citation(document_id="doc3", page=1, quote="Giltig till 2025-06-30")
-INVENTED = Citation(document_id="doc1", page=1, quote="bolaget har tecknat ansvarsförsäkring")
-WRONG_PAGE = Citation(document_id="doc1", page=2, quote="bolaget är godkänt för F-skatt")
-UNKNOWN_DOC = Citation(document_id="nope", page=1, quote="bolaget är godkänt för F-skatt")
+INVENTED = Citation(
+    document_id="doc1", page=1, quote="bolaget har tecknat ansvarsförsäkring"
+)
+WRONG_PAGE = Citation(
+    document_id="doc1", page=2, quote="bolaget är godkänt för F-skatt"
+)
+UNKNOWN_DOC = Citation(
+    document_id="nope", page=1, quote="bolaget är godkänt för F-skatt"
+)
 
 
 def run(status: Status, citations: list[Citation], expires=False, valid_until=None):
@@ -94,7 +100,9 @@ def test_date_valid_through_today_is_not_expired() -> None:
     pages = {**PAGES, page_key: "Intyg. Giltig till 2026-11-16."}
     result = check_finding(
         model_status="found",
-        citations=[Citation(document_id="doc4", page=1, quote="Intyg. Giltig till 2026-11-16")],
+        citations=[
+            Citation(document_id="doc4", page=1, quote="Intyg. Giltig till 2026-11-16")
+        ],
         pages=pages,
         expires=True,
         valid_until=TODAY,
@@ -103,10 +111,124 @@ def test_date_valid_through_today_is_not_expired() -> None:
     assert result.ai_status == "found"
 
 
-def test_expiring_requirement_without_date_becomes_unclear() -> None:
+def test_no_date_from_the_model_uses_the_only_date_in_a_verified_quote() -> None:
+    # Rule changed 2026-11-16: the code reads the date from the verified quote.
     result = run("found", [GOOD_FUTURE], expires=True, valid_until=None)
+    assert result.ai_status == "found"
+    assert result.valid_until == date(2027, 12, 31)
+    assert any("only date in a verified quote" in n for n in result.notes)
+
+
+def test_a_date_read_from_the_quote_can_make_it_expired() -> None:
+    result = run("found", [GOOD_PAST], expires=True, valid_until=None)
+    assert result.ai_status == "expired"
+    assert result.valid_until == date(2025, 6, 30)
+
+
+def test_the_same_date_written_twice_counts_once() -> None:
+    pages = {
+        **PAGES,
+        ("doc5", 1): "Giltig till 2027-12-31. Intyget gäller till 2027-12-31.",
+    }
+    result = check_finding(
+        model_status="found",
+        citations=[
+            Citation(
+                document_id="doc5",
+                page=1,
+                quote="Giltig till 2027-12-31. Intyget gäller till 2027-12-31",
+            )
+        ],
+        pages=pages,
+        expires=True,
+        valid_until=None,
+        today=TODAY,
+    )
+    assert result.ai_status == "found" and result.valid_until == date(2027, 12, 31)
+
+
+def test_two_different_dates_stay_unclear_because_we_cannot_tell_the_expiry() -> None:
+    pages = {**PAGES, ("doc5", 1): "Utfärdat 2026-01-01. Giltig till 2027-12-31."}
+    result = check_finding(
+        model_status="found",
+        citations=[
+            Citation(
+                document_id="doc5",
+                page=1,
+                quote="Utfärdat 2026-01-01. Giltig till 2027-12-31",
+            )
+        ],
+        pages=pages,
+        expires=True,
+        valid_until=None,
+        today=TODAY,
+    )
     assert result.ai_status == "unclear"
     assert result.valid_until is None
+    assert any("more than one date" in n for n in result.notes)
+    assert not any("no expiry date was given" in n for n in result.notes)
+
+
+def test_a_model_date_still_settles_a_quote_with_two_dates() -> None:
+    pages = {**PAGES, ("doc5", 1): "Utfärdat 2026-01-01. Giltig till 2027-12-31."}
+    result = check_finding(
+        model_status="found",
+        citations=[
+            Citation(
+                document_id="doc5",
+                page=1,
+                quote="Utfärdat 2026-01-01. Giltig till 2027-12-31",
+            )
+        ],
+        pages=pages,
+        expires=True,
+        valid_until=date(2027, 12, 31),
+        today=TODAY,
+    )
+    assert result.ai_status == "found" and result.valid_until == date(2027, 12, 31)
+
+
+def test_no_date_anywhere_in_the_quotes_stays_unclear() -> None:
+    result = run("found", [GOOD_FSKATT], expires=True, valid_until=None)
+    assert result.ai_status == "unclear"
+    assert result.valid_until is None
+    assert any("no expiry date was given" in n for n in result.notes)
+
+
+def test_a_date_only_in_an_unverified_quote_is_never_read() -> None:
+    unverified = Citation(
+        document_id="doc2", page=1, quote="Giltig till 2027-12-31 och mer text"
+    )
+    result = run("found", [unverified], expires=True, valid_until=None)
+    assert result.ai_status == "unclear" and result.valid_until is None
+
+
+def test_a_date_that_is_not_on_the_calendar_is_ignored() -> None:
+    pages = {**PAGES, ("doc5", 1): "Giltig till 2027-13-45, se bilaga."}
+    result = check_finding(
+        model_status="found",
+        citations=[
+            Citation(
+                document_id="doc5", page=1, quote="Giltig till 2027-13-45, se bilaga"
+            )
+        ],
+        pages=pages,
+        expires=True,
+        valid_until=None,
+        today=TODAY,
+    )
+    assert result.ai_status == "unclear" and result.valid_until is None
+
+
+def test_a_requirement_that_does_not_expire_never_reads_dates() -> None:
+    result = run("found", [GOOD_FUTURE], expires=False, valid_until=None)
+    assert result.ai_status == "found" and result.valid_until is None
+
+
+def test_reading_a_date_never_makes_a_weaker_model_answer_stronger() -> None:
+    for status in ("missing", "unclear", "expired"):
+        result = run(status, [GOOD_FUTURE], expires=True, valid_until=None)
+        assert is_weakening_or_same(status, result.ai_status), status
 
 
 def test_date_not_inside_a_verified_quote_becomes_unclear() -> None:
@@ -117,7 +239,9 @@ def test_date_not_inside_a_verified_quote_becomes_unclear() -> None:
 
 
 def test_date_only_in_an_unverified_quote_is_not_used() -> None:
-    bad = Citation(document_id="doc2", page=1, quote="Giltig till 2027-12-31 och mer text")
+    bad = Citation(
+        document_id="doc2", page=1, quote="Giltig till 2027-12-31 och mer text"
+    )
     result = run("found", [bad], expires=True, valid_until=date(2027, 12, 31))
     assert result.ai_status == "unclear"
     assert result.valid_until is None
@@ -160,4 +284,9 @@ def test_code_never_strengthens_any_combination() -> None:
         STATUSES, citation_options, [False, True], date_options
     ):
         result = run(status, cites, expires=expires, valid_until=valid)
-        assert is_weakening_or_same(status, result.ai_status), (status, cites, expires, valid)
+        assert is_weakening_or_same(status, result.ai_status), (
+            status,
+            cites,
+            expires,
+            valid,
+        )

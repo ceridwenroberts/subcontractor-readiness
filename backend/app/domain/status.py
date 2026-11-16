@@ -15,6 +15,7 @@ Dates are matched in ISO form (2027-12-31), the format the templates and packets
 use. A date written another way will not match, so the finding gets weaker.
 """
 
+import re
 from collections.abc import Mapping
 from datetime import date
 from typing import Literal, get_args
@@ -22,6 +23,8 @@ from typing import Literal, get_args
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.domain.quotes import normalize, verify_quote
+
+_ISO_DATE = re.compile(r"\b(\d{4})-(\d{2})-(\d{2})\b")
 
 Status = Literal["found", "partial", "missing", "unclear", "expired"]
 STATUSES: tuple[Status, ...] = get_args(Status)
@@ -56,6 +59,18 @@ class CheckResult(BaseModel):
     evidence: list[Evidence]
     valid_until: date | None
     notes: list[str] = Field(default_factory=list)
+
+
+def _dates_in(quotes: list[str]) -> set[date]:
+    """Every real calendar date written as YYYY-MM-DD in these (already verified) quotes."""
+    found: set[date] = set()
+    for quote in quotes:
+        for year, month, day in _ISO_DATE.findall(quote):
+            try:
+                found.add(date(int(year), int(month), int(day)))
+            except ValueError:
+                continue  # "2027-13-45" is not a date
+    return found
 
 
 def is_weakening_or_same(old: Status, new: Status) -> bool:
@@ -94,11 +109,27 @@ def check_finding(
 
     # The date only counts if it is written inside a quote that verified.
     supported_until: date | None = None
+    ambiguous_dates = False
     if expires and valid_until is not None:
         if any(valid_until.isoformat() in q for q in verified_quotes):
             supported_until = valid_until
         else:
             notes.append("The stated expiry date is not inside a verified quote.")
+    elif expires and verified_quotes:
+        # The model gave no date. Read it from the verified quotes, but only if there is
+        # exactly one: with two (an issue date and an expiry date) we cannot tell which
+        # one is the expiry, so we do not guess.
+        quote_dates = _dates_in(verified_quotes)
+        if len(quote_dates) == 1:
+            supported_until = next(iter(quote_dates))
+            notes.append(
+                "The model gave no expiry date, so the only date in a verified quote was used."
+            )
+        elif len(quote_dates) > 1:
+            ambiguous_dates = True
+            notes.append(
+                "The verified quotes show more than one date, so the expiry date could not be told apart."
+            )
 
     ai_status: Status = model_status
     if model_status in ("found", "partial"):
@@ -108,14 +139,18 @@ def check_finding(
         elif expires:
             if supported_until is None:
                 ai_status = "unclear"
-                if valid_until is None:
-                    notes.append("This requirement expires, but no expiry date was given.")
+                if valid_until is None and not ambiguous_dates:
+                    notes.append(
+                        "This requirement expires, but no expiry date was given."
+                    )
             elif supported_until < today:
                 ai_status = "expired"
                 notes.append("The documents show an expiry date in the past.")
 
     if not is_weakening_or_same(model_status, ai_status):
-        raise ValueError(f"code checks must not strengthen {model_status!r} to {ai_status!r}")
+        raise ValueError(
+            f"code checks must not strengthen {model_status!r} to {ai_status!r}"
+        )
 
     return CheckResult(
         ai_status=ai_status, evidence=evidence, valid_until=supported_until, notes=notes

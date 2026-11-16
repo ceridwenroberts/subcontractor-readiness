@@ -197,7 +197,7 @@ Project-specific requirements (for example BAS-P and BAS-U) are a later overlay 
 6. Code checks run (`domain/`):
    - Each quote must be found on the cited page of the cited document, after normalizing whitespace, case, and line-break hyphens. Quotes shorter than 15 characters do not count.
    - `found` or `partial` with no verified quote becomes `unclear`.
-   - If the requirement expires, the expiry date must sit inside a verified quote. A past date becomes `expired`. A missing date becomes `unclear`.
+   - If the requirement expires, the expiry date must sit inside a verified quote. A past date becomes `expired`. If the model gave no date, the code reads it from the verified quotes, but only when they contain exactly one date (YYYY-MM-DD). No date, or more than one different date, becomes `unclear`. (Changed 2026-11-16.)
    - Code checks may only weaken a status, never strengthen it.
 7. Findings are stored with provider, model, and prompt version.
 8. PM reviews each finding, sees the quote and page, and accepts or overrides with a comment. Each decision is logged.
