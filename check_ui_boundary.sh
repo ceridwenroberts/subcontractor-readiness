@@ -19,7 +19,7 @@ fi
 
 # 1. The logic layer must not change on a UI branch.
 step "protected files unchanged (vs $BASE)"
-PROTECTED='^(backend/|templates/|evals/|frontend/lib/|check\.sh$|check_ui_boundary\.sh$|CLAUDE\.md$|PLAN\.md$)'
+PROTECTED='^(backend/|templates/|evals/|frontend/lib/|frontend/package(-lock)?\.json$|check\.sh$|check_ui_boundary\.sh$|CLAUDE\.md$|PLAN\.md$)'
 changed=$(
   {
     git diff --name-only "$BASE"...HEAD

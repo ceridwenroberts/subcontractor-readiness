@@ -52,7 +52,8 @@ These files hold the rules. A restyle never needs to touch them. If you think on
 | `backend/**` | The API, the AI pipeline, the checks, the database. |
 | `templates/**` | The requirement lists. They are never generated or edited by the UI. |
 | `evals/**` | Evaluation packets and results. |
-| `frontend/lib/**` | API client, data schemas, wording, decision-form rules, sign-in token, highlighter, and their tests. |
+| `frontend/lib/**` | API client, data schemas, wording, decision-form rules, form validation rules (`forms.ts`), theme preference (`theme.ts`), query hooks (`queries.ts`), sign-in token, highlighter, and their tests. |
+| `frontend/package.json`, `frontend/package-lock.json` | Dependencies. New packages need approval. |
 | `check.sh`, `check_ui_boundary.sh`, `CLAUDE.md`, `PLAN.md` | Project rules and checks. |
 
 Inside the editable files, also keep these behaviours exactly:

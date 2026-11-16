@@ -100,7 +100,7 @@ Also:
 
 A design or layout tool (or an AI) may redesign the screens. It must not touch the logic layer. Brief it with `docs/ui-handoff.md` and `docs/ui-states.md`; sample data is in `docs/ui-fixtures/`.
 
-- **Protected, never changed in a redesign:** `backend/`, `templates/`, `evals/`, `frontend/lib/` (API client, zod schemas, wording, `decisionForm.ts`, sign-in token, highlighter and their tests), `check.sh`, `check_ui_boundary.sh`, `CLAUDE.md`, `PLAN.md`.
+- **Protected, never changed in a redesign:** `backend/`, `templates/`, `evals/`, `frontend/lib/` (API client, zod schemas, wording, `decisionForm.ts`, `forms.ts`, `theme.ts`, `queries.ts`, sign-in token, highlighter and their tests), `frontend/package.json`, `frontend/package-lock.json`, `check.sh`, `check_ui_boundary.sh`, `CLAUDE.md`, `PLAN.md`.
 - **Editable:** markup and styling in `frontend/app/**/page.tsx`, `frontend/app/layout.tsx`, `frontend/components/`, `globals.css`.
 - The UI calls the backend only through `frontend/lib/api.ts`. No `fetch`, browser storage, `NEXT_PUBLIC_` values, `dangerouslySetInnerHTML` or `any` in `app/` or `components/`. The decision form must keep using `lib/decisionForm.ts`; its rules are never re-implemented in a component.
 - Product rules still apply to every screen: no verdict words or scores, the provider label on every finding, the placeholder and Simulated banners, the disclaimer, three separate statuses, and model detail kept quiet and collapsed.
