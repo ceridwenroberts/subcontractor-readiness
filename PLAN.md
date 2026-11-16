@@ -308,10 +308,10 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 - [ ] Summary from stored findings, with disclaimer and banned-words test
 
 ### Stage 5: Review UI (day 6)
-- [ ] Project and engagement screens
-- [ ] Document upload screen
-- [ ] Findings list: status, quote, page, provider label, placeholder-template banner
-- [ ] Human decision with comment, stored separately, audit log visible
+- [x] Project and engagement screens
+- [x] Document upload screen
+- [x] Findings list: status, quote, page, provider label, placeholder-template banner
+- [x] Human decision with comment, stored separately, audit log visible
 - [ ] Summary screen
 
 ### Stage 6: Evals and hand-in (day 7)
