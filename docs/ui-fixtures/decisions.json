@@ -4,8 +4,10 @@
     "finding_id": "617f5246-c590-4fc1-aa47-e5276edafaa0",
     "old_human_status": null,
     "new_human_status": "expired",
-    "comment": "Policy ended 2025-06-30. Renewal needed.",
+    "comment": "",
     "decided_by": "Test PM (demo)",
-    "decided_at": "2026-11-16T18:28:43.322687"
+    "decided_at": "2026-11-16T18:28:43.322687",
+    "reason": "expired",
+    "reason_label": "The document has expired"
   }
 ]

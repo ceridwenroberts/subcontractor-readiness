@@ -131,6 +131,7 @@ def test_decision_sets_human_status_only_and_logs_it(tmp_path: Path) -> None:
     finding = _first_finding(client)
     body = {
         "status": "partial",
+        "reason": "incomplete",  # changing the result needs a reason from the list
         "comment": "Renewal letter seen.",
     }
     response = client.patch(f"/findings/{finding['id']}", json=body)
@@ -145,6 +146,8 @@ def test_decision_sets_human_status_only_and_logs_it(tmp_path: Path) -> None:
     assert log[0]["old_human_status"] is None
     assert log[0]["new_human_status"] == "partial"
     assert log[0]["comment"] == "Renewal letter seen."
+    assert log[0]["reason"] == "incomplete"
+    assert log[0]["reason_label"] == "Information is missing from the document"
     assert (
         log[0]["decided_by"] == "Test PM (demo)"
     )  # set by the server from the session
@@ -155,9 +158,11 @@ def test_second_decision_appends_and_records_the_old_status(tmp_path: Path) -> N
     fid = _first_finding(client)["id"]
     client.patch(
         f"/findings/{fid}",
-        json={"status": "partial", "comment": "a"},
+        json={"status": "partial", "reason": "incomplete", "comment": "a"},
     )
-    client.patch(f"/findings/{fid}", json={"status": "found", "comment": "b"})
+    client.patch(
+        f"/findings/{fid}", json={"status": "found", "reason": "other", "comment": "b"}
+    )
     log = client.get(f"/findings/{fid}/decisions").json()
     assert [(d["old_human_status"], d["new_human_status"]) for d in log] == [
         (None, "partial"),
@@ -166,14 +171,13 @@ def test_second_decision_appends_and_records_the_old_status(tmp_path: Path) -> N
     assert count(client, DecisionLog) == 2
 
 
-def test_decision_needs_a_comment_a_valid_status_and_no_client_supplied_name(
+def test_decision_needs_a_valid_status_and_no_client_supplied_name(
     tmp_path: Path,
 ) -> None:
     client = make_client(tmp_path)
     fid = _first_finding(client)["id"]
     good = {"status": "found", "comment": "ok"}
     for bad in [
-        {**good, "comment": ""},
         {**good, "decided_by": "Someone Else"},  # the server decides who you are
         {**good, "status": "approved"},
         {**good, "extra": 1},
@@ -185,7 +189,9 @@ def test_decision_needs_a_comment_a_valid_status_and_no_client_supplied_name(
 def test_there_is_no_way_to_edit_or_delete_decisions_over_http(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     fid = _first_finding(client)["id"]
-    client.patch(f"/findings/{fid}", json={"status": "found", "comment": "a"})
+    client.patch(
+        f"/findings/{fid}", json={"status": "found", "reason": "other", "comment": "a"}
+    )
     did = client.get(f"/findings/{fid}/decisions").json()[0]["id"]
     for method in ("put", "patch", "delete"):
         for url in (

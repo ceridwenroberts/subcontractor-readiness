@@ -30,6 +30,7 @@ def make_engine(url: str) -> Engine:
 _NEW_COLUMNS = [
     ("projects", "delete_after", "DATE"),
     ("engagements", "contact_email", "VARCHAR(200)"),
+    ("decision_log", "reason", "VARCHAR(20)"),
 ]
 
 

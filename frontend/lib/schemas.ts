@@ -134,6 +134,8 @@ export const DecisionSchema = z.object({
   old_human_status: StatusSchema.nullable(),
   new_human_status: StatusSchema,
   comment: z.string(),
+  reason: z.string().nullable(),
+  reason_label: z.string().nullable(),
   decided_by: z.string(),
   decided_at: z.string(),
 });

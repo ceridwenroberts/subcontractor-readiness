@@ -68,7 +68,7 @@ export function FindingCard({
     hasContactEmail: !!contactEmail,
     saving,
   };
-  const { canRequest, requesting, needsComment, blocked } = evaluateDecision(input);
+  const { canRequest, requesting, needsReason, needsComment, blocked } = evaluateDecision(input);
 
   async function loadHistory() {
     try {
@@ -86,12 +86,7 @@ export function FindingCard({
     setError(null);
     setRecorded(null);
     try {
-      const updated = await decideFinding(
-        finding.id,
-        decision.status,
-        decision.comment,
-        decision.requestUpload,
-      );
+      const updated = await decideFinding(finding.id, decision);
       onChanged(updated);
       setComment("");
       const asked = decision.requestUpload
@@ -275,6 +270,27 @@ export function FindingCard({
           </div>
         </fieldset>
 
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">
+            {REQUEST_TEXT.reasonLabel}{" "}
+            <span className="font-normal text-slate-600">
+              {needsReason ? REQUEST_TEXT.reasonRequired : REQUEST_TEXT.reasonOptional}
+            </span>
+          </span>
+          <select
+            className={`${inputClass} w-auto`}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          >
+            <option value="">{REQUEST_TEXT.reasonPlaceholder}</option>
+            {reasons.map((r) => (
+              <option key={r.key} value={r.key}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
         {canRequest && (
           <fieldset className="space-y-2 rounded-md border border-slate-200 p-3 text-sm">
             <label className="flex items-center gap-2 font-medium">
@@ -287,24 +303,6 @@ export function FindingCard({
             </label>
             {requesting && (
               <>
-                <label className="block">
-                  <span className="mb-1 block">{REQUEST_TEXT.reasonLabel}</span>
-                  <select
-                    className={`${inputClass} w-auto`}
-                    value={reason}
-                    onChange={(e) => setReason(e.target.value)}
-                    required
-                  >
-                    <option value="" disabled>
-                      {REQUEST_TEXT.reasonPlaceholder}
-                    </option>
-                    {reasons.map((r) => (
-                      <option key={r.key} value={r.key}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
                 <label className="flex items-start gap-2">
                   <input
                     type="checkbox"
@@ -381,6 +379,7 @@ export function FindingCard({
               {formatWhen(d.decided_at)} · {d.decided_by}:{" "}
               {d.old_human_status ? STATUS_LABEL[d.old_human_status] : "no earlier decision"} →{" "}
               <strong>{STATUS_LABEL[d.new_human_status]}</strong>
+              {d.reason_label && <> · Reason: {d.reason_label}</>}
               {d.comment && (
                 <>
                   <br />

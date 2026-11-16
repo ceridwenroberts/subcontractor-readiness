@@ -105,6 +105,9 @@ class DecisionLog(Base):
     old_human_status: Mapped[str | None] = mapped_column(String(20), default=None)
     new_human_status: Mapped[str] = mapped_column(String(20))
     comment: Mapped[str] = mapped_column(Text)
+    # Reason key from app.upload_requests.REASONS. Optional when confirming a result; older
+    # rows have none. Typed text (comment) is only required for "other".
+    reason: Mapped[str | None] = mapped_column(String(20), default=None)
     decided_by: Mapped[str] = mapped_column(String(100))  # free text until login exists
     decided_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 

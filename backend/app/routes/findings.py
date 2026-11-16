@@ -29,7 +29,7 @@ from app.routes.assess import PROVIDER_DOWN, SERVER_ERROR
 from app.routes.session import CurrentUser
 from app.routes.upload_requests import UploadRequestOut, request_out
 from app.summary import FindingView, Summary, build_summary
-from app.upload_requests import build_draft
+from app.upload_requests import REASONS, build_draft
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -67,15 +67,18 @@ UploadReason = Literal["expired", "wrong_document", "unreadable", "incomplete", 
 
 
 class UploadRequestIn(BaseModel):
+    """Asking for a new upload. The reason is the decision's reason (see DecisionIn)."""
+
     model_config = ConfigDict(extra="forbid")
-    reason: UploadReason
     send_email: bool = False  # SIMULATED: records a draft, sends nothing
 
 
 class DecisionIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
     status: Status
-    # Optional only when confirming the shown result (see `decide`).
+    # A reason from the list. Required when changing the result or asking for a new upload.
+    reason: UploadReason | None = None
+    # Typed text. Required only when the reason is "other" (see `_check_decision`).
     comment: str = Field(default="", max_length=2000)
     request_upload: UploadRequestIn | None = None
     # No `decided_by`: the server takes the name from the signed-in session.
@@ -87,6 +90,8 @@ class DecisionOut(BaseModel):
     old_human_status: Status | None
     new_human_status: Status
     comment: str
+    reason: str | None
+    reason_label: str | None
     decided_by: str
     decided_at: datetime
 
@@ -98,6 +103,8 @@ def _decision(d: DecisionLog) -> DecisionOut:
         old_human_status=d.old_human_status,  # type: ignore[arg-type]
         new_human_status=d.new_human_status,  # type: ignore[arg-type]
         comment=d.comment,
+        reason=d.reason,
+        reason_label=REASONS.get(d.reason, d.reason) if d.reason else None,
         decided_by=d.decided_by,
         decided_at=d.decided_at,
     )
@@ -366,11 +373,14 @@ def list_findings(engagement_id: str, request: Request, db: Db) -> list[FindingO
 def _check_decision(finding: Finding, body: DecisionIn) -> None:
     """Rules for a decision. All are checked before anything is written."""
     comment = body.comment.strip()
-    confirming = body.status == finding.ai_status and body.request_upload is None
-    if not confirming and not comment:
+    changing = body.status != finding.ai_status
+    if (changing or body.request_upload is not None) and body.reason is None:
         raise HTTPException(
-            422, "Add a comment when you change the result or request a new upload."
+            422,
+            "Choose a reason when you change the result or ask for a new upload.",
         )
+    if body.reason == "other" and not comment:
+        raise HTTPException(422, "Describe the reason in your own words when you choose Other.")
     if body.request_upload is not None:
         if body.status == "found":
             raise HTTPException(
@@ -400,6 +410,7 @@ def decide(
         old_human_status=finding.human_status,
         new_human_status=body.status,
         comment=comment,
+        reason=body.reason,
         decided_by=user.name,
     )
     db.add(decision)
@@ -424,7 +435,7 @@ def decide(
                 requirement=requirement.title
                 if requirement
                 else finding.requirement_code,
-                reason_key=body.request_upload.reason,
+                reason_key=body.reason or "other",
                 note=comment,
                 reviewer=user.name,
             )
@@ -435,7 +446,7 @@ def decide(
                 finding_id=finding.id,
                 engagement_id=finding.engagement_id,
                 requirement_code=finding.requirement_code,
-                reason=body.request_upload.reason,
+                reason=body.reason or "other",
                 email_to=email["to"],
                 email_subject=email["subject"],
                 email_body=email["body"],

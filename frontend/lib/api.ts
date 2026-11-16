@@ -187,28 +187,27 @@ export const assessEngagement = (engagementId: string) =>
   );
 export const listFindings = (engagementId: string) =>
   request(`/engagements/${encodeURIComponent(engagementId)}/findings`, z.array(FindingSchema));
-export type UploadRequestChoice = { reason: string; sendEmail: boolean };
+export type DecisionBody = {
+  status: Status;
+  comment: string;
+  reason?: string; // key from /upload-requests/reasons
+  requestUpload?: { sendEmail: boolean }; // ask for a new upload; the email is a SIMULATED draft
+};
 
 /**
  * Record a decision. The name in the decision log comes from the signed-in session on the
- * server, not from here. `requestUpload` asks the subcontractor for a new upload; its email
- * is a SIMULATED draft and nothing is sent.
+ * server, not from here. The rules about reasons and typed text live in lib/decisionForm.ts
+ * and are checked again by the server.
  */
-export const decideFinding = (
-  findingId: string,
-  status: Status,
-  comment: string,
-  requestUpload?: UploadRequestChoice,
-) =>
+export const decideFinding = (findingId: string, decision: DecisionBody) =>
   request(
     `/findings/${encodeURIComponent(findingId)}`,
     FindingSchema,
     json("PATCH", {
-      status,
-      comment,
-      ...(requestUpload
-        ? { request_upload: { reason: requestUpload.reason, send_email: requestUpload.sendEmail } }
-        : {}),
+      status: decision.status,
+      comment: decision.comment,
+      ...(decision.reason ? { reason: decision.reason } : {}),
+      ...(decision.requestUpload ? { request_upload: { send_email: decision.requestUpload.sendEmail } } : {}),
     }),
   );
 export const listDecisions = (findingId: string) =>

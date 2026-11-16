@@ -8,10 +8,11 @@
  * Rules:
  * - Only a result that shows evidence ("found") is pre-selected as "agree". Anything else
  *   makes the reviewer choose on purpose.
- * - Confirming the shown result needs no comment. Changing the result, or asking for a new
- *   upload, needs one.
+ * - A reason from the list is optional when confirming the shown result. It is required when
+ *   changing the result or asking for a new upload (which is never required).
+ * - Typed text is required only when the reason is "other".
  * - A new upload can only be requested when the recorded status is not "found".
- * - A request needs a reason. An email is only sent (simulated) when a contact address exists.
+ * - An email is only sent (simulated) when a contact address exists.
  * - Recording needs a signed-in (simulated) user. The name is set by the server, never here.
  */
 import type { Status } from "./schemas";
@@ -34,14 +35,15 @@ export type BlockedBecause =
   | "sign_in"
   | "choose_option"
   | "choose_status"
-  | "comment_required"
-  | "reason_required";
+  | "reason_required"
+  | "comment_required";
 
 export type DecisionState = {
   chosen: Status | ""; // the status that would be recorded
   canRequest: boolean; // the "ask for a new upload" section may be shown
   requesting: boolean; // a new upload will be requested
-  needsComment: boolean; // the comment is required
+  needsReason: boolean; // a reason from the list is required
+  needsComment: boolean; // typed text is required (reason is "other")
   blocked: boolean; // "Record decision" must be disabled
   blockedBecause: BlockedBecause | null; // first thing missing, for a hint in the UI
 };
@@ -55,20 +57,22 @@ export function evaluateDecision(i: DecisionInput): DecisionState {
   const chosen: Status | "" = i.agree === true ? i.aiStatus : i.agree === false ? i.otherStatus : "";
   const canRequest = chosen !== "" && chosen !== "found";
   const requesting = i.wantRequest && canRequest;
-  const needsComment = i.agree === false || requesting;
+  const needsReason = i.agree === false || requesting;
+  const needsComment = i.reason === "other";
 
   let blockedBecause: BlockedBecause | null = null;
   if (i.saving) blockedBecause = "saving";
   else if (!i.hasUser) blockedBecause = "sign_in";
   else if (i.agree === null) blockedBecause = "choose_option";
   else if (chosen === "") blockedBecause = "choose_status";
+  else if (needsReason && !i.reason) blockedBecause = "reason_required";
   else if (needsComment && !i.comment.trim()) blockedBecause = "comment_required";
-  else if (requesting && !i.reason) blockedBecause = "reason_required";
 
   return {
     chosen,
     canRequest,
     requesting,
+    needsReason,
     needsComment,
     blocked: blockedBecause !== null,
     blockedBecause,
@@ -78,7 +82,8 @@ export function evaluateDecision(i: DecisionInput): DecisionState {
 export type DecisionPayload = {
   status: Status;
   comment: string;
-  requestUpload?: { reason: string; sendEmail: boolean };
+  reason?: string; // key from the reasons list; the server stores it in the decision log
+  requestUpload?: { sendEmail: boolean }; // the reason above is the reason for the request
 };
 
 /** What to send to the backend, or null if the form cannot be submitted yet. */
@@ -88,8 +93,7 @@ export function buildDecision(i: DecisionInput): DecisionPayload | null {
   return {
     status: state.chosen,
     comment: i.comment.trim(),
-    ...(state.requesting
-      ? { requestUpload: { reason: i.reason, sendEmail: i.sendEmail && i.hasContactEmail } }
-      : {}),
+    ...(i.reason ? { reason: i.reason } : {}),
+    ...(state.requesting ? { requestUpload: { sendEmail: i.sendEmail && i.hasContactEmail } } : {}),
   };
 }

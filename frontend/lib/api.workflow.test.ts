@@ -85,7 +85,7 @@ describe("request helpers", () => {
 
   it("rejects a bad human status before sending is possible (types), and sends PATCH", async () => {
     const fn = mockFetch(async () => new Response("{}", { status: 422 }));
-    await expect(decideFinding("f1", "found", "ok")).rejects.toBeInstanceOf(ApiError);
+    await expect(decideFinding("f1", { status: "found", comment: "ok" })).rejects.toBeInstanceOf(ApiError);
     expect(fn.mock.calls[0][1]?.method).toBe("PATCH");
   });
 });
@@ -152,7 +152,7 @@ describe("simulated sign-in token", () => {
       },
     });
     const fn = mockFetch(async () => new Response("{}", { status: 422 }));
-    await expect(decideFinding("f1", "found", "ok")).rejects.toBeInstanceOf(ApiError);
+    await expect(decideFinding("f1", { status: "found", comment: "ok" })).rejects.toBeInstanceOf(ApiError);
     const init = fn.mock.calls[0][1];
     expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer tok123");
     expect(JSON.parse(init?.body as string)).toEqual({ status: "found", comment: "ok" });
@@ -253,30 +253,49 @@ describe("assessEngagementStream", () => {
   });
 });
 
-describe("requesting a new upload", () => {
-  it("sends request_upload only when one is chosen, and no name", async () => {
+describe("recording a decision", () => {
+  const body = (fn: ReturnType<typeof mockFetch>) => JSON.parse(fn.mock.calls[0][1]?.body as string);
+
+  it("sends the reason and request_upload only when chosen, and no name", async () => {
     const fn = mockFetch(async () => new Response("{}", { status: 422 }));
     await expect(
-      decideFinding("f1", "expired", "Renewal needed.", { reason: "expired", sendEmail: true }),
+      decideFinding("f1", {
+        status: "expired",
+        comment: "",
+        reason: "expired",
+        requestUpload: { sendEmail: true },
+      }),
     ).rejects.toBeInstanceOf(ApiError);
-    expect(JSON.parse(fn.mock.calls[0][1]?.body as string)).toEqual({
+    expect(body(fn)).toEqual({
       status: "expired",
-      comment: "Renewal needed.",
-      request_upload: { reason: "expired", send_email: true },
+      comment: "",
+      reason: "expired",
+      request_upload: { send_email: true },
     });
   });
 
-  it("can confirm with an empty comment", async () => {
+  it("can give a reason without asking for a new upload", async () => {
     const fn = mockFetch(async () => new Response("{}", { status: 422 }));
-    await expect(decideFinding("f1", "found", "")).rejects.toBeInstanceOf(ApiError);
-    expect(JSON.parse(fn.mock.calls[0][1]?.body as string)).toEqual({ status: "found", comment: "" });
+    await expect(
+      decideFinding("f1", { status: "partial", comment: "", reason: "incomplete" }),
+    ).rejects.toBeInstanceOf(ApiError);
+    expect(body(fn)).toEqual({ status: "partial", comment: "", reason: "incomplete" });
+  });
+
+  it("can confirm with no reason and no comment", async () => {
+    const fn = mockFetch(async () => new Response("{}", { status: 422 }));
+    await expect(decideFinding("f1", { status: "found", comment: "" })).rejects.toBeInstanceOf(ApiError);
+    expect(body(fn)).toEqual({ status: "found", comment: "" });
   });
 
   it("shows the backend's message when the rule is broken", async () => {
     mockFetch(async () =>
-      Response.json({ detail: "Add a comment when you change the result or request a new upload." }, { status: 422 }),
+      Response.json(
+        { detail: "Choose a reason when you change the result or ask for a new upload." },
+        { status: 422 },
+      ),
     );
-    await expect(decideFinding("f1", "partial", "")).rejects.toThrow(/Add a comment/);
+    await expect(decideFinding("f1", { status: "partial", comment: "" })).rejects.toThrow(/Choose a reason/);
   });
 });
 

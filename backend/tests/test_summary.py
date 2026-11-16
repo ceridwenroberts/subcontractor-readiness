@@ -166,7 +166,8 @@ def test_endpoint_summarises_stored_findings_and_decisions(tmp_path: Path) -> No
         json={
             "status": "expired",
             "comment": "Renewal needed.",
-            "request_upload": {"reason": "expired"},
+            "reason": "expired",
+            "request_upload": {},
         },
     )
     s = client.get(f"/engagements/{eid}/summary").json()

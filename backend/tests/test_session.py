@@ -44,7 +44,12 @@ def a_finding(client: TestClient) -> str:
 def decide(
     client: TestClient, fid: str, headers: dict[str, str] | None = None, **extra: Any
 ):
-    body = {"status": "found", "comment": "Seen on page 1.", **extra}
+    body = {
+        "status": "found",
+        "reason": "other",
+        "comment": "Seen on page 1.",
+        **extra,
+    }
     return client.patch(f"/findings/{fid}", json=body, headers=headers)
 
 

@@ -94,20 +94,21 @@ Data: one object from `findings-all-states.json`.
 
 These come from `frontend/lib/decisionForm.ts` and are covered by tests. Redraw the form freely, but call `initialAgree`, `evaluateDecision` and `buildDecision`, and keep these behaviours.
 
-Controls: question "Do you agree with this result?" with the shown result; two radio options ("Yes, the documents show this" / "No, I read the documents differently" plus a status dropdown with the placeholder "Choose a status…"); when a new upload can be requested, a checkbox "Ask the subcontractor for a new upload", then a reason dropdown (placeholder "Choose a reason…", options from `upload-reasons.json`) and a checkbox "Also send the request by email" ("Simulated: a draft is recorded and nothing is sent", disabled with "Add a contact email for this subcontractor to use this." when there is no contact address); a reason text box; the "Record decision" button; a line "Recording as {name} (simulated sign-in)." or "Sign in at the top of the page to record a decision."
+Controls: question "Do you agree with this result?" with the shown result; two radio options ("Yes, the documents show this" / "No, I read the documents differently" plus a status dropdown with the placeholder "Choose a status…"); a reason dropdown that is always available (placeholder "Choose a reason…", options from `upload-reasons.json`); when a new upload can be requested, a checkbox "Ask the subcontractor for a new upload" (never required), then a checkbox "Also send the request by email" ("Simulated: a draft is recorded and nothing is sent", disabled with "Add a contact email for this subcontractor to use this." when there is no contact address); a note text box; the "Record decision" button; a line "Recording as {name} (simulated sign-in)." or "Sign in at the top of the page to record a decision."
 
 | Rule | Behaviour |
 |---|---|
 | Pre-selection | Only a result with `ai_status = found` pre-selects "Yes". For every other status nothing is selected, and a hint says "Choose one of the options above. Nothing is selected for you, because the documents did not clearly show evidence." |
-| Comment | Optional only when confirming the shown result with no request. Required when changing the result or asking for a new upload. The label changes: "Your reason (optional when you confirm the result)" / "Your reason (required)". |
+| Reason (from the list) | Optional when confirming the shown result. **Required** when changing the result or asking for a new upload. The label says which: "(optional when you confirm the result)" / "(required when you change the result or ask for a new upload)". Stored in the decision log and shown in the history. |
+| Note (typed text) | Required **only** when the reason is "Other". Label: "Your note (required when the reason is Other)" / "Your note (optional)". |
 | Request section | Shown only when the status that would be recorded is not `found`. |
-| Request needs | A reason. |
+| Request needs | The reason chosen above. Asking for a new upload is never required. |
 | Email | Only available with a contact address; otherwise never sent. |
-| Button disabled when | saving, nobody signed in, no option chosen, "No" chosen with no status, a required comment is empty, or a request has no reason. `evaluateDecision(...).blockedBecause` names the first missing thing: `saving`, `sign_in`, `choose_option`, `choose_status`, `comment_required`, `reason_required`. |
-| What is sent | `{ status, comment (trimmed), requestUpload? }`. Never a name: the server takes the name from the signed-in session. |
+| Button disabled when | saving, nobody signed in, no option chosen, "No" chosen with no status, a required reason is missing, or the reason is "Other" with no note. `evaluateDecision(...).blockedBecause` names the first missing thing: `saving`, `sign_in`, `choose_option`, `choose_status`, `reason_required`, `comment_required`. |
+| What is sent | `{ status, comment (trimmed), reason?, requestUpload?: { sendEmail } }`. Never a name: the server takes the name from the signed-in session. |
 | After saving | Green "Decision recorded: {status}." plus "A new upload was requested." and "An email draft was recorded. Simulated: nothing was sent." when relevant, and "It is saved in the decision history below." |
 
-Decision history (expand): per entry, time, who, old status → new status, and the comment (omitted when empty).
+Decision history (expand): per entry, time, who, old status → new status, the reason (when one was given) and the note (omitted when empty).
 
 ## Summary `/engagements/[engagementId]/summary`
 

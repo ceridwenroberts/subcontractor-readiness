@@ -65,7 +65,8 @@ def count(client: TestClient, model: type) -> int:
 
 
 def request_upload(reason: str = "expired", send_email: bool = False) -> dict[str, Any]:
-    return {"reason": reason, "send_email": send_email}
+    """Body fields for asking for a new upload: the reason belongs to the decision itself."""
+    return {"reason": reason, "request_upload": {"send_email": send_email}}
 
 
 def patch(client: TestClient, fid: str, **body: Any):
@@ -85,33 +86,70 @@ def test_confirming_the_shown_result_needs_no_comment(tmp_path: Path) -> None:
     assert log[0]["comment"] == "" and log[0]["new_human_status"] == "found"
 
 
-def test_changing_the_result_still_needs_a_comment(tmp_path: Path) -> None:
+def test_changing_the_result_needs_a_reason_from_the_list(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     _, findings = setup_engagement(client)
     found = next(f for f in findings if f["ai_status"] == "found")
-    assert patch(client, found["id"], status="partial").status_code == 422
-    assert (
-        patch(client, found["id"], status="partial", comment="   ").status_code == 422
-    )
+    response = patch(client, found["id"], status="partial")
+    assert response.status_code == 422
+    assert "reason" in response.json()["detail"]
     assert count(client, DecisionLog) == 0
-    assert (
-        patch(
-            client, found["id"], status="partial", comment="Only half is shown."
-        ).status_code
-        == 200
+    # A standard reason is enough: no typed text is needed.
+    ok = patch(client, found["id"], status="partial", reason="incomplete")
+    assert ok.status_code == 200
+    log = client.get(f"/findings/{found['id']}/decisions").json()
+    assert log[0]["reason"] == "incomplete"
+    assert (log[0]["old_human_status"], log[0]["new_human_status"]) == (None, "partial")
+
+
+def test_typed_text_is_required_only_for_other(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    _, findings = setup_engagement(client)
+    found = next(f for f in findings if f["ai_status"] == "found")
+    for blank in ({}, {"comment": "   "}):
+        response = patch(
+            client, found["id"], status="partial", reason="other", **blank
+        )
+        assert response.status_code == 422
+        assert "Other" in response.json()["detail"]
+    assert count(client, DecisionLog) == 0
+    ok = patch(
+        client, found["id"], status="partial", reason="other", comment="Seen in the annex."
     )
+    assert ok.status_code == 200
 
 
-def test_requesting_a_new_upload_needs_a_comment_even_when_confirming(
+def test_a_reason_can_be_given_without_asking_for_a_new_upload(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    _, findings = setup_engagement(client)
+    found = next(f for f in findings if f["ai_status"] == "found")
+    response = patch(client, found["id"], status="found", reason="incomplete")
+    assert response.status_code == 200
+    assert count(client, UploadRequest) == 0
+    log = client.get(f"/findings/{found['id']}/decisions").json()
+    assert log[0]["reason"] == "incomplete" and log[0]["comment"] == ""
+
+
+def test_confirming_the_result_needs_neither_reason_nor_text(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    _, findings = setup_engagement(client)
+    found = next(f for f in findings if f["ai_status"] == "found")
+    assert patch(client, found["id"], status="found").status_code == 200
+    log = client.get(f"/findings/{found['id']}/decisions").json()
+    assert log[0]["reason"] is None and log[0]["reason_label"] is None
+
+
+def test_requesting_a_new_upload_needs_a_reason_but_no_text_unless_other(
     tmp_path: Path,
 ) -> None:
     client = make_client(tmp_path)
     _, findings = setup_engagement(client)
     f = expired(findings)
-    response = patch(client, f["id"], status="expired", request_upload=request_upload())
-    assert response.status_code == 422
-    assert "comment" in response.json()["detail"]
+    no_reason = patch(client, f["id"], status="expired", request_upload={})
+    assert no_reason.status_code == 422 and "reason" in no_reason.json()["detail"]
     assert count(client, DecisionLog) == 0 and count(client, UploadRequest) == 0
+    assert patch(client, f["id"], status="expired", **request_upload()).status_code == 200
+    assert count(client, UploadRequest) == 1
 
 
 # --- requesting a new upload ---
@@ -128,7 +166,7 @@ def test_request_is_recorded_with_the_decision_and_no_email_by_default(
         f["id"],
         status="expired",
         comment="Please send the renewed policy.",
-        request_upload=request_upload("expired"),
+        **request_upload("expired"),
     )
     assert response.status_code == 200
     body = response.json()
@@ -151,7 +189,7 @@ def test_email_is_a_recorded_draft_and_nothing_else(tmp_path: Path) -> None:
         f["id"],
         status="expired",
         comment="Policy ended 2025-06-30.",
-        request_upload=request_upload("expired", send_email=True),
+        **request_upload("expired", send_email=True),
     ).json()
     request = body["latest_request"]
     assert request["email_recorded"] is True
@@ -175,7 +213,7 @@ def test_email_without_a_contact_address_is_refused_and_nothing_is_logged(
         f["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload(send_email=True),
+        **request_upload(send_email=True),
     )
     assert response.status_code == 422
     assert "contact email" in response.json()["detail"]
@@ -194,7 +232,7 @@ def test_a_request_without_email_works_when_there_is_no_contact_address(
             f["id"],
             status="expired",
             comment="x",
-            request_upload=request_upload(),
+            **request_upload(),
         ).status_code
         == 200
     )
@@ -209,7 +247,7 @@ def test_no_request_when_the_documents_show_evidence(tmp_path: Path) -> None:
         found["id"],
         status="found",
         comment="x",
-        request_upload=request_upload("other"),
+        **request_upload("other"),
     )
     assert response.status_code == 422
     assert "do not clearly show evidence" in response.json()["detail"]
@@ -222,12 +260,18 @@ def test_unknown_reason_and_unknown_fields_are_refused(tmp_path: Path) -> None:
     f = expired(findings)
     bad = {"status": "expired", "comment": "x"}
     assert (
-        patch(client, f["id"], **bad, request_upload={"reason": "rejected"}).status_code
+        patch(
+            client, f["id"], **bad, reason="rejected", request_upload={"send_email": False}
+        ).status_code
         == 422
     )
     assert (
         patch(
-            client, f["id"], **bad, request_upload={"reason": "other", "to": "a@b.c"}
+            client,
+            f["id"],
+            **bad,
+            reason="other",
+            request_upload={"send_email": False, "to": "a@b.c"},
         ).status_code
         == 422
     )
@@ -242,7 +286,7 @@ def test_a_request_needs_a_sign_in(tmp_path: Path) -> None:
         expired(findings)["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload(),
+        **request_upload(),
     )
     assert response.status_code == 401
     assert count(client, UploadRequest) == 0
@@ -269,7 +313,7 @@ def test_dashboard_lists_an_open_request_with_its_context(tmp_path: Path) -> Non
         expired(findings)["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload("expired", send_email=True),
+        **request_upload("expired", send_email=True),
     )
     [item] = open_items(client)
     assert item["project_name"] == "Hamnen 4"
@@ -294,9 +338,15 @@ def test_a_later_decision_without_a_request_closes_it(tmp_path: Path) -> None:
     client = make_client(tmp_path)
     _, findings = setup_engagement(client)
     fid = expired(findings)["id"]
-    patch(client, fid, status="expired", comment="x", request_upload=request_upload())
+    patch(client, fid, status="expired", comment="x", **request_upload())
     assert len(open_items(client)) == 1
-    patch(client, fid, status="partial", comment="They sent a letter by other means.")
+    patch(
+        client,
+        fid,
+        status="partial",
+        reason="other",
+        comment="They sent a letter by other means.",
+    )
     assert open_items(client) == []
 
 
@@ -308,7 +358,7 @@ def test_re_assessing_alone_does_not_close_it(tmp_path: Path) -> None:
         expired(findings)["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload(),
+        **request_upload(),
     )
     client.post(f"/engagements/{eid}/assess")  # new findings, no new decision
     assert len(open_items(client)) == 1
@@ -322,7 +372,7 @@ def test_a_decision_on_the_newer_finding_closes_it(tmp_path: Path) -> None:
         expired(findings)["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload(),
+        **request_upload(),
     )
     newer = next(
         f
@@ -344,13 +394,13 @@ def test_a_new_request_reopens_it_and_there_is_only_one_open_item(
     client = make_client(tmp_path)
     _, findings = setup_engagement(client)
     fid = expired(findings)["id"]
-    patch(client, fid, status="expired", comment="a", request_upload=request_upload())
+    patch(client, fid, status="expired", comment="a", **request_upload())
     patch(
         client,
         fid,
         status="expired",
         comment="b",
-        request_upload=request_upload("other"),
+        **request_upload("other"),
     )
     items = open_items(client)
     assert len(items) == 1 and items[0]["reason_label"] == REASONS["other"]
@@ -365,16 +415,22 @@ def test_requests_in_other_engagements_are_independent(tmp_path: Path) -> None:
         expired(first)["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload(),
+        **request_upload(),
     )
     patch(
         client,
         expired(second)["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload(),
+        **request_upload(),
     )
-    patch(client, expired(second)["id"], status="partial", comment="resolved")
+    patch(
+        client,
+        expired(second)["id"],
+        status="partial",
+        reason="other",
+        comment="resolved",
+    )
     assert [i["subcontractor_name"] for i in open_items(client)] == ["Första AB"]
 
 
@@ -386,7 +442,7 @@ def test_finding_list_shows_the_latest_request(tmp_path: Path) -> None:
         expired(findings)["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload(),
+        **request_upload(),
     )
     listed = client.get(f"/engagements/{eid}/findings").json()
     assert (
@@ -412,7 +468,7 @@ def test_upload_requests_cannot_be_changed_or_deleted(tmp_path: Path) -> None:
         expired(findings)["id"],
         status="expired",
         comment="x",
-        request_upload=request_upload(),
+        **request_upload(),
     )
     with client.app.state.session_factory() as db:
         row = db.scalars(select(UploadRequest)).one()

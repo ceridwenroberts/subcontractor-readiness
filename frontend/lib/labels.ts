@@ -48,6 +48,8 @@ export const VIEWER_TEXT = {
 export const REQUEST_TEXT = {
   checkbox: "Ask the subcontractor for a new upload",
   reasonLabel: "Reason",
+  reasonRequired: "(required when you change the result or ask for a new upload)",
+  reasonOptional: "(optional when you confirm the result)",
   reasonPlaceholder: "Choose a reason…",
   emailLabel: "Also send the request by email",
   emailSimulated: "Simulated: a draft is recorded and nothing is sent.",
@@ -64,8 +66,8 @@ export const REQUEST_TEXT = {
   noEmail: "No email request",
   contactLabel: "Contact email (fictional)",
   contactHelp: "Fictional addresses only: ending in .example, .test or example.com.",
-  commentRequired: "Your reason (required)",
-  commentOptional: "Your reason (optional when you confirm the result)",
+  commentRequired: "Your note (required when the reason is Other)",
+  commentOptional: "Your note (optional)",
 } as const;
 
 export const SUMMARY_TEXT = {
