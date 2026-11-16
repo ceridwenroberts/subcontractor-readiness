@@ -1,6 +1,7 @@
 """Pydantic shapes shared between the assessment pipeline and (later) the API."""
 
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -37,3 +38,7 @@ class AssessmentResult(BaseModel):
     provider_label: str
     model: str
     prompt_version: str
+    # What the second check (verifier agent) did. Only "not_supported" changes a status.
+    verifier: Literal["not_run", "supported", "not_supported", "unavailable"] = (
+        "not_run"
+    )

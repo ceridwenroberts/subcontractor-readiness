@@ -323,7 +323,7 @@ Rough daily targets. If a day slips, cut from the end of the week, never from se
 ### Stage 7: Multi-agent experiment (in scope since 2026-11-16)
 The assignment asks for agents in orchestration, so the verifier is now planned, built after Stage 5. Without an API key this runs on Ollama, so the comparison shows the method more than real quality. Cut first if time runs out.
 
-- [ ] **Verifier agent.** A second LLM call that sees only the requirement and the verified quotes for each `found` or `partial` finding. It answers "do these quotes support this requirement?". It can downgrade to `unclear` but never upgrade.
+- [x] **Verifier agent.** (built 2026-11-16, `app/verify.py`, switch: `VERIFIER_ENABLED`) A second LLM call that sees only the requirement and the verified quotes for each `found` or `partial` finding. It answers "do these quotes support this requirement?". It can downgrade to `unclear` but never upgrade.
 - [ ] Run evals with and without the verifier. Compare false `found` rate, accuracy, time, and cost.
 - [ ] Keep it only if the numbers show a benefit. Write the result in `docs/decisions.md` either way. A negative result is still a good result for the report.
 

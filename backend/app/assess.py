@@ -12,14 +12,21 @@ Security (CLAUDE.md):
 import secrets
 from collections.abc import Sequence
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ValidationError
 
-from app.domain.status import CheckResult, PageKey, Status, check_finding
+from app.domain.status import (
+    CheckResult,
+    PageKey,
+    Status,
+    check_finding,
+    is_weakening_or_same,
+)
 from app.models import AssessmentOutput, AssessmentResult
 from app.providers.base import InvalidModelOutput, LLMProvider
 from app.templates import Requirement
+from app.verify import MAX_REASON_CHARS, VERIFIER_PROMPT_VERSION, verify_support
 
 # Bump whenever SYSTEM_PROMPT or the user prompt layout changes, then re-run the evals.
 PROMPT_VERSION = "assess-v2"
@@ -86,9 +93,12 @@ def build_user_prompt(
     blocks: list[str] = []
     for doc in documents:
         pages = "\n".join(
-            f"--- page {number} ---\n{text}" for number, text in enumerate(doc.pages, start=1)
+            f"--- page {number} ---\n{text}"
+            for number, text in enumerate(doc.pages, start=1)
         )
-        blocks.append(f'<<BEGIN-{nonce} document="{doc.id}">>\n{pages}\n<<END-{nonce}>>')
+        blocks.append(
+            f'<<BEGIN-{nonce} document="{doc.id}">>\n{pages}\n<<END-{nonce}>>'
+        )
     # The task is repeated after the documents: small models weight the end of the prompt.
     task = (
         f"\nTASK: Read every page above. Assess requirement {requirement.code} "
@@ -98,7 +108,9 @@ def build_user_prompt(
     return "\n".join(header) + "\n" + "\n".join(blocks) + task
 
 
-def _ask(provider: LLMProvider, user: str, schema: dict[str, Any]) -> AssessmentOutput | None:
+def _ask(
+    provider: LLMProvider, user: str, schema: dict[str, Any]
+) -> AssessmentOutput | None:
     """Ask once. None means the reply was not valid output."""
     try:
         raw = provider.complete_json(SYSTEM_PROMPT, user, schema)
@@ -112,6 +124,7 @@ def assess_requirement(
     requirement: Requirement,
     documents: Sequence[DocumentText],
     today: date | None = None,
+    use_verifier: bool = False,
 ) -> AssessmentResult:
     today = today or date.today()
     nonce = secrets.token_hex(8)
@@ -131,7 +144,9 @@ def assess_requirement(
                 ai_status="unclear",
                 evidence=[],
                 valid_until=None,
-                notes=["The model's reply did not match the required format, even after one retry."],
+                notes=[
+                    "The model's reply did not match the required format, even after one retry."
+                ],
             ),
             model_notes="",
         )
@@ -149,13 +164,40 @@ def assess_requirement(
         valid_until=output.valid_until,
         today=today,
     )
+    verifier = "not_run"
+    if use_verifier and check.ai_status in ("found", "partial"):
+        check, verifier = _run_verifier(provider, requirement, check)
     return _result(
         provider,
         requirement,
         model_status=output.status,
         check=check,
         model_notes=output.notes[:MAX_MODEL_NOTES_CHARS],
+        verifier=verifier,
     )
+
+
+def _run_verifier(
+    provider: LLMProvider, requirement: Requirement, check: CheckResult
+) -> tuple[CheckResult, Literal["supported", "not_supported", "unavailable"]]:
+    """Second check. It can only turn found/partial into unclear, never anything stronger."""
+    verified = [e for e in check.evidence if e.verified]
+    answer = verify_support(provider, requirement, verified)
+    if answer is None:
+        note = "The second check could not give a valid answer, so it changed nothing."
+        return check.model_copy(update={"notes": [*check.notes, note]}), "unavailable"
+    if answer.supports:
+        return check, "supported"
+    reason = answer.reason.strip()[:MAX_REASON_CHARS]
+    note = "A second check found that the quotes do not show evidence for this requirement."
+    if reason:
+        note += f' It said: "{reason}"'
+    downgraded = check.model_copy(
+        update={"ai_status": "unclear", "notes": [*check.notes, note]}
+    )
+    if not is_weakening_or_same(check.ai_status, downgraded.ai_status):
+        raise ValueError("the verifier must not strengthen a status")
+    return downgraded, "not_supported"
 
 
 def _result(
@@ -165,6 +207,9 @@ def _result(
     model_status: Status,
     check: CheckResult,
     model_notes: str,
+    verifier: Literal[
+        "not_run", "supported", "not_supported", "unavailable"
+    ] = "not_run",
 ) -> AssessmentResult:
     return AssessmentResult(
         requirement_code=requirement.code,
@@ -177,5 +222,10 @@ def _result(
         provider=provider.name,
         provider_label=provider.label,
         model=provider.model,
-        prompt_version=PROMPT_VERSION,
+        prompt_version=(
+            f"{PROMPT_VERSION}+{VERIFIER_PROMPT_VERSION}"
+            if verifier != "not_run"
+            else PROMPT_VERSION
+        ),
+        verifier=verifier,
     )

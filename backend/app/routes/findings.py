@@ -15,6 +15,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 
 from app.assess import DocumentText, assess_requirement
+from app.config import Settings
 from app.db.models import DecisionLog, Engagement, Finding, Project
 from app.db.session import Db
 from app.domain.status import Status
@@ -139,6 +140,7 @@ def _latest_findings(engagement: Engagement, request: Request) -> list[FindingOu
 def assess_engagement(engagement_id: str, request: Request, db: Db) -> JSONResponse:
     engagement = _engagement_or_404(db, engagement_id)
     provider: LLMProvider = request.app.state.provider
+    settings: Settings = request.app.state.settings
     template = request.app.state.templates[engagement.project.template_id]
     if not engagement.documents:
         return JSONResponse(
@@ -152,7 +154,13 @@ def assess_engagement(engagement_id: str, request: Request, db: Db) -> JSONRespo
     try:
         # All requirements first, then store: a provider failure leaves nothing half-saved.
         results = [
-            assess_requirement(provider, req, documents, today=date.today())
+            assess_requirement(
+                provider,
+                req,
+                documents,
+                today=date.today(),
+                use_verifier=settings.verifier_enabled,
+            )
             for req in template.requirements
         ]
     except ProviderError as exc:

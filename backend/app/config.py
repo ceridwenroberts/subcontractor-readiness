@@ -37,11 +37,15 @@ class Settings(BaseSettings):
     # Which LLM provider answers. "scripted" (default) never touches the network.
     llm_provider: Literal["scripted", "ollama", "anthropic"] = "scripted"
     ollama_url: str = Field(
-        default="http://127.0.0.1:11434", pattern=r"^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$"
+        default="http://127.0.0.1:11434",
+        pattern=r"^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$",
     )
     ollama_model: str = ""
     ollama_timeout_seconds: int = Field(default=120, gt=0)
     ollama_num_ctx: int = Field(default=8192, gt=0)
+
+    # Second check on found/partial findings (the verifier agent). It can only weaken.
+    verifier_enabled: bool = True
 
     # SQLite file under data/ (gitignored). Postgres later: change only this URL.
     database_url: str = f"sqlite:///{PROJECT_ROOT / 'data' / 'app.db'}"

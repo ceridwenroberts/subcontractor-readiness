@@ -87,7 +87,11 @@ def assess(
             )
 
         result = assess_requirement(
-            provider, requirement, documents, today=date.today()
+            provider,
+            requirement,
+            documents,
+            today=date.today(),
+            use_verifier=settings.verifier_enabled,
         )
         logger.info(
             "assess template=%s requirement=%s files=%d accepted=%d status=%s provider=%s",

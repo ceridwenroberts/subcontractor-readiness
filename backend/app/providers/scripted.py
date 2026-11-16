@@ -43,9 +43,16 @@ class ScriptedProvider:
         try:
             return cls(json.loads(path.read_text(encoding="utf-8")))
         except (OSError, json.JSONDecodeError) as exc:
-            raise ProviderError(f"cannot read scripted answers file {path.name}") from exc
+            raise ProviderError(
+                f"cannot read scripted answers file {path.name}"
+            ) from exc
 
-    def complete_json(self, system: str, user: str, schema: dict[str, Any]) -> dict[str, Any]:
+    def complete_json(
+        self, system: str, user: str, schema: dict[str, Any]
+    ) -> dict[str, Any]:
+        if "You are the VERIFIER" in system:
+            # A simulated verifier has no judgment: it always says the quotes support.
+            return {"supports": True, "reason": "Simulated: no real check was made."}
         # Read the header only: text before the first document block is ours, not the PDF's.
         header, _, _ = user.partition("<<BEGIN-")
         code_match = _CODE.search(header)
@@ -64,8 +71,14 @@ class ScriptedProvider:
                     date = _ISO_DATE.search(quote)
                     return {
                         "status": "found",
-                        "quotes": [{"document_id": doc_id, "page": page, "quote": quote}],
+                        "quotes": [
+                            {"document_id": doc_id, "page": page, "quote": quote}
+                        ],
                         "valid_until": date.group(0) if date else None,
                         "notes": "Simulated answer from a fixture pattern.",
                     }
-        return {"status": "missing", "quotes": [], "notes": "Simulated: pattern not found."}
+        return {
+            "status": "missing",
+            "quotes": [],
+            "notes": "Simulated: pattern not found.",
+        }
