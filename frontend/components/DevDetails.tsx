@@ -21,7 +21,7 @@ export function DevDetailsProvider({ children }: { children: React.ReactNode }) 
   const [on, setOn] = React.useState(false);
   return (
     <DevContext.Provider value={{ on, setOn }}>
-      <div data-dev={on ? "on" : "off"} className="min-h-screen">
+      <div data-dev={on ? "on" : "off"}>
         {children}
       </div>
     </DevContext.Provider>
@@ -33,10 +33,10 @@ export function DevToggle() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <label className="dev-surface flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium">
+        <label className="dev-surface flex w-full items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium">
           <Cpu className="size-3.5" aria-hidden />
           Model details
-          <Switch checked={on} onCheckedChange={setOn} aria-label="Show model and development details" />
+          <Switch className="ml-auto" checked={on} onCheckedChange={setOn} aria-label="Show model and development details" />
         </label>
       </TooltipTrigger>
       <TooltipContent>

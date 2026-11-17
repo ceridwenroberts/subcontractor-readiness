@@ -21,6 +21,7 @@ export function ThemeToggle() {
         <Button
           variant="outline"
           size="sm"
+          className="w-full justify-start"
           onClick={() => setChoice(next)}
           aria-label={`Theme: ${THEME_LABEL[choice]}. Switch to ${THEME_LABEL[next]}.`}
         >

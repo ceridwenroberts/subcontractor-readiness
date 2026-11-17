@@ -50,11 +50,14 @@ export function UploadDropzone({
   documents,
   onUploaded,
   onAssess,
+  listUploaded = true,
 }: {
   engagementId: string;
   documents: DocumentInfo[];
   onUploaded: () => Promise<void> | void;
   onAssess: () => void;
+  /** Show the list of already uploaded documents under the queue. */
+  listUploaded?: boolean;
 }) {
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -249,6 +252,7 @@ export function UploadDropzone({
         {blockedReason && items.length > 0 && <p className="text-xs text-muted-foreground">{blockedReason}</p>}
       </div>
 
+      {listUploaded && (
       <div>
         <h3 className="mb-1 text-xs font-medium text-muted-foreground">Uploaded documents ({documents.length})</h3>
         {documents.length === 0 ? (
@@ -288,6 +292,7 @@ export function UploadDropzone({
           </ul>
         )}
       </div>
+      )}
     </div>
   );
 }

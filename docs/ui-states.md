@@ -4,29 +4,23 @@ Every screen, the states it can be in, what must be on it, and the rules behind 
 
 Conventions: "required" means the element must stay (restyle and move it freely). All screens are client components that load data through `frontend/lib/api.ts`.
 
+## Layout (from the Figma)
+
+A left sidebar on wide screens (a slide-over menu behind a menu button on narrow ones): product name, **Workspace** navigation (Home, Projects, Issues with a count badge), then at the bottom the **Model details** switch, the theme button, the "Documentation status only…" line, and the simulated sign-in card. Every page has a title band (title, subtitle, page actions) above a content area. Creating a project or adding a subcontractor opens a dialog; uploading opens a dialog; reviewing a requirement opens a panel from the right.
+
 ## Navigation map
 
 ```
-/                                  Home: "Needs a new upload" table, new project, project list
-/projects/[projectId]              Project: add subcontractor, requirements in the template
-/engagements/[engagementId]        Engagement: upload, assess, findings, decisions
+/                                  Home: overview numbers, projects needing attention
+/projects                          All projects, with search
+/issues                            Issues: expiring document dates, requests waiting for a new upload
+/projects/[projectId]              Project: numbers, tabs Subcontractors and Requirements
+/engagements/[engagementId]        Subcontractor: upload, assess, status, tabs Overview, Documents, Requirements, History
 /engagements/[engagementId]/summary  Documentation summary
 /documents/[documentId]?page=&quote=  Document viewer (redacted text, quote highlighted)
-Header on every page: product name, "Documentation status only. A person reviews and decides.", the "Model details" switch, a light / dark / system theme button, and the sign-in bar
 ```
 
-A "subcontractor on a project" is called an **engagement** in the code and API; the UI says "subcontractor".
-
-## Header and sign-in bar (`SessionBar`)
-
-| State | What shows |
-|---|---|
-| Not ready (checking a stored token) | Nothing visible, space reserved. |
-| Signed out | "Sign in as" dropdown of demo users, "Sign in" button, badge "Simulated, not real authentication". |
-| Sign-in error | The error text next to the form. |
-| Signed in | "Signed in as {name}" with a "Simulated" badge, and "Sign out". |
-
-Required: the Simulated badge in both states. Demo users: `session-users.json`.
+Not in the Figma because the data does not exist: project codes, per-project document totals, trade, company number, phone, notification bell, global search, help card, "approved" document states, percentages. Do not invent them.
 
 ## Home `/`
 

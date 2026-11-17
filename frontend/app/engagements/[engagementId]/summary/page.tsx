@@ -5,6 +5,7 @@ import Link from "next/link";
 import { use, useEffect, useState } from "react";
 
 import { ErrorBox } from "@/components/Banners";
+import { PageBody, PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -33,11 +34,29 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
     };
   }, [engagementId]);
 
-  if (error) return <ErrorBox>{error}</ErrorBox>;
-  if (!summary) return <Skeleton className="h-40 w-full" />;
+  if (error)
+    return (
+      <>
+        <PageHeader title="Summary" />
+        <PageBody>
+          <ErrorBox>{error}</ErrorBox>
+        </PageBody>
+      </>
+    );
+  if (!summary)
+    return (
+      <>
+        <PageHeader title="Summary" />
+        <PageBody>
+          <Skeleton className="h-40 w-full" />
+        </PageBody>
+      </>
+    );
 
   return (
-    <main className="space-y-4">
+    <>
+      <PageHeader title={summary.title} subtitle={`${SUMMARY_TEXT.assessedBy}: ${summary.assessed_by}`} />
+      <PageBody>
       <p>
         <Link
           href={`/engagements/${engagementId}`}
@@ -47,13 +66,7 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
           {SUMMARY_TEXT.back}
         </Link>
       </p>
-      <div>
-        <h1 className="text-xl font-semibold">{summary.title}</h1>
-        <p className="mt-1 text-sm">{summary.intro}</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {SUMMARY_TEXT.assessedBy}: {summary.assessed_by}
-        </p>
-      </div>
+      <p className="text-sm">{summary.intro}</p>
 
       {summary.groups.map((g) => (
         <Card key={g.status}>
@@ -81,6 +94,7 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
 
       <p className="text-sm">{summary.not_reviewed_text}</p>
       <p className="border-t border-border pt-3 text-xs text-muted-foreground">{summary.disclaimer}</p>
-    </main>
+      </PageBody>
+    </>
   );
 }

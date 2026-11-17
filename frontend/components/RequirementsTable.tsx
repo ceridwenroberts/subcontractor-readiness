@@ -3,22 +3,17 @@
 import {
   flexRender,
   getCoreRowModel,
-  getExpandedRowModel,
   getFilteredRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
   type ColumnFiltersState,
-  type ExpandedState,
-  type Row as TableRow,
   type SortingState,
 } from "@tanstack/react-table";
 import { ArrowDownUp, ChevronRight, FileText } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { cn } from "@/components/cn";
-import { FindingCard } from "@/components/FindingCard";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ScanTag, isScanWarning } from "@/components/UploadDropzone";
 import { Badge } from "@/components/ui/badge";
@@ -26,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import { viewerPath } from "@/lib/api";
 import { STATUSES, STATUS_LABEL } from "@/lib/labels";
-import type { DocumentInfo, Finding, Reason, Status, TemplateDetail, User } from "@/lib/schemas";
+import type { DocumentInfo, Finding, Status, TemplateDetail } from "@/lib/schemas";
 
 type Requirement = TemplateDetail["requirements"][number];
 type Cited = { id: string; name: string; page: number; quote: string };
@@ -63,22 +58,16 @@ export function RequirementsTable({
   template,
   findings,
   documents,
-  user,
-  contactEmail,
-  reasons,
-  onChanged,
+  onReview,
 }: {
   template: TemplateDetail;
   findings: Finding[];
   documents: DocumentInfo[];
-  user: User | null;
-  contactEmail: string | null;
-  reasons: Reason[];
-  onChanged: (updated: Finding) => void;
+  /** Open the review panel for a requirement (its finding and decision). */
+  onReview: (code: string) => void;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [filters, setFilters] = useState<ColumnFiltersState>([]);
-  const [expanded, setExpanded] = useState<ExpandedState>({});
 
   const rows = useMemo<Row[]>(() => {
     const byCode = new Map(findings.map((f) => [f.requirement_code, f]));
@@ -104,20 +93,16 @@ export function RequirementsTable({
           return (
             <button
               type="button"
-              onClick={() => row.toggleExpanded()}
-              aria-expanded={row.getIsExpanded()}
+              onClick={() => onReview(r.code)}
               className="flex items-start gap-1.5 rounded text-left hover:text-muted-foreground"
             >
-              <ChevronRight
-                className={cn("mt-0.5 size-4 shrink-0 transition-transform", row.getIsExpanded() && "rotate-90")}
-                aria-hidden
-              />
               <span>
                 <span className="font-mono text-xs text-muted-foreground">{r.code}</span>{" "}
                 <span className="font-medium">{r.title}</span>
                 {!r.mandatory && <span className="text-xs text-muted-foreground"> (optional)</span>}
                 {r.expires && <span className="text-xs text-muted-foreground"> · has an expiry date</span>}
               </span>
+              <ChevronRight className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
             </button>
           );
         },
@@ -179,7 +164,7 @@ export function RequirementsTable({
         ),
       },
     ],
-    [],
+    [onReview],
   );
 
   // TanStack Table returns functions React Compiler cannot memoize; this component opts out safely.
@@ -187,16 +172,13 @@ export function RequirementsTable({
   const table = useReactTable({
     data: rows,
     columns,
-    state: { sorting, columnFilters: filters, expanded },
+    state: { sorting, columnFilters: filters },
     onSortingChange: setSorting,
     onColumnFiltersChange: setFilters,
-    onExpandedChange: setExpanded,
-    getRowCanExpand: () => true,
     getRowId: (r) => r.requirement.code,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getExpandedRowModel: getExpandedRowModel(),
   });
 
   const activeFilter = (filters.find((f) => f.id === "status")?.value as string | undefined) ?? "";
@@ -223,7 +205,7 @@ export function RequirementsTable({
         <p>
           These are the documents the <strong>{template.name}</strong> template asks for ({template.requirements.length}{" "}
           requirements, version {template.version}). They are pre-selected from the template and can&apos;t be edited
-          here. Open a row to see what each one means and what the check looks for.
+          here. Open a row to see what it means, what the check looks for, and the result.
         </p>
         {!assessed && (
           <p className="text-muted-foreground">Nothing has been assessed yet, so every row shows “Not assessed yet”.</p>
@@ -279,36 +261,20 @@ export function RequirementsTable({
               </Tr>
             )}
             {table.getRowModel().rows.map((row) => (
-              <RowGroup key={row.id} columnsCount={columns.length} open={row.getIsExpanded()} row={row}>
-                <div className="space-y-3">
-                  <div className="text-sm">
-                    <p>{row.original.requirement.description}</p>
-                    {row.original.requirement.evidenceHints.length > 0 && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        The check looks for words such as: {row.original.requirement.evidenceHints.join(", ")}.
-                      </p>
-                    )}
-                    {row.original.requirement.expires && (
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        This document has an expiry date. A date that has ended is shown as such.
-                      </p>
-                    )}
-                  </div>
-                  {row.original.finding ? (
-                    <FindingCard
-                      finding={row.original.finding}
-                      user={user}
-                      contactEmail={contactEmail}
-                      reasons={reasons}
-                      onChanged={onChanged}
-                    />
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Not assessed yet. Upload documents and choose “Assess documents” to see a result here.
-                    </p>
-                  )}
-                </div>
-              </RowGroup>
+              <Tr
+                key={row.id}
+                onClick={() => onReview(row.original.requirement.code)}
+                className="cursor-pointer transition-colors hover:bg-subtle"
+              >
+                {row.getVisibleCells().map((cell) => (
+                  <Td
+                    key={cell.id}
+                    className={(cell.column.columnDef.meta as { className?: string } | undefined)?.className}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </Td>
+                ))}
+              </Tr>
             ))}
           </TBody>
         </Table>
@@ -343,39 +309,5 @@ export function RequirementsTable({
         </div>
       )}
     </div>
-  );
-}
-
-function RowGroup({
-  row,
-  open,
-  columnsCount,
-  children,
-}: {
-  row: TableRow<Row>;
-  open: boolean;
-  columnsCount: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <>
-      <Tr className={cn(open && "bg-subtle")}>
-        {row.getVisibleCells().map((cell) => (
-          <Td
-            key={cell.id}
-            className={(cell.column.columnDef.meta as { className?: string } | undefined)?.className}
-          >
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </Td>
-        ))}
-      </Tr>
-      {open && (
-        <Tr className="bg-subtle">
-          <Td colSpan={columnsCount} className="border-t border-border px-4 py-3">
-            {children}
-          </Td>
-        </Tr>
-      )}
-    </>
   );
 }

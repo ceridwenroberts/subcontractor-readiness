@@ -5,6 +5,7 @@ import Link from "next/link";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { ErrorBox } from "@/components/Banners";
+import { PageBody, PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,11 +53,29 @@ export default function DocumentViewer({
     mark.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [current, range, doc]);
 
-  if (error) return <ErrorBox>{error}</ErrorBox>;
-  if (!doc) return <Skeleton className="h-60 w-full" />;
+  if (error)
+    return (
+      <>
+        <PageHeader title="Document" />
+        <PageBody>
+          <ErrorBox>{error}</ErrorBox>
+        </PageBody>
+      </>
+    );
+  if (!doc)
+    return (
+      <>
+        <PageHeader title="Document" />
+        <PageBody>
+          <Skeleton className="h-60 w-full" />
+        </PageBody>
+      </>
+    );
 
   return (
-    <main className="space-y-4">
+    <>
+      <PageHeader title={doc.filename} subtitle={`Page ${current} of ${doc.page_count}`} />
+      <PageBody>
       <p>
         <Link
           href={`/engagements/${doc.engagement_id}`}
@@ -66,12 +85,7 @@ export default function DocumentViewer({
           Back to the findings
         </Link>
       </p>
-      <div>
-        <h1 className="text-lg font-semibold">{doc.filename}</h1>
-        <p className="text-sm text-muted-foreground">
-          Page {current} of {doc.page_count}
-        </p>
-      </div>
+      
 
       <div className="flex flex-wrap items-center gap-2">
         <Button
@@ -122,6 +136,7 @@ export default function DocumentViewer({
         </CardContent>
       </Card>
       <p className="text-xs text-muted-foreground">{VIEWER_TEXT.note}</p>
-    </main>
+      </PageBody>
+    </>
   );
 }

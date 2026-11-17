@@ -1,19 +1,27 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronLeft, Play } from "lucide-react";
+import { AlertTriangle, ChevronRight, FileText, Play, Upload } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 import { toast } from "sonner";
 
 import { ErrorBox, OverdueBanner, PlaceholderBanner } from "@/components/Banners";
+import { DecisionHistory } from "@/components/DecisionHistory";
 import { HowItWasMade } from "@/components/HowItWasMade";
+import { MetricCard } from "@/components/MetricCard";
+import { PageBody, PageHeader } from "@/components/PageHeader";
+import { RequirementReviewSheet } from "@/components/RequirementReviewSheet";
 import { RequirementsTable } from "@/components/RequirementsTable";
-import { UploadDropzone } from "@/components/UploadDropzone";
+import { StatusBadge } from "@/components/StatusBadge";
+import { ScanTag, UploadDropzone, isScanWarning } from "@/components/UploadDropzone";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   assessEngagementStream,
   type AssessProgress,
@@ -30,6 +38,13 @@ import type { Finding } from "@/lib/schemas";
 import { useSession } from "@/lib/useSession";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
 
 export default function EngagementPage({ params }: { params: Promise<{ engagementId: string }> }) {
   const { engagementId } = use(params);
@@ -59,11 +74,14 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   const [assessing, setAssessing] = useState(false);
   const [progress, setProgress] = useState<AssessProgress | null>(null);
   const [assessError, setAssessError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [reviewCode, setReviewCode] = useState<string | null>(null);
 
   const loadError = engagementQ.error ?? projectQ.error ?? templateQ.error ?? documentsQ.error ?? findingsQ.error;
 
   async function onAssess() {
     if (assessing || documents.length === 0) return;
+    setUploading(false);
     setAssessing(true);
     setAssessError(null);
     setProgress(null);
@@ -83,87 +101,93 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
     queryClient.setQueryData<Finding[]>(queryKeys.findings(engagementId), (prev) =>
       (prev ?? []).map((f) => (f.id === updated.id ? updated : f)),
     );
+    void queryClient.invalidateQueries({ queryKey: queryKeys.openRequests });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.expiring });
   }
 
-  if (loadError) return <ErrorBox>{errorText(loadError)}</ErrorBox>;
+  if (loadError) {
+    return (
+      <>
+        <PageHeader title="Subcontractor" />
+        <PageBody>
+          <ErrorBox>{errorText(loadError)}</ErrorBox>
+        </PageBody>
+      </>
+    );
+  }
   if (!engagement || !template) {
     return (
-      <div className="space-y-3" aria-busy>
-        <Skeleton className="h-5 w-40" />
-        <Skeleton className="h-8 w-72" />
-        <Skeleton className="h-40 w-full" />
-      </div>
+      <>
+        <PageHeader title="Subcontractor" />
+        <PageBody>
+          <div className="space-y-3" aria-busy>
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        </PageBody>
+      </>
     );
   }
 
   const hasDocuments = documents.length > 0;
-  const assessLabel = findings.length ? "Assess again" : "Assess documents";
+  const evidence = findings.filter((f) => f.ai_status === "found").length;
+  const review = findings.filter((f) => f.ai_status === "unclear").length;
+  const requested = findings.filter((f) => f.latest_request).length;
+  const reviewing = template.requirements.find((r) => r.code === reviewCode) ?? null;
+  const reviewingFinding = findings.find((f) => f.requirement_code === reviewCode) ?? null;
+  const byCode = new Map(findings.map((f) => [f.requirement_code, f]));
 
   return (
-    <main className="space-y-5">
-      <Link
-        href={`/projects/${engagement.project_id}`}
-        className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
-      >
-        <ChevronLeft className="size-3.5" aria-hidden />
-        Back to project
-      </Link>
-      <div>
-        <h1 className="text-xl font-semibold">{engagement.subcontractor_name}</h1>
-        <p className="text-xs text-muted-foreground">
-          Template: {template.name} ·{" "}
-          {engagement.contact_email ? `Contact (fictional): ${engagement.contact_email}` : REQUEST_TEXT.noContactHere}
-        </p>
-      </div>
-      {template.placeholder && <PlaceholderBanner />}
-      {project?.delete_overdue && <OverdueBanner date={project.delete_after} />}
+    <>
+      <PageHeader title={engagement.subcontractor_name} subtitle={`Subcontractor · ${project?.name ?? ""}`} />
+      <PageBody>
+        <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          <Link href="/projects" className="hover:text-foreground">
+            Projects
+          </Link>
+          <ChevronRight className="size-3" aria-hidden />
+          <Link href={`/projects/${engagement.project_id}`} className="hover:text-foreground">
+            {project?.name ?? "Project"}
+          </Link>
+          <ChevronRight className="size-3" aria-hidden />
+          <span className="text-foreground">{engagement.subcontractor_name}</span>
+        </nav>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>1. Upload documents</CardTitle>
-          <CardDescription>
-            Add the subcontractor&apos;s PDFs. Each file is listed on its own so you can review it after uploading.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <UploadDropzone
-            engagementId={engagementId}
-            documents={documents}
-            onUploaded={async () => {
-              await queryClient.invalidateQueries({ queryKey: queryKeys.documents(engagementId) });
-            }}
-            onAssess={onAssess}
-          />
-        </CardContent>
-      </Card>
+        {template.placeholder && <PlaceholderBanner />}
+        {project?.delete_overdue && <OverdueBanner date={project.delete_after} />}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>2. Assess</CardTitle>
-          <CardDescription>
-            Each requirement is checked against the uploaded documents, and every quote is verified against the stored
-            text.
-            <span className="dev-only dev-ink"> With a local model this can take about a minute.</span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              size="lg"
-              onClick={onAssess}
-              loading={assessing}
-              loadingText="Assessing… please wait"
-              unavailable={!hasDocuments && !assessing}
-              unavailableReason="Upload at least one document first."
-            >
-              <Play className="size-3.5" aria-hidden />
-              {assessLabel}
-              {hasDocuments ? ` (${documents.length} document${documents.length === 1 ? "" : "s"})` : ""}
-            </Button>
-            {!hasDocuments && <p className="text-xs text-muted-foreground">Upload at least one document first.</p>}
+        <section className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-4">
+          <span
+            className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground"
+            aria-hidden
+          >
+            {initials(engagement.subcontractor_name)}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="truncate text-base font-semibold">{engagement.subcontractor_name}</h2>
+            <p className="text-xs text-muted-foreground">
+              Template: {template.name} ·{" "}
+              {engagement.contact_email ? `Contact (fictional): ${engagement.contact_email}` : REQUEST_TEXT.noContactHere}
+            </p>
           </div>
+          <Button variant="outline" onClick={() => setUploading(true)}>
+            <Upload className="size-3.5" aria-hidden />
+            Upload documents
+          </Button>
+          <Button
+            size="lg"
+            onClick={onAssess}
+            loading={assessing}
+            loadingText="Assessing… please wait"
+            unavailable={!hasDocuments && !assessing}
+            unavailableReason="Upload at least one document first."
+          >
+            <Play className="size-3.5" aria-hidden />
+            {findings.length ? "Assess again" : "Assess documents"}
+            {hasDocuments ? ` (${documents.length})` : ""}
+          </Button>
           {assessing && (
-            <div role="status" aria-live="polite" className="space-y-1.5">
+            <div role="status" aria-live="polite" className="w-full space-y-1.5 border-t border-border pt-3">
               <p className="text-sm">
                 {progress && progress.index > 0
                   ? `Checking requirement ${progress.index} of ${progress.total}: ${progress.title}`
@@ -176,42 +200,248 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
               </p>
             </div>
           )}
-          {assessError && <ErrorBox>{assessError}</ErrorBox>}
-          {findings.length > 0 && !assessing && (
-            <p className="text-xs text-muted-foreground">
+          {!assessing && !hasDocuments && (
+            <p className="w-full text-xs text-muted-foreground">Upload at least one document, then assess.</p>
+          )}
+          {!assessing && findings.length > 0 && (
+            <p className="w-full text-xs text-muted-foreground">
               Assessing again adds new findings. Earlier findings and your decisions on them are kept.
             </p>
           )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
-          <CardTitle>3. Required documents and results{findings.length > 0 ? ` (${findings.length})` : ""}</CardTitle>
-          {findings.length > 0 && (
-            <Link
-              href={`/engagements/${engagementId}/summary`}
-              className="text-xs text-foreground underline underline-offset-2 hover:text-muted-foreground"
-            >
-              {SUMMARY_TEXT.link}
-            </Link>
+          {assessError && (
+            <div className="w-full">
+              <ErrorBox>{assessError}</ErrorBox>
+            </div>
           )}
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {findings.length > 0 && <HowItWasMade findings={findings} />}
-          <RequirementsTable
-            template={template}
-            findings={findings}
-            documents={documents}
-            user={user}
-            contactEmail={engagement.contact_email}
-            reasons={reasonsQ.data ?? []}
-            onChanged={onFindingChanged}
-          />
-        </CardContent>
-      </Card>
+        </section>
 
-      <p className="border-t border-border pt-3 text-xs text-muted-foreground">{DISCLAIMER}</p>
-    </main>
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Status">
+          <MetricCard icon={FileText} label="Documents uploaded" value={documents.length} meta="PDF files" />
+          <MetricCard icon={FileText} label="Documents show evidence" value={evidence} meta="After the automatic checks" />
+          <MetricCard icon={AlertTriangle} label="Needs human review" value={review} meta="A person should read the documents" />
+          <MetricCard icon={Upload} label="New upload requested" value={requested} meta="Waiting for the subcontractor" />
+        </section>
+
+        <Tabs defaultValue="overview">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="documents">
+              Documents <span className="rounded-full bg-muted px-1.5 text-xs">{documents.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="requirements">
+              Requirements <span className="rounded-full bg-muted px-1.5 text-xs">{template.requirements.length}</span>
+            </TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+              <Card>
+                <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <CardTitle>Documentation status</CardTitle>
+                    <CardDescription>
+                      Every requirement in the {template.name} template. Open one to see the quote and record a decision.
+                    </CardDescription>
+                  </div>
+                  {findings.length > 0 && (
+                    <Link
+                      href={`/engagements/${engagementId}/summary`}
+                      className="text-xs underline underline-offset-2 hover:text-muted-foreground"
+                    >
+                      {SUMMARY_TEXT.link}
+                    </Link>
+                  )}
+                </CardHeader>
+                <CardContent className="p-0">
+                  <ul className="divide-y divide-border">
+                    {template.requirements.map((r) => {
+                      const f = byCode.get(r.code);
+                      return (
+                        <li key={r.code}>
+                          <button
+                            type="button"
+                            onClick={() => setReviewCode(r.code)}
+                            className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-left transition-colors hover:bg-subtle"
+                          >
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-medium">
+                                <span className="mr-1.5 font-mono text-xs font-normal text-muted-foreground">{r.code}</span>
+                                {r.title}
+                                {!r.mandatory && <span className="text-xs font-normal text-muted-foreground"> (optional)</span>}
+                              </span>
+                              <span className="block text-xs text-muted-foreground">{r.description}</span>
+                            </span>
+                            {f ? <StatusBadge status={f.ai_status} /> : <Badge variant="dashed">Not assessed yet</Badge>}
+                            {f?.human_status && <StatusBadge status={f.human_status} prefix="Your decision" />}
+                            <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <aside className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Subcontractor information</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-2 text-sm">
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Company</dt>
+                        <dd>{engagement.subcontractor_name}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Contact email (fictional)</dt>
+                        <dd>{engagement.contact_email ?? REQUEST_TEXT.noContactHere}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Project</dt>
+                        <dd>{project?.name}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs text-muted-foreground">Template</dt>
+                        <dd>
+                          {template.name} (version {template.version})
+                        </dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+                {findings.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>About these results</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <HowItWasMade findings={findings} />
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Each result comes from the documents, then automatic checks, then a person.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
+              </aside>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <Card>
+              <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">
+                <div>
+                  <CardTitle>Uploaded documents</CardTitle>
+                  <CardDescription>Each file is listed on its own. Open one to read its text.</CardDescription>
+                </div>
+                <Button size="sm" onClick={() => setUploading(true)}>
+                  <Upload className="size-3.5" aria-hidden />
+                  Upload documents
+                </Button>
+              </CardHeader>
+              <CardContent className="p-0">
+                {documents.length === 0 ? (
+                  <p className="px-4 py-6 text-sm text-muted-foreground">Nothing uploaded yet.</p>
+                ) : (
+                  <ul className="divide-y divide-border text-sm">
+                    {documents.map((d) => (
+                      <li key={d.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5">
+                        <FileText className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">
+                            {d.filename}{" "}
+                            <span className="font-normal text-muted-foreground">
+                              {d.page_count} page{d.page_count === 1 ? "" : "s"}
+                            </span>
+                          </p>
+                          {d.warnings.map((w, j) =>
+                            isScanWarning(w) ? (
+                              <div key={j} className="mt-1">
+                                <ScanTag warning={w} />
+                              </div>
+                            ) : (
+                              <p key={j} className="text-xs text-muted-foreground">
+                                Note: {w}
+                              </p>
+                            ),
+                          )}
+                        </div>
+                        <Link href={`/documents/${d.id}`} className="text-xs underline underline-offset-2 hover:text-muted-foreground">
+                          Review text
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="requirements">
+            <Card>
+              <CardHeader>
+                <CardTitle>Required documents and results{findings.length > 0 ? ` (${findings.length})` : ""}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <RequirementsTable
+                  template={template}
+                  findings={findings}
+                  documents={documents}
+                  onReview={setReviewCode}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="history">
+            <Card>
+              <CardHeader>
+                <CardTitle>Decision history</CardTitle>
+                <CardDescription>Every decision recorded on this subcontractor&apos;s results. It is never edited.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <DecisionHistory findings={findings} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
+        <p className="border-t border-border pt-3 text-xs text-muted-foreground">{DISCLAIMER}</p>
+      </PageBody>
+
+      <Dialog open={uploading} onOpenChange={setUploading}>
+        <DialogContent className="max-w-xl">
+          <div>
+            <DialogTitle>Upload documents</DialogTitle>
+            <DialogDescription>Add PDF documentation for {engagement.subcontractor_name}.</DialogDescription>
+          </div>
+          <UploadDropzone
+            engagementId={engagementId}
+            documents={documents}
+            listUploaded={false}
+            onUploaded={async () => {
+              await queryClient.invalidateQueries({ queryKey: queryKeys.documents(engagementId) });
+            }}
+            onAssess={onAssess}
+          />
+          <div className="flex justify-end border-t border-border pt-3">
+            <Button variant="outline" onClick={() => setUploading(false)}>
+              Done
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <RequirementReviewSheet
+        requirement={reviewing}
+        finding={reviewingFinding}
+        user={user}
+        contactEmail={engagement.contact_email}
+        reasons={reasonsQ.data ?? []}
+        onChanged={onFindingChanged}
+        onClose={() => setReviewCode(null)}
+      />
+    </>
   );
 }
