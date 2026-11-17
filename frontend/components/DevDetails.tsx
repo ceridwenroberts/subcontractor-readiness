@@ -14,18 +14,17 @@ export const useDevDetails = () => React.useContext(DevContext);
 
 /**
  * Model and development detail is hidden by default. Anything marked className="dev-only" is
- * hidden by one CSS rule while data-dev is "off". The provider chip and the Simulated notice
+ * hidden by one CSS rule while data-dev on <html> is "off". The provider chip and the Simulated notice
  * are never marked dev-only: product rules say they stay visible.
  */
 export function DevDetailsProvider({ children }: { children: React.ReactNode }) {
   const [on, setOn] = React.useState(false);
-  return (
-    <DevContext.Provider value={{ on, setOn }}>
-      <div data-dev={on ? "on" : "off"}>
-        {children}
-      </div>
-    </DevContext.Provider>
-  );
+  // The attribute goes on <html> (not on a wrapper) so panels that React renders into the page
+  // body, such as the review drawer, are covered by the same CSS rule.
+  React.useEffect(() => {
+    document.documentElement.dataset.dev = on ? "on" : "off";
+  }, [on]);
+  return <DevContext.Provider value={{ on, setOn }}>{children}</DevContext.Provider>;
 }
 
 export function DevToggle() {

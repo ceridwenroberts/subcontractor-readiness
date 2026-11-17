@@ -17,7 +17,7 @@ export function SheetContent({ className, children, ...props }: React.ComponentP
       <SheetPrimitive.Overlay className="fixed inset-0 z-40 bg-foreground/30" />
       <SheetPrimitive.Content
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col gap-3 border-l border-border bg-background p-4 shadow-lg",
+          "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col gap-3 border-l border-border bg-background p-4 text-foreground shadow-lg",
           className,
         )}
         {...props}

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" data-dev="off" suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased">
         <ThemeProvider>
           <TooltipProvider delayDuration={150}>

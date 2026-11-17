@@ -1,12 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle, FolderKanban, Home, X } from "lucide-react";
+import { AlertTriangle, FolderKanban, Home, Info, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 
 import { cn } from "@/components/cn";
+import { DemoBanner } from "@/components/DemoBanner";
 import { DevToggle } from "@/components/DevDetails";
 import { SessionBar } from "@/components/SessionBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -21,6 +22,7 @@ const NAV = [
   { href: "/", label: "Home", icon: Home },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/issues", label: "Issues", icon: AlertTriangle },
+  { href: "/about", label: "About this demo", icon: Info },
 ] as const;
 
 function isActive(pathname: string, href: string) {
@@ -121,7 +123,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <SessionBar />
           </div>
         </aside>
-        <div className="min-w-0">{children}</div>
+        <div className="min-w-0">
+          <DemoBanner />
+          {children}
+        </div>
       </div>
     </ShellContext.Provider>
   );

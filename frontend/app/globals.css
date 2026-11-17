@@ -120,7 +120,8 @@ input[type="file"] {
   display: none !important;
 }
 .dev-surface {
-  background: color-mix(in srgb, var(--model) 14%, transparent);
+  /* Opaque: the tint is mixed into the page background, never see-through. */
+  background: color-mix(in srgb, var(--model) 14%, var(--background));
   border-color: color-mix(in srgb, var(--model) 60%, transparent);
   color: var(--model-ink);
 }
