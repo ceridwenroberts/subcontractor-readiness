@@ -156,9 +156,11 @@ export default function EngagementPage({
   const withoutDocument = template.requirements.length - withDocument;
   const mine = overviewQ.data?.engagements.find((e) => e.engagement_id === engagementId);
   // Required documents that are not there: never uploaded, never assessed, or read without finding evidence.
-  const notUploaded = mine ? mine.counts.no_document + mine.counts.not_assessed : 0;
+  // Not assessed yet is not missing: a requirement that has a document just has not been read.
+  const notUploaded = mine ? mine.counts.no_document : 0;
   const notFound = mine ? mine.counts.missing : 0;
   const documentsMissing = mine ? notUploaded + notFound : null;
+  const untaggedFiles = documents.filter((d) => d.requirement_codes.length === 0).length;
   const reviewing = template.requirements.find((r) => r.code === reviewCode) ?? null;
   const reviewingFinding = findings.find((f) => f.requirement_code === reviewCode) ?? null;
   const citedBy = (documentId: string) =>
@@ -262,7 +264,11 @@ export default function EngagementPage({
             icon={FileText}
             label="Documents missing"
             value={documentsMissing ?? "—"}
-            meta={`${notUploaded} not uploaded, ${notFound} not found in the documents`}
+            meta={
+              untaggedFiles > 0 && notUploaded === 0
+                ? `${untaggedFiles} file${untaggedFiles === 1 ? " is" : "s are"} not tagged. Tag them to see which requirements have no document.`
+                : `${notUploaded} not uploaded, ${notFound} not found in the documents`
+            }
           />
           <MetricCard
             icon={Upload}
@@ -322,14 +328,17 @@ export default function EngagementPage({
                               </span>
                               <span className="block text-xs text-muted-foreground">{r.description}</span>
                             </span>
-                            {f && isNoDocument(f) && !hasDocumentFor(r.code) && <NoDocumentBadge />}
-                            {f && !isNoDocument(f) && <StatusBadge status={f.ai_status} short />}
-                            {f?.human_status && !isNoDocument(f) && (
-                              <StatusBadge status={f.human_status} prefix="Decision" short />
+                            {!hasDocumentFor(r.code) && <NoDocumentBadge />}
+                            {hasDocumentFor(r.code) && f && !isNoDocument(f) && (
+                              <StatusBadge
+                                status={f.human_status ?? f.ai_status}
+                                prefix={f.human_status ? "Decision" : undefined}
+                                short
+                              />
                             )}
-                            {f && <ChevronRight className="size-4 text-muted-foreground" aria-hidden />}
+                            <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
                           </button>
-                          {(!f || isNoDocument(f)) && (
+                          {(!hasDocumentFor(r.code) || !f || isNoDocument(f)) && (
                             <NotAssessedAction
                               hasDocument={hasDocumentFor(r.code)}
                               assessing={assessing}

@@ -55,9 +55,15 @@ export function FindingCard({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        {isNoDocument(finding) ? <NoDocumentBadge /> : <StatusBadge status={finding.ai_status} />}
-        {finding.human_status && !isNoDocument(finding) && (
-          <StatusBadge status={finding.human_status} prefix="Your decision" />
+        {isNoDocument(finding) ? (
+          <NoDocumentBadge />
+        ) : finding.human_status ? (
+          <>
+            <StatusBadge status={finding.human_status} prefix="Your decision" />
+            <span className="text-xs text-muted-foreground">Automatic check: {STATUS_LABEL[finding.ai_status]}</span>
+          </>
+        ) : (
+          <StatusBadge status={finding.ai_status} />
         )}
         <Badge variant="model" title="Where this result came from">
           {finding.provider_label}

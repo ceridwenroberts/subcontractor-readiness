@@ -163,7 +163,9 @@ def add_engagement(
     return r.json()["id"]
 
 
-def add_document(client: TestClient, engagement_id: str) -> None:
+def add_document(
+    client: TestClient, engagement_id: str, codes: list[str] | None = None
+) -> None:
     with client.app.state.session_factory() as db:
         db.add(
             Document(
@@ -175,6 +177,7 @@ def add_document(client: TestClient, engagement_id: str) -> None:
                 pages_json=["text"],
                 redaction_count=0,
                 redaction_notes_json=[],
+                requirement_codes=codes,
             )
         )
         db.commit()
@@ -231,7 +234,8 @@ def test_new_subcontractor_is_not_assessed(tmp_path: Path) -> None:
     add_engagement(client, p)
     [e] = overview(client, p)
     assert e["glance"] == "not_assessed" and e["document_count"] == 0
-    assert e["counts"]["not_assessed"] == 7
+    # Nothing is uploaded, so every requirement has no document.
+    assert e["counts"]["no_document"] == 7 and e["counts"]["not_assessed"] == 0
     assert [c["status"] for c in e["requirements"]] == [None] * 7
 
 
@@ -271,7 +275,7 @@ def test_two_documents_tagged_and_five_without_are_named_as_no_document(
     client = make_client(tmp_path)
     p = make_project(client)
     eng = add_engagement(client, p)
-    add_document(client, eng)
+    add_document(client, eng, ["VVS-01", "VVS-03", "VVS-04", "VVS-06"])
     for code in MANDATORY:
         add_finding(
             client,
@@ -288,6 +292,45 @@ def test_two_documents_tagged_and_five_without_are_named_as_no_document(
     )
     assert e["counts"]["no_document"] == 3 and e["counts"]["missing"] == 0
     assert e["awaiting_decision"] == 2  # only the two with evidence
+
+
+def test_two_tagged_documents_before_any_assessment_leave_five_with_no_document(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    p = make_project(client)
+    eng = add_engagement(client, p)
+    add_document(client, eng, ["VVS-01"])
+    add_document(client, eng, ["VVS-03"])
+    [e] = overview(client, p)
+    assert e["counts"]["no_document"] == 5  # not 7: two requirements have a document
+    assert e["counts"]["not_assessed"] == 2 and e["counts"]["missing"] == 0
+    assert e["glance"] == "not_assessed"
+
+
+def test_untagged_documents_cover_every_requirement(tmp_path: Path) -> None:
+    client = make_client(tmp_path)
+    p = make_project(client)
+    eng = add_engagement(client, p)
+    add_document(client, eng)  # not sure: read for every requirement
+    [e] = overview(client, p)
+    assert e["counts"]["no_document"] == 0 and e["counts"]["not_assessed"] == 7
+
+
+def test_a_result_made_without_a_document_goes_stale_when_a_document_is_added(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    p = make_project(client)
+    eng = add_engagement(client, p)
+    add_document(client, eng, ["VVS-01"])
+    add_finding(client, eng, "VVS-02", ai_status="missing", provider="none")
+    [e] = overview(client, p)
+    assert next(c for c in e["requirements"] if c["code"] == "VVS-02")["no_document"]
+    add_document(client, eng, ["VVS-02"])  # a document arrives for it
+    [e] = overview(client, p)
+    cell = next(c for c in e["requirements"] if c["code"] == "VVS-02")
+    assert cell["no_document"] is False and cell["status"] is None  # ready to assess
 
 
 def test_every_mandatory_requirement_decided_found_is_documentation_complete(

@@ -80,6 +80,11 @@ export function RequirementsTable({
   const [sorting, setSorting] = useState<SortingState>([]);
   const [filters, setFilters] = useState<ColumnFiltersState>([]);
 
+  const hasDocumentFor = useCallback(
+    (code: string) => documents.some((d) => d.requirement_codes.length === 0 || d.requirement_codes.includes(code)),
+    [documents],
+  );
+
   const rows = useMemo<Row[]>(() => {
     const byCode = new Map(findings.map((f) => [f.requirement_code, f]));
     return template.requirements.map((requirement) => {
@@ -87,16 +92,17 @@ export function RequirementsTable({
       return {
         requirement,
         finding,
-        status: finding ? (isNoDocument(finding) ? NODOC : finding.ai_status) : NONE,
+        // What to show: no document applies now; or a document applies but nothing was read yet;
+        // or the status. A person's decision is the status once there is one.
+        status: !hasDocumentFor(requirement.code)
+          ? NODOC
+          : !finding || isNoDocument(finding)
+            ? NONE
+            : (finding.human_status ?? finding.ai_status),
         cited: citedDocuments(finding),
       };
     });
-  }, [template, findings]);
-
-  const hasDocumentFor = useCallback(
-    (code: string) => documents.some((d) => d.requirement_codes.length === 0 || d.requirement_codes.includes(code)),
-    [documents],
-  );
+  }, [template, findings, hasDocumentFor]);
 
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
@@ -136,26 +142,23 @@ export function RequirementsTable({
             <span className="flex flex-wrap items-center gap-1">
               {status === NONE ? (
                 <NotAssessedAction
-                  hasDocument={hasDocumentFor(row.original.requirement.code)}
+                  hasDocument
                   assessing={assessing}
                   onUpload={() => onUpload(row.original.requirement.code)}
                   onAssess={onAssess}
                 />
               ) : status === NODOC ? (
                 <>
-                  {!hasDocumentFor(row.original.requirement.code) && <NoDocumentBadge />}
+                  <NoDocumentBadge />
                   <NotAssessedAction
-                    hasDocument={hasDocumentFor(row.original.requirement.code)}
+                    hasDocument={false}
                     assessing={assessing}
                     onUpload={() => onUpload(row.original.requirement.code)}
                     onAssess={onAssess}
                   />
                 </>
               ) : (
-                <StatusBadge status={status} short />
-              )}
-              {finding?.human_status && status !== NODOC && (
-                <StatusBadge status={finding.human_status} prefix="Decision" short />
+                <StatusBadge status={status} prefix={finding?.human_status ? "Decision" : undefined} short />
               )}
               {finding?.latest_request && <Badge variant="outline">New upload requested</Badge>}
             </span>
@@ -198,7 +201,7 @@ export function RequirementsTable({
         ),
       },
     ],
-    [onReview, hasDocumentFor, assessing, onUpload, onAssess],
+    [onReview, assessing, onUpload, onAssess],
   );
 
   // TanStack Table returns functions React Compiler cannot memoize; this component opts out safely.

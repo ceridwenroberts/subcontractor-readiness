@@ -107,11 +107,18 @@ def project_overview(
                 else None
             )
             decided = bool(f and f.human_status)
-            no_doc = bool(f and f.provider == NO_MODEL_PROVIDER)
-            if no_doc and not decided:
-                status = (
-                    None  # there is no result about documents, only the lack of one
-                )
+            # No document applies to this requirement NOW (none tagged for it, none untagged).
+            # Worked out from the documents, not from the findings, so it is right before the
+            # first assessment and after a tag is changed.
+            no_doc = not any(
+                not d.requirement_codes or req.code in d.requirement_codes
+                for d in e.documents
+            )
+            # A result made without a document says nothing about documents. Neither does one
+            # for a requirement that has no document any more. Until a person decides, there is
+            # no status to show.
+            if (no_doc or (f and f.provider == NO_MODEL_PROVIDER)) and not decided:
+                status = None
             is_open = (e.id, req.code) in open_requests
             decision = latest_decision.get((e.id, req.code))
             states.append(

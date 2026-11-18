@@ -59,12 +59,19 @@ export function RequirementReviewSheet({
                 </p>
               )}
             </div>
-            {finding && isNoDocument(finding) && (
+            {(!hasDocument || (finding && isNoDocument(finding))) && (
               <div className="space-y-2 rounded-md border border-dashed border-border p-3 text-sm">
-                <p>
-                  <strong>No document has been uploaded for this requirement.</strong> Nothing was read, so there is no
-                  result to review.
-                </p>
+                {hasDocument ? (
+                  <p>
+                    <strong>A document is available for this requirement.</strong> Nothing has been read yet, so choose Assess to get a
+                    result.
+                  </p>
+                ) : (
+                  <p>
+                    <strong>No document has been uploaded for this requirement.</strong> Nothing was read, so there is no
+                    result to review.
+                  </p>
+                )}
                 <NotAssessedAction
                   hasDocument={hasDocument}
                   assessing={assessing}
@@ -73,7 +80,7 @@ export function RequirementReviewSheet({
                 />
               </div>
             )}
-            {finding ? (
+            {finding && !(isNoDocument(finding) && hasDocument) ? (
               <FindingCard
                 finding={finding}
                 user={user}
@@ -81,11 +88,7 @@ export function RequirementReviewSheet({
                 reasons={reasons}
                 onChanged={onChanged}
               />
-            ) : (
-              <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
-                No result yet. Upload documents and choose “Assess documents” to see one here.
-              </p>
-            )}
+            ) : null}
           </>
         )}
       </SheetContent>
