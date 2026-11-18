@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.assess import DocumentText, assess_requirement
+from app.assess import DocumentText, assess_with_tags
 from app.config import Settings
 from app.db.models import DecisionLog, Engagement, Finding, Project, UploadRequest
 from app.db.session import Db
@@ -207,13 +207,13 @@ def assess_engagement(engagement_id: str, request: Request, db: Db) -> JSONRespo
             content={"message": "Upload at least one document before assessing."},
         )
     documents = [
-        DocumentText(id=d.id, pages=d.pages_json)
+        DocumentText(id=d.id, pages=d.pages_json, requirement_codes=d.requirement_codes)
         for d in sorted(engagement.documents, key=lambda d: d.created_at)
     ]
     try:
         # All requirements first, then store: a provider failure leaves nothing half-saved.
         results = [
-            assess_requirement(
+            assess_with_tags(
                 provider,
                 req,
                 documents,
@@ -273,7 +273,7 @@ def assess_engagement_stream(engagement_id: str, request: Request, db: Db) -> Re
         request.app.state.templates[engagement.project.template_id].requirements
     )
     documents = [
-        DocumentText(id=d.id, pages=d.pages_json)
+        DocumentText(id=d.id, pages=d.pages_json, requirement_codes=d.requirement_codes)
         for d in sorted(engagement.documents, key=lambda d: d.created_at)
     ]
     session_factory = request.app.state.session_factory
@@ -294,7 +294,7 @@ def assess_engagement_stream(engagement_id: str, request: Request, db: Db) -> Re
                     }
                 )
                 results.append(
-                    assess_requirement(
+                    assess_with_tags(
                         provider,
                         req,
                         documents,
@@ -349,7 +349,9 @@ def engagement_summary(engagement_id: str, request: Request, db: Db) -> Summary:
             ai_status=f.ai_status,
             human_status=f.human_status,
             valid_until=f.valid_until.isoformat() if f.valid_until else None,
-            open_request_reason=f.latest_request.reason_label if f.latest_request else None,
+            open_request_reason=f.latest_request.reason_label
+            if f.latest_request
+            else None,
             provider_label=f.provider_label,
             model=f.model,
         )
@@ -380,7 +382,9 @@ def _check_decision(finding: Finding, body: DecisionIn) -> None:
             "Choose a reason when you change the result or ask for a new upload.",
         )
     if body.reason == "other" and not comment:
-        raise HTTPException(422, "Describe the reason in your own words when you choose Other.")
+        raise HTTPException(
+            422, "Describe the reason in your own words when you choose Other."
+        )
     if body.request_upload is not None:
         if body.status == "found":
             raise HTTPException(

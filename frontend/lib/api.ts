@@ -163,9 +163,11 @@ export const listDocuments = (engagementId: string) =>
   request(`/engagements/${encodeURIComponent(engagementId)}/documents`, z.array(DocumentSchema));
 
 /** Upload PDFs. A 400 with per-file reasons is returned, not thrown, so the UI can list them. */
-export async function uploadDocuments(engagementId: string, files: File[]) {
+export async function uploadDocuments(engagementId: string, files: File[], tags?: (string[] | null)[]) {
   const form = new FormData();
   for (const f of files) form.append("files", f);
+  // One entry per file: the requirement codes it is for, or null for "not sure".
+  if (tags && tags.some((t) => t && t.length > 0)) form.append("tags", JSON.stringify(tags));
   try {
     return await request(
       `/engagements/${encodeURIComponent(engagementId)}/documents`,
@@ -180,6 +182,14 @@ export async function uploadDocuments(engagementId: string, files: File[]) {
     throw err;
   }
 }
+
+/** Change which requirements a document is for. An empty list means "not sure". Applies from the next assessment. */
+export const updateDocumentTags = (documentId: string, requirementCodes: string[]) =>
+  request(`/documents/${encodeURIComponent(documentId)}`, DocumentSchema, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ requirement_codes: requirementCodes }),
+  });
 
 export const assessEngagement = (engagementId: string) =>
   request(

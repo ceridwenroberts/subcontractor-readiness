@@ -68,6 +68,9 @@ class Document(Base):
     redaction_notes_json: Mapped[list[dict[str, Any]]] = mapped_column(
         JSON, default=list
     )
+    # Requirement codes this document is for, chosen by the PM. Empty or NULL = untagged ("not
+    # sure"): the document is read for every requirement. Editable, unlike the logs.
+    requirement_codes: Mapped[list[str] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     engagement: Mapped[Engagement] = relationship(back_populates="documents")
 

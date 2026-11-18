@@ -120,9 +120,14 @@ export function FindingCard({
           How this result was made{modelDiffers ? " · adjusted by automatic checks" : ""}
         </summary>
         <ol className="dev-surface mt-2 space-y-1.5 rounded-md border p-3 text-foreground">
-          <Step part="model">
-            {finding.provider_label} ({finding.model}) answered: <strong>{STATUS_LABEL[finding.model_status]}</strong>
-          </Step>
+          {finding.provider === "none" ? (
+            <Step part="code">No document was uploaded for this requirement, so no model was asked.</Step>
+          ) : (
+            <Step part="model">
+              {finding.provider_label} ({finding.model}) answered: <strong>{STATUS_LABEL[finding.model_status]}</strong>
+            </Step>
+          )}
+          {finding.provider !== "none" && (
           <Step part="code">
             {finding.evidence.length === 0
               ? "No quote to check."
@@ -135,6 +140,7 @@ export function FindingCard({
               "The model's answer was kept."
             )}
           </Step>
+          )}
           {verifier !== "not_run" && (
             <Step part="verifier">
               {verifier === "supported" && "The quotes support the requirement."}

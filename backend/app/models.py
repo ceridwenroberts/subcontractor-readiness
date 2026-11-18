@@ -7,6 +7,11 @@ from pydantic import BaseModel, Field
 
 from app.domain.status import Citation, Evidence, Status
 
+# A requirement with no document is not sent to a model. Code writes its `missing` finding and
+# labels it so, because every finding must say where it came from (CLAUDE.md).
+NO_MODEL_PROVIDER = "none"
+NO_MODEL_LABEL = "No model call"
+
 
 class AssessmentOutput(BaseModel):
     """What the model must return for one requirement. Validated before use.

@@ -64,6 +64,8 @@ export const DocumentSchema = z.object({
   page_count: z.number(),
   redaction_count: z.number(),
   warnings: z.array(z.string()),
+  // Requirement codes the PM tagged this document with. Empty: "not sure", read for every requirement.
+  requirement_codes: z.array(z.string()),
   created_at: z.string(),
 });
 export type DocumentInfo = z.infer<typeof DocumentSchema>;

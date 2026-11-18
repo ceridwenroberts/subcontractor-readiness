@@ -70,7 +70,7 @@ export function RequirementsTable({
   /** Open the review panel for a requirement (its finding and decision). */
   onReview: (code: string) => void;
   /** A requirement with no result: upload a document (none yet) or assess the ones that are there. */
-  onUpload: () => void;
+  onUpload: (code?: string) => void;
   onAssess: () => void;
   assessing: boolean;
 }) {
@@ -130,7 +130,7 @@ export function RequirementsTable({
                 <NotAssessedAction
                   documentCount={documents.length}
                   assessing={assessing}
-                  onUpload={onUpload}
+                  onUpload={() => onUpload(row.original.requirement.code)}
                   onAssess={onAssess}
                 />
               ) : (

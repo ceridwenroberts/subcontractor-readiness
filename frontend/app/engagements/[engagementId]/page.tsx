@@ -9,6 +9,7 @@ import { ErrorBox, OverdueBanner } from "@/components/Banners";
 import { useAssessments } from "@/components/AssessmentProvider";
 import { DecisionHistory } from "@/components/DecisionHistory";
 import { GlanceBadge } from "@/components/GlanceBadge";
+import { DocumentTags } from "@/components/DocumentTags";
 import { NotAssessedAction } from "@/components/NotAssessedAction";
 import { HowItWasMade } from "@/components/HowItWasMade";
 import { MetricCard } from "@/components/MetricCard";
@@ -89,6 +90,12 @@ export default function EngagementPage({
   const progress = run?.progress ?? null;
   const assessError = errors[engagementId] ?? null;
   const [uploading, setUploading] = useState(false);
+  // The requirement an upload was started from, so the new files are tagged with it.
+  const [uploadFor, setUploadFor] = useState<string | null>(null);
+  const startUpload = (code?: string | null) => {
+    setUploadFor(code ?? null);
+    setUploading(true);
+  };
   // A link from the summary page opens that requirement's panel straight away.
   const [reviewCode, setReviewCode] = useState<string | null>(reviewParam ?? null);
 
@@ -141,6 +148,11 @@ export default function EngagementPage({
   }
 
   const hasDocuments = documents.length > 0;
+  // A requirement is checked only against documents tagged for it, plus untagged ones.
+  const withDocument = template.requirements.filter((r) =>
+    documents.some((d) => d.requirement_codes.length === 0 || d.requirement_codes.includes(r.code)),
+  ).length;
+  const withoutDocument = template.requirements.length - withDocument;
   const mine = overviewQ.data?.engagements.find((e) => e.engagement_id === engagementId);
   // Required documents that are not there: no evidence was found, or nothing has been assessed yet.
   const documentsMissing = mine ? mine.counts.missing + mine.counts.not_assessed : null;
@@ -185,7 +197,7 @@ export default function EngagementPage({
               {engagement.contact_email ? `Contact (fictional): ${engagement.contact_email}` : REQUEST_TEXT.noContactHere}
             </p>
           </div>
-          <Button variant="outline" onClick={() => setUploading(true)}>
+          <Button variant="outline" onClick={() => startUpload()}>
             <Upload className="size-3.5" aria-hidden />
             Upload documents
           </Button>
@@ -217,6 +229,12 @@ export default function EngagementPage({
           )}
           {!assessing && !hasDocuments && (
             <p className="w-full text-xs text-muted-foreground">Upload at least one document, then assess.</p>
+          )}
+          {!assessing && hasDocuments && withoutDocument > 0 && (
+            <p className="w-full text-xs text-muted-foreground">
+              {withDocument} requirement{withDocument === 1 ? "" : "s"} will be checked. {withoutDocument} {withoutDocument === 1 ? "has" : "have"} no document and
+              will show as missing, with no model call.
+            </p>
           )}
           {!assessing && findings.length > 0 && (
             <p className="w-full text-xs text-muted-foreground">
@@ -309,7 +327,7 @@ export default function EngagementPage({
                             <NotAssessedAction
                               documentCount={documents.length}
                               assessing={assessing}
-                              onUpload={() => setUploading(true)}
+                              onUpload={() => startUpload(r.code)}
                               onAssess={onAssess}
                             />
                           )}
@@ -372,7 +390,7 @@ export default function EngagementPage({
                   <CardTitle>Uploaded documents</CardTitle>
                   <CardDescription>Each file is listed on its own. Open one to read its text.</CardDescription>
                 </div>
-                <Button size="sm" onClick={() => setUploading(true)}>
+                <Button size="sm" onClick={() => startUpload()}>
                   <Upload className="size-3.5" aria-hidden />
                   Upload documents
                 </Button>
@@ -404,6 +422,14 @@ export default function EngagementPage({
                             ),
                           )}
                         </div>
+                        <div className="basis-full pl-7">
+                          <DocumentTags
+                            document={d}
+                            engagementId={engagementId}
+                            projectId={project?.id ?? ""}
+                            requirements={template.requirements.map((r) => ({ code: r.code, title: r.title }))}
+                          />
+                        </div>
                         <Link href={`/documents/${d.id}`} className="text-xs underline underline-offset-2 hover:text-muted-foreground">
                           {citedBy(d.id) === 0
                             ? "Not cited by any requirement"
@@ -429,7 +455,7 @@ export default function EngagementPage({
                   findings={findings}
                   documents={documents}
                   onReview={setReviewCode}
-                  onUpload={() => setUploading(true)}
+                  onUpload={(code) => startUpload(code)}
                   onAssess={onAssess}
                   assessing={assessing}
                 />
@@ -463,6 +489,8 @@ export default function EngagementPage({
             engagementId={engagementId}
             documents={documents}
             listUploaded={false}
+            requirements={template.requirements.map((r) => ({ code: r.code, title: r.title }))}
+            preselect={uploadFor}
             onUploaded={async () => {
               await queryClient.invalidateQueries({ queryKey: queryKeys.documents(engagementId) });
               void queryClient.invalidateQueries({ queryKey: queryKeys.overview(project?.id ?? "") });

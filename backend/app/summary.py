@@ -8,6 +8,8 @@ otherwise the result after the automatic checks and says it has not been reviewe
 
 from pydantic import BaseModel
 
+from app.models import NO_MODEL_LABEL
+
 DISCLAIMER = (
     "This summary describes what the uploaded documents show. It is not an approval. "
     "A person must review and decide."
@@ -118,8 +120,13 @@ def build_summary(
             f"{_plural(not_reviewed, 'requirement')} not yet reviewed by a person. "
             "Their status is the result of the automatic checks."
         )
-    first = findings[0] if findings else None
-    assessed_by = f"{first.provider_label} ({first.model})" if first else "Not assessed"
+    # A requirement with no document has no model behind it, so it cannot name the assessor.
+    first = next((f for f in findings if f.provider_label != NO_MODEL_LABEL), None)
+    assessed_by = (
+        f"{first.provider_label} ({first.model})"
+        if first
+        else (NO_MODEL_LABEL if findings else "Not assessed")
+    )
     return Summary(
         title=f"Documentation summary: {subcontractor} on {project}",
         intro=intro,

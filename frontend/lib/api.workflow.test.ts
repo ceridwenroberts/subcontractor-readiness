@@ -11,6 +11,7 @@ import {
   listExpiring,
   listOpenRequests,
   messageFromBody,
+  updateDocumentTags,
   uploadDocuments,
 } from "./api";
 
@@ -411,5 +412,46 @@ describe("project overview", () => {
   it("rejects an unknown glance state", async () => {
     mockFetch(async () => Response.json({ project_id: "p1", engagements: [{ ...eng, glance: "approved" }] }));
     await expect(getProjectOverview("p1")).rejects.toThrow(/unexpected format/);
+  });
+});
+
+describe("document tags", () => {
+  const doc = {
+    id: "d1",
+    filename: "f-skatt.pdf",
+    page_count: 1,
+    redaction_count: 0,
+    warnings: [],
+    requirement_codes: ["VVS-01"],
+    created_at: "2026-11-18T10:00:00Z",
+  };
+  const upload = { files: [{ filename: "f-skatt.pdf", status: "accepted", document_id: "d1", warnings: [] }] };
+
+  it("sends the tags with an upload only when one file has a choice", async () => {
+    const fn = mockFetch(async () => Response.json(upload, { status: 201 }));
+    const file = new File(["x"], "f-skatt.pdf", { type: "application/pdf" });
+    await uploadDocuments("e1", [file], [["VVS-01"]]);
+    const form = (fn.mock.calls[0][1] as RequestInit).body as FormData;
+    expect(form.get("tags")).toBe(JSON.stringify([["VVS-01"]]));
+    await uploadDocuments("e1", [file], [[]]);
+    expect(((fn.mock.calls[1][1] as RequestInit).body as FormData).has("tags")).toBe(false);
+    await uploadDocuments("e1", [file]);
+    expect(((fn.mock.calls[2][1] as RequestInit).body as FormData).has("tags")).toBe(false);
+  });
+
+  it("changes the tags of a document", async () => {
+    const fn = mockFetch(async () => Response.json(doc));
+    const got = await updateDocumentTags("d1", ["VVS-01"]);
+    expect(got.requirement_codes).toEqual(["VVS-01"]);
+    const init = fn.mock.calls[0][1] as RequestInit;
+    expect(init.method).toBe("PATCH");
+    expect(JSON.parse(init.body as string)).toEqual({ requirement_codes: ["VVS-01"] });
+  });
+
+  it("rejects a document without its tags field", async () => {
+    const old: Partial<typeof doc> = { ...doc };
+    delete old.requirement_codes;
+    mockFetch(async () => Response.json(old));
+    await expect(updateDocumentTags("d1", [])).rejects.toThrow(/unexpected format/);
   });
 });

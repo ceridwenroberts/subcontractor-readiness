@@ -5,7 +5,10 @@
     "page_count": 2,
     "redaction_count": 0,
     "warnings": [],
-    "created_at": "2026-11-16T18:28:43.209053"
+    "created_at": "2026-11-16T18:28:43.209053",
+    "requirement_codes": [
+      "VVS-01"
+    ]
   },
   {
     "id": "61e6c710-0d5e-4478-9127-a7ec3f4efcb9",
@@ -15,7 +18,8 @@
     "warnings": [
       "Personal numbers were hidden in this file. Check the original document."
     ],
-    "created_at": "2026-11-16T18:28:43.209550"
+    "created_at": "2026-11-16T18:28:43.209550",
+    "requirement_codes": []
   },
   {
     "id": "b7a48c43-1c9d-452d-8974-4dd4766afbbb",
@@ -23,7 +27,8 @@
     "page_count": 1,
     "redaction_count": 0,
     "warnings": [],
-    "created_at": "2026-11-16T18:28:43.209756"
+    "created_at": "2026-11-16T18:28:43.209756",
+    "requirement_codes": []
   },
   {
     "id": "e206f05e-4f24-4ebb-814e-ead4773de78e",
@@ -31,7 +36,8 @@
     "page_count": 1,
     "redaction_count": 0,
     "warnings": [],
-    "created_at": "2026-11-16T18:28:43.209946"
+    "created_at": "2026-11-16T18:28:43.209946",
+    "requirement_codes": []
   },
   {
     "id": "09b8aa0b-589d-499d-b528-3aaf64af95fd",
@@ -39,6 +45,7 @@
     "page_count": 1,
     "redaction_count": 0,
     "warnings": [],
-    "created_at": "2026-11-16T18:28:43.210131"
+    "created_at": "2026-11-16T18:28:43.210131",
+    "requirement_codes": []
   }
 ]

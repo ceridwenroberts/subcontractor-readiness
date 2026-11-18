@@ -11,7 +11,8 @@ type Part = keyof typeof WHO;
  * The steps are a single column so the note fits a narrow side card as well as a wide one.
  */
 export function HowItWasMade({ findings }: { findings: Finding[] }) {
-  const first = findings[0];
+  // A requirement with no document has no model behind it, so it cannot name the provider.
+  const first = findings.find((f) => f.provider !== "none") ?? findings[0];
   if (!first) return null;
   const simulated = first.provider === "scripted";
   const verifier = usedVerifier(findings);

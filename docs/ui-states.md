@@ -22,6 +22,9 @@ A left sidebar on wide screens (a slide-over menu behind a menu button on narrow
 
 Not in the Figma because the data does not exist: project codes, per-project document totals, trade, company number, phone, notification bell, global search, help card, "approved" document states, percentages. Do not invent them.
 
+## Tagging documents (2026-11-18)
+Each uploaded file has a "Used for" choice: nothing ticked means "Not sure, check all requirements" (the default); ticking several is how one PDF covers several requirements. It is set per file in the upload queue (an Upload button on a "Needs a document" row preselects that requirement) and changed later under Documents with Change and Save ("Applies from the next assessment"). A requirement with no document is not sent to a model: it shows as Not found with the note "No document was uploaded for this requirement." and the provider label "No model call". The subcontractor page says how many requirements will be checked and how many have no document. Data: `documents.json` has `requirement_codes`.
+
 ## Dashboard `/`
 
 Sections in order: three metric cards (**Waiting for your decision**, **Waiting for a new upload**, **Expired or ending soon**; the last two open the Issues page already filtered), then the **Projects** table with a Documentation column that counts subcontractors per review state. While data loads the cards show a dash, never 0. **New project** opens a dialog.

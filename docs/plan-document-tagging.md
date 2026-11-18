@@ -1,6 +1,6 @@
 # Plan: tag each uploaded document with the requirements it is for
 
-Status: planned 2026-11-18, not built. Needs "go" (data model and assessment flow), then "approved" before commit.
+Status: built 2026-11-18 (tag `document-tagging` marks the commit, `before-document-tagging` the start). Phases B to D of the several-requirements plan are not built.
 
 ## Why
 Today every requirement is checked against every uploaded document. Upload two PDFs and the assessment still runs seven requirement checks, and the five with no evidence count as "missing". The PM thinks in documents ("the tax certificate"), the tool thinks in requirements. Tagging joins the two and means no model call is spent on a requirement that has no document.

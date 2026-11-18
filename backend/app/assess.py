@@ -23,7 +23,12 @@ from app.domain.status import (
     check_finding,
     is_weakening_or_same,
 )
-from app.models import AssessmentOutput, AssessmentResult
+from app.models import (
+    NO_MODEL_LABEL,
+    NO_MODEL_PROVIDER,
+    AssessmentOutput,
+    AssessmentResult,
+)
 from app.providers.base import InvalidModelOutput, LLMProvider
 from app.templates import Requirement
 from app.verify import MAX_REASON_CHARS, VERIFIER_PROMPT_VERSION, verify_support
@@ -75,6 +80,57 @@ class DocumentText(BaseModel):
 
     id: str
     pages: list[str]
+    # Requirement codes the PM tagged this document with. None or empty: untagged, read for all.
+    requirement_codes: list[str] | None = None
+
+
+def documents_for(
+    requirement_code: str, documents: Sequence[DocumentText]
+) -> list[DocumentText]:
+    """The documents a requirement is checked against: those tagged for it, plus untagged ones.
+
+    An untagged document means "not sure", so it is read for every requirement. Tags only decide
+    which pages the assessor is shown. They are never evidence: the quote check is unchanged.
+    """
+    return [
+        d
+        for d in documents
+        if not d.requirement_codes or requirement_code in d.requirement_codes
+    ]
+
+
+def no_document_result(requirement: Requirement) -> AssessmentResult:
+    """The result for a requirement with no document. No model is called.
+
+    `model_status` has to hold a status, but no model answered: the provider label says so.
+    """
+    return AssessmentResult(
+        requirement_code=requirement.code,
+        model_status="missing",
+        ai_status="missing",
+        evidence=[],
+        valid_until=None,
+        notes=["No document was uploaded for this requirement."],
+        model_notes="",
+        provider=NO_MODEL_PROVIDER,
+        provider_label=NO_MODEL_LABEL,
+        model=NO_MODEL_PROVIDER,
+        prompt_version=NO_MODEL_PROVIDER,
+    )
+
+
+def assess_with_tags(
+    provider: LLMProvider,
+    requirement: Requirement,
+    documents: Sequence[DocumentText],
+    today: date | None = None,
+    use_verifier: bool = False,
+) -> AssessmentResult:
+    """Assess one requirement against only its documents. With none, skip the model."""
+    mine = documents_for(requirement.code, documents)
+    if not mine:
+        return no_document_result(requirement)
+    return assess_requirement(provider, requirement, mine, today, use_verifier)
 
 
 def build_user_prompt(

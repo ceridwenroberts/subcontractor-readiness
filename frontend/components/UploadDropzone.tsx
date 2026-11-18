@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/components/cn";
 import { ErrorBox } from "@/components/Banners";
+import { RequirementPicker, type PickerRequirement } from "@/components/RequirementPicker";
 import { uploadDocuments } from "@/lib/api";
 import { FILE_PROBLEM_TEXT, LIMITS, checkFiles, isBlocking, type FileProblem } from "@/lib/forms";
 import type { DocumentInfo, FileReport } from "@/lib/schemas";
@@ -20,6 +21,7 @@ type Item = {
   id: number;
   file: File;
   force: boolean; // upload even though a file with this name and size already exists
+  codes: string[]; // requirement codes it is for; empty means "not sure"
   report: FileReport | null; // set when the server refused it
   state: "queued" | "uploading";
 };
@@ -51,6 +53,8 @@ export function UploadDropzone({
   onUploaded,
   onAssess,
   listUploaded = true,
+  requirements,
+  preselect,
 }: {
   engagementId: string;
   documents: DocumentInfo[];
@@ -58,6 +62,10 @@ export function UploadDropzone({
   onAssess: () => void;
   /** Show the list of already uploaded documents under the queue. */
   listUploaded?: boolean;
+  /** The template's requirements, so each file can be tagged with the ones it is for. */
+  requirements?: PickerRequirement[];
+  /** A requirement to tag new files with, when the upload starts from that requirement. */
+  preselect?: string | null;
 }) {
   const inputId = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -86,11 +94,19 @@ export function UploadDropzone({
     setError(null);
     setItems((prev) => [
       ...prev,
-      ...files.map((file) => ({ id: nextId.current++, file, force: false, report: null, state: "queued" as const })),
+      ...files.map((file) => ({
+        id: nextId.current++,
+        file,
+        force: false,
+        codes: preselect ? [preselect] : [],
+        report: null,
+        state: "queued" as const,
+      })),
     ]);
     if (input.current) input.current.value = "";
   }
 
+  const setCodes = (id: number, codes: string[]) => setItems((prev) => prev.map((i) => (i.id === id ? { ...i, codes } : i)));
   const remove = (id: number) => setItems((prev) => prev.filter((i) => i.id !== id));
   const allowDuplicate = (id: number) => setItems((prev) => prev.map((i) => (i.id === id ? { ...i, force: true } : i)));
 
@@ -105,6 +121,7 @@ export function UploadDropzone({
       const result = await uploadDocuments(
         engagementId,
         sending.map((i) => i.file),
+        sending.map((i) => (i.codes.length > 0 ? i.codes : null)),
       );
       const accepted = result.files.filter((r) => r.status === "accepted").length;
       const rejected = result.files.length - accepted;
@@ -209,6 +226,16 @@ export function UploadDropzone({
                     </p>
                   )}
                   {warn && <p className="text-xs text-foreground">{FILE_PROBLEM_TEXT.already_uploaded}</p>}
+                  {requirements && !bad && (
+                    <div className="mt-1">
+                      <RequirementPicker
+                        requirements={requirements}
+                        value={item.codes}
+                        onChange={(codes) => setCodes(item.id, codes)}
+                        disabled={item.state === "uploading"}
+                      />
+                    </div>
+                  )}
                 </div>
                 {warn && (
                   <Button variant="outline" size="sm" onClick={() => allowDuplicate(item.id)}>
