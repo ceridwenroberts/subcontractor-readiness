@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Interactive Workflow & Agent Sequence Diagram</title>
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.esm.min.mjs';
+
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      sequence: {
+        actorMargin: 60,
+        messageMargin: 40,
+        boxMargin: 15,
+        mirrorActors: true,
+        useMaxWidth: true
+      }
+    });
+
+    const diagrams = {
+      full: `
+        sequenceDiagram
+          autonumber
+          actor PM as 👤 Project manager
+          participant UI as 🖥️ Next.js UI (api.ts)
+          participant API as ⚙️ FastAPI backend
+          participant Ing as 🧹 Ingest (check, extract, redact)
+          participant DB as 🗄️ SQLite and data/uploads
+          participant Orch as 🧭 Orchestrator (assess_requirement)
+          participant Code as 🛡️ Code checks (domain)
+          participant LLM as 🤖 Provider (scripted or Ollama)
+          participant Ver as 🔍 Verifier agent
+
+          rect rgb(235, 245, 255)
+            Note over PM,DB: Phase 1 - Sign in, project, upload
+            PM->>UI: Pick demo user (simulated sign-in)
+            UI->>API: POST /session
+            API-->>UI: Bearer token (kept in server memory)
+            PM->>UI: Create project and add subcontractor
+            UI->>API: POST /projects, POST /projects/{id}/engagements
+            API->>DB: Insert Project and Engagement
+            PM->>UI: Drop PDFs and tick Used for per file (default Not sure)
+            UI->>API: POST /engagements/{id}/documents (files plus tags)
+            loop each file
+              API->>Ing: check_pdf (magic bytes, size, pages, encryption)
+              alt rejected
+                Ing-->>API: UploadError code
+                API-->>UI: Rejected with hint
+              else accepted
+                Ing->>Ing: extract_pages then redact_pages
+                API->>DB: Store PDF under UUID name and insert Document (redacted text only)
+                API-->>UI: Accepted with warnings (scan, personal number hidden)
+              end
+            end
+          end
+
+          rect rgb(245, 240, 255)
+            Note over PM,Ver: Phase 2 - Automated assessment (agents propose, code verifies)
+            PM->>UI: Click Assess documents
+            UI->>API: POST /engagements/{id}/assess/stream
+            alt no documents
+              API-->>UI: 400 Upload at least one document
+            else documents exist
+              API-->>UI: start and total
+              loop each requirement in templates/*.json
+                API-->>UI: working (index, code, title)
+                API->>API: documents_for(requirement): tagged for it plus untagged
+                alt no document applies
+                  API->>API: no_document_result (missing, label No model call, no model asked)
+                else at least one document
+                API->>Orch: assess_requirement(requirement, only those pages)
+                Orch->>LLM: complete_json(system prompt, untrusted text between nonce markers)
+                LLM-->>Orch: JSON reply
+                opt reply is not valid
+                  Orch->>LLM: Retry once
+                  LLM-->>Orch: JSON reply or still invalid
+                end
+                alt still invalid
+                  Orch-->>API: status unclear plus note
+                else valid
+                  Orch->>Code: check_finding(status, quotes, pages, dates, today)
+                  Code-->>Orch: ai_status (can only weaken) and verified evidence
+                  opt verifier on and ai_status is found or partial
+                    Orch->>Ver: verify_support(requirement, verified quotes)
+                    Ver->>LLM: complete_json(verifier prompt)
+                    LLM-->>Ver: supports true or false
+                    Ver-->>Orch: unclear if not supported, otherwise unchanged
+                  end
+                end
+                end
+              end
+              alt provider unavailable
+                API-->>UI: error 503, nothing saved
+              else all done
+                API->>DB: Insert one Finding per requirement (older findings kept)
+                API-->>UI: done with latest findings
+              end
+            end
+          end
+
+          rect rgb(255, 248, 235)
+            Note over PM,DB: Phase 3 - Human review and decision
+            UI->>API: GET /engagements/{id}/findings
+            API->>DB: Latest finding per requirement
+            API-->>UI: model status, ai status, human status, evidence, provider label
+            PM->>UI: Open a cited quote
+            UI->>API: GET /documents/{id}/pages
+            API-->>UI: Redacted page text (quote highlighted in the UI)
+            PM->>UI: Decide (status, reason, optional new upload request)
+            UI->>API: PATCH /findings/{id} with Bearer token
+            alt not signed in
+              API-->>UI: 401
+            else reason or text missing (_check_decision)
+              API-->>UI: 422
+            else valid
+              API->>DB: Append DecisionLog (decided_by from session)
+              opt new upload requested
+                API->>DB: Append UploadRequest with SIMULATED email draft (never sent)
+              end
+              API->>DB: Set human_status
+              API-->>UI: Updated finding
+            end
+          end
+
+          rect rgb(240, 248, 240)
+            Note over PM,DB: Phase 4 - Follow-up
+            UI->>API: GET /projects/{id}/overview
+            API-->>UI: Statuses, No document flags and a glance state per subcontractor
+            UI->>API: GET /upload-requests/open and GET /issues/expiring
+            API->>DB: Latest decisions, findings with dates
+            API-->>UI: Open requests and expiry tiers (SIMULATED reminder drafts)
+            UI->>API: GET /engagements/{id}/summary
+            API-->>UI: Counts and lists, no scores
+            PM->>UI: Upload a new document and assess again
+            Note over PM,DB: New findings are added, earlier findings and decisions stay in the log
+          end
+      `,
+
+      humanOnly: `
+        sequenceDiagram
+          autonumber
+          actor PM as 👤 Project manager
+          participant UI as 🖥️ Next.js UI
+          participant API as ⚙️ FastAPI backend
+          participant AI as 🤖 Assessment pipeline (collapsed)
+          participant DB as 🗄️ SQLite and data/uploads
+
+          Note over PM,DB: Collapsed view - only what the person does and sees
+
+          PM->>UI: Sign in as a demo user (simulated)
+          UI->>API: POST /session
+          PM->>UI: Create project, add subcontractor
+          UI->>API: POST /projects and /projects/{id}/engagements
+          API->>DB: Insert Project and Engagement
+
+          PM->>UI: Upload PDFs and say which requirements each is for
+          UI->>API: POST /engagements/{id}/documents (files plus tags)
+          API->>DB: Store redacted text and original file
+          API-->>UI: Per-file result with warnings (scan, personal number hidden)
+          UI-->>PM: Queue shows accepted and rejected files
+
+          PM->>UI: Click Assess documents
+          UI->>API: POST /engagements/{id}/assess/stream
+          API->>AI: Assessor, code checks, verifier for every requirement that has a document
+          AI-->>API: One result per requirement
+          API->>DB: Insert Findings
+          API-->>UI: Progress events, then the findings
+          UI-->>PM: Requirements table with a status for each
+
+          opt Inspect the evidence
+            PM->>UI: Open a cited quote
+            UI->>API: GET /documents/{id}/pages
+            API-->>UI: Redacted text, quote highlighted
+          end
+
+          PM->>UI: Decide (status, reason, optional new upload request)
+          UI->>API: PATCH /findings/{id}
+          alt not signed in or reason missing
+            API-->>UI: 401 or 422 with a message
+            UI-->>PM: Message shown, decision not saved
+          else saved
+            API->>DB: Append DecisionLog and UploadRequest (SIMULATED email)
+            API-->>UI: Updated finding
+            UI-->>PM: Decision shown, Edit decision available
+          end
+
+          PM->>UI: Open the project Overview
+          UI->>API: GET /projects/{id}/overview
+          API-->>UI: Glance state per subcontractor and No document flags
+          UI-->>PM: Badges and a grid of subcontractors against requirements
+
+          PM->>UI: Open Issues
+          UI->>API: GET /upload-requests/open and /issues/expiring
+          API-->>UI: Waiting for new upload and documents close to expiry
+          UI-->>PM: List by urgency tier
+      `,
+
+      agentsOnly: `
+        sequenceDiagram
+          autonumber
+          participant API as ⚙️ Assess route
+          participant Orch as 🧭 Orchestrator (assess_requirement)
+          participant LLM as 🤖 Provider (scripted or Ollama)
+          participant Code as 🛡️ Code checks (domain)
+          participant Ver as 🔍 Verifier agent
+          participant DB as 🗄️ SQLite
+
+          Note over API,DB: Collapsed view - only the automated parts (no human in this flow)
+
+          API->>API: Load template requirements and redacted pages
+          loop each requirement
+            API->>API: documents_for(requirement): tagged for it plus untagged
+            alt no document applies
+              API->>API: no_document_result (missing, No model call), no provider call
+            else at least one document
+            API->>Orch: assess_requirement(requirement, only those documents, today)
+            Orch->>Orch: Build prompt with random nonce markers around untrusted text
+            Orch->>LLM: complete_json(system, user, schema), model has no tools
+            LLM-->>Orch: JSON reply
+            alt reply fails Pydantic validation
+              Orch->>LLM: Retry once with a format reminder
+              LLM-->>Orch: JSON reply
+              opt still invalid
+                Orch-->>API: unclear plus note
+              end
+            end
+            Orch->>Code: check_finding(model status, quotes, pages, dates)
+            Code->>Code: Each quote must exist on the cited page
+            Code->>Code: found or partial without a verified quote becomes unclear
+            Code->>Code: A date before today becomes expired
+            Code-->>Orch: ai_status (only weaker or equal) and evidence
+            opt verifier on and ai_status is found or partial
+              Orch->>Ver: verify_support(requirement, verified quotes)
+              Ver->>LLM: complete_json(verifier prompt)
+              LLM-->>Ver: supports true or false
+              alt supports is false
+                Ver-->>Orch: Downgrade to unclear with a note
+              else supports is true or no valid answer
+                Ver-->>Orch: Leave unchanged
+              end
+            end
+            Orch-->>API: AssessmentResult (model status, ai status, provider label, prompt version)
+            end
+          end
+          alt ProviderError
+            API->>API: Save nothing, return 503
+          else all requirements done
+            API->>DB: Insert Finding rows (human_status stays empty)
+            Note over API,DB: The decision belongs to the person, never to an agent
+          end
+      `
+    };
+
+    let currentMode = 'full';
+
+    window.setView = async (mode) => {
+      currentMode = mode;
+
+      // Update active button styling
+      document.querySelectorAll('.controls button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+
+      const container = document.getElementById('diagram-container');
+      container.innerHTML = '<p style="color:#666;">Rendering diagram...</p>';
+
+      try {
+        const uniqueId = 'mermaid-svg-' + Date.now();
+        const { svg } = await mermaid.render(uniqueId, diagrams[mode]);
+        container.innerHTML = svg;
+      } catch (err) {
+        container.innerHTML = `<pre style="color:red;">Syntax error in Mermaid code:\n${err.message}</pre>`;
+      }
+    };
+
+    window.downloadSVG = () => {
+      const svgEl = document.querySelector('#diagram-container svg');
+      if (!svgEl) return;
+      const serializer = new XMLSerializer();
+      const svgString = serializer.serializeToString(svgEl);
+      const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sequence-diagram-${currentMode}.svg`;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setView('full');
+    });
+  </script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 24px;
+      background-color: #f8fafc;
+      color: #1e293b;
+    }
+    .header {
+      max-width: 1200px;
+      margin: 0 auto 20px auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      background: #ffffff;
+      padding: 16px 24px;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .header h1 {
+      font-size: 1.2rem;
+      margin: 0;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    button {
+      padding: 8px 14px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button:hover {
+      background: #f1f5f9;
+    }
+    button.active {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+    button.export-btn {
+      background: #0f172a;
+      color: #ffffff;
+      border-color: #0f172a;
+    }
+    button.export-btn:hover {
+      background: #334155;
+    }
+    #diagram-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 24px;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      overflow-x: auto;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Workflow & Agent Sequence Diagram</h1>
+    <div class="controls">
+      <button data-mode="full" class="active" onclick="setView('full')">🔄 Full End-to-End Flow</button>
+      <button data-mode="humanOnly" onclick="setView('humanOnly')">👤 Human Steps (Agents Collapsed)</button>
+      <button data-mode="agentsOnly" onclick="setView('agentsOnly')">🤖 Agent Pipeline (Human Collapsed)</button>
+      <button class="export-btn" onclick="downloadSVG()">⬇️ Export SVG</button>
+    </div>
+  </div>
+
+  <div id="diagram-container"></div>
+</body>
+</html>

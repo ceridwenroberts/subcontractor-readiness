@@ -8,7 +8,7 @@ A project manager receives a subcontractor's documents: tax certificate, insuran
 
 ## How it meets the assignment
 
-- **Business outcome:** at one delivery point, when a subcontractor's document packet arrives, the PM gets an evidence-backed checklist instead of reading everything. A reviewer can then ask for a new upload, and the open requests show on a dashboard.
+- **Business outcome:** at one delivery point, when a subcontractor's document packet arrives, the PM gets an evidence-backed checklist instead of reading everything. A reviewer can then ask for a new upload, and the open requests and expiring documents show on a dashboard, with one badge per subcontractor that says where the review stands.
 - **Agents in orchestration:**
 
   | Part | Role | What it may not do |
@@ -63,6 +63,7 @@ All runs: 4 synthetic packets, 28 requirements per run.
 - Three separate statuses per finding: what the model said, what the checks left, what the person decided. They are never merged.
 - Personal numbers are hidden before storage. The server only accepts localhost host names, which blocks a web page from reaching it by re-pointing its own domain (found by the security review).
 - The tool only says what the documents show. A test bans the words approved, compliant, qualified, pass, fail and score from the interface.
+- A requirement with no document is never sent to a model. Code records "No document" (labelled "No model call"), so the tool cannot invent a result about something that was not uploaded.
 
 ## What went wrong, and what I learned
 
@@ -71,6 +72,8 @@ All runs: 4 synthetic packets, 28 requirements per run.
 - **A safety rule can cost accuracy.** Requiring the model to report the expiry date downgraded correct answers. Reading the date from the verified quote helped, but a second cause remains (the model quotes the sentence without the date).
 - **Language mismatch:** English requirements against Swedish documents made the small model miss evidence until the prompt told it to match on meaning.
 - **Being honest about gaps:** names are not redacted, scans are not read, the sign-in and the email are simulated.
+- **A count must answer the question it is named after.** The "Documents missing" card said seven after two uploads, because it counted every requirement not yet assessed. It now counts requirements with no document, worked out from the documents and their tags.
+- **A status can be true and still misleading.** "Not found" means the documents were read. For a requirement with nothing uploaded I show "No document" instead, and keep the stored status unchanged.
 
 ## If something goes wrong on the day
 
@@ -78,6 +81,8 @@ All runs: 4 synthetic packets, 28 requirements per run.
 - **Pre-run option:** assess a subcontractor before you start, and show the stored findings during the demo.
 - **Port 3000 busy:** Next.js starts on 3001 and the browser shows "cannot reach the backend". Set `FRONTEND_ORIGIN=http://localhost:3001` in `.env` and restart the backend.
 - **Hostname:** use `http://localhost:3000`. The backend only answers to `localhost` and `127.0.0.1`.
+- **Port 8000 busy:** another project's backend may be running there. The frontend always calls `http://127.0.0.1:8000`, so stop the other one (or start this backend on 8001 and the frontend with `NEXT_PUBLIC_API_URL=http://127.0.0.1:8001`). Check with `curl http://127.0.0.1:8000/openapi.json`: the title must be "Subcontractor readiness".
+- **Backend restarted with an older database:** a new column is added on startup. If the page shows errors after a code change, restart the backend once.
 
 ## Likely questions
 
@@ -86,7 +91,9 @@ All runs: 4 synthetic packets, 28 requirements per run.
 - **"What about privacy?"** Personnummer are redacted before storage or model calls. Names are not, and they are personal data. There is no automatic deletion yet, only a deletion date and an overdue banner. A real version needs a privacy review first.
 - **"Can the AI approve a subcontractor?"** No, by design. There is no approved status anywhere, and the interface is tested against verdict words.
 - **"What if the PDF is a scan?"** It is not read. The upload shows a warning, and "evidence not found" may then be wrong. Local OCR before redaction is the first roadmap item, and it must happen locally.
-- **"What would you build next?"** A hosted-model evaluation, local OCR, a domain-expert-reviewed template, real sign-in and roles, real email sending with consent, and a purge that respects the audit log.
+- **"How does it know which document is which?"** It does not guess. When you upload, you can tick which requirements each file is for. Untagged files are read for every requirement. A requirement with no document is not sent to a model. One PDF can be ticked for several requirements. Automatic suggestions and page ranges are on the roadmap.
+- **"Can it blacklist a subcontractor, or say they meet the requirements?"** No. It shows what the documents show and whether a person has reviewed each requirement (a badge such as "Documentation complete" means a person decided every mandatory requirement as evidence found, and says nothing about the company). A person-recorded decision about the subcontractor is a deliberate next step, since it would change what the tool claims to be.
+- **"What would you build next?"** A hosted-model evaluation, local OCR, page ranges per tagged document, an engagement decision that a person records, a domain-expert-reviewed template, real sign-in and roles, real email sending with consent, and a purge that respects the audit log.
 
 ## One sentence to end on
 

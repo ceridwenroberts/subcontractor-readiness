@@ -336,6 +336,23 @@ The assignment asks for agents in orchestration, so the verifier is now planned,
 
 There is also a free, low-risk way to gain multi-agent experience: during development, use Claude Code's review subagents (`/code-review`, `/security-review`) once near the end of the project, or sooner if a stage felt risky, and note in the journal what they found.
 
+### Stage 8: Review workflow and UI (added 2026-11-16 to 2026-11-18)
+Work added after the original plan, in response to review feedback. Each protected slice has its entry in `docs/decisions.md`.
+- [x] Reasons on every decision; typed text only for "Other"
+- [x] Expiry warnings (`/issues/expiring`) with four tiers and simulated reminder drafts
+- [x] shadcn-style UI on black-and-white tokens, light and dark themes, Model details switch
+- [x] Multi-file upload queue, one requirements table, decision disclosure, side panels
+- [x] Sidebar layout from the Figma mock, Dashboard, Issues with filters, summary and document viewer links
+- [x] Project overview endpoint and a glance state per subcontractor (no verdict words, no scores)
+- [x] Documents tagged to requirements; a requirement with no document skips the model ("No model call")
+- [x] "No document" shown as its own state, never as "Not found"; reason for a missing document
+- [x] Viewer lists and highlights every quote that cites a document
+- [x] Assessment survives page changes
+- [x] Plain-English email and reminder drafts
+- [ ] Browser run-through of the demo script in both themes
+- [ ] Phase 3 demo-wording clean-up (needs the owner's decisions), Phase 4 and 5 UI polish
+- [ ] Later: page ranges per tag, suggested tags (needs evals), an engagement decision recorded by a person (hard-rule change), Claude provider for assessment
+
 ## 16. Roadmap after the school version (LATER)
 
 Login and roles. Postgres and EU hosting. Real subcontractor portal. OCR for scanned documents. Project overlays (BAS-P/BAS-U). Domain-expert-reviewed templates for VVS, El, Måleri. Document type suggestion. Swedish UI. Retention jobs. Integrations (ID06 and others) after a separate review.
