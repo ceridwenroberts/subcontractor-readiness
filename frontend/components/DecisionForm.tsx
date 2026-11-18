@@ -42,10 +42,12 @@ export function DecisionForm({
   onSaved: (updated: Finding) => void;
   onCancel?: () => void;
 }) {
-  const [agree, setAgree] = useState<boolean | null>(() => initialAgree(finding.ai_status));
+  // No document uploaded: there is no result to agree with, only a new upload to ask for.
+  const noDocument = finding.provider === "none";
+  const [agree, setAgree] = useState<boolean | null>(() => (noDocument ? true : initialAgree(finding.ai_status)));
   const [otherStatus, setOtherStatus] = useState<Status | "">("");
-  const [wantRequest, setWantRequest] = useState(false);
-  const [reason, setReason] = useState("");
+  const [wantRequest, setWantRequest] = useState(noDocument);
+  const [reason, setReason] = useState(noDocument ? "not_uploaded" : "");
   const [sendEmail, setSendEmail] = useState(false);
   const [comment, setComment] = useState("");
   const [saving, setSaving] = useState(false);
@@ -90,9 +92,12 @@ export function DecisionForm({
     <form onSubmit={onSubmit} className="space-y-3">
       <fieldset className="space-y-2">
         <legend className="text-sm font-medium">
-          {DECISION_TEXT.question}{" "}
-          <span className="font-normal text-muted-foreground">Result so far: {STATUS_LABEL[finding.ai_status]}.</span>
+          {noDocument ? "Ask the subcontractor for this document?" : DECISION_TEXT.question}{" "}
+          <span className="font-normal text-muted-foreground">
+            Result so far: {noDocument ? "No document uploaded" : STATUS_LABEL[finding.ai_status]}.
+          </span>
         </legend>
+        {!noDocument && (
         <RadioGroup
           value={agree === null ? "" : agree ? "yes" : "no"}
           onValueChange={(v) => setAgree(v === "yes")}
@@ -125,6 +130,7 @@ export function DecisionForm({
             </NativeSelect>
           </div>
         </RadioGroup>
+        )}
       </fieldset>
 
       <div className="flex flex-col gap-1">

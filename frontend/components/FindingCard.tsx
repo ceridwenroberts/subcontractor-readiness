@@ -7,6 +7,7 @@ import { useState } from "react";
 import { DecisionDisclosure } from "@/components/DecisionDisclosure";
 import { DecisionForm } from "@/components/DecisionForm";
 import { EmailDraftSheet } from "@/components/EmailDraftSheet";
+import { NoDocumentBadge, isNoDocument } from "@/components/NoDocumentBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { viewerPath } from "@/lib/api";
@@ -54,8 +55,10 @@ export function FindingCard({
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
-        <StatusBadge status={finding.ai_status} />
-        {finding.human_status && <StatusBadge status={finding.human_status} prefix="Your decision" />}
+        {isNoDocument(finding) ? <NoDocumentBadge /> : <StatusBadge status={finding.ai_status} />}
+        {finding.human_status && !isNoDocument(finding) && (
+          <StatusBadge status={finding.human_status} prefix="Your decision" />
+        )}
         <Badge variant="model" title="Where this result came from">
           {finding.provider_label}
         </Badge>

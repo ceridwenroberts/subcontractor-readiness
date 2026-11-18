@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, CircleDashed, Hourglass, type LucideIcon, Upload } from "lucide-react";
+import { AlertCircle, CheckCircle2, CircleDashed, FilePlus2, Hourglass, type LucideIcon, Upload } from "lucide-react";
 
 import { cn } from "@/components/cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -10,6 +10,7 @@ const STYLE: Record<Glance, { icon: LucideIcon; className: string }> = {
   documentation_complete: { icon: CheckCircle2, className: "border-foreground bg-foreground text-background" },
   awaiting_decision: { icon: Hourglass, className: "border-foreground bg-background text-foreground" },
   new_upload_requested: { icon: Upload, className: "border-foreground bg-muted text-foreground" },
+  documents_missing: { icon: FilePlus2, className: "border-dashed border-foreground bg-muted text-foreground" },
   gaps_recorded: { icon: AlertCircle, className: "border-dashed border-foreground bg-background text-foreground" },
   not_assessed: { icon: CircleDashed, className: "border-dashed border-muted-foreground bg-transparent text-muted-foreground" },
 };

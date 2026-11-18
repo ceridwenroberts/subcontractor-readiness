@@ -15,6 +15,7 @@ from sqlalchemy import select
 from app.db.models import DecisionLog, Finding, Project, UploadRequest
 from app.db.session import Db
 from app.domain.status import Status
+from app.models import NO_MODEL_PROVIDER
 from app.overview import (
     Glance,
     ReqState,
@@ -34,6 +35,7 @@ class RequirementCell(BaseModel):
     mandatory: bool
     status: Status | None  # None: not assessed yet
     decided: bool  # a person has decided
+    no_document: bool  # no document was uploaded for it (no model was asked)
     decided_by: str | None
     open_request: bool
 
@@ -43,7 +45,9 @@ class EngagementOverview(BaseModel):
     subcontractor_name: str
     document_count: int
     glance: Glance
-    counts: dict[str, int]  # per status, plus "not_assessed". No total, no ratio.
+    counts: dict[
+        str, int
+    ]  # per status, plus "not_assessed" and "no_document". No total, no ratio.
     awaiting_decision: (
         int  # results with something to decide and no decision yet (not missing)
     )
@@ -103,6 +107,11 @@ def project_overview(
                 else None
             )
             decided = bool(f and f.human_status)
+            no_doc = bool(f and f.provider == NO_MODEL_PROVIDER)
+            if no_doc and not decided:
+                status = (
+                    None  # there is no result about documents, only the lack of one
+                )
             is_open = (e.id, req.code) in open_requests
             decision = latest_decision.get((e.id, req.code))
             states.append(
@@ -112,6 +121,7 @@ def project_overview(
                     status=status,
                     decided=decided,
                     open_request=is_open,
+                    no_document=no_doc,
                 )
             )
             cells.append(
@@ -123,6 +133,7 @@ def project_overview(
                     decided=decided,
                     decided_by=decision.decided_by if decision and decided else None,
                     open_request=is_open,
+                    no_document=no_doc,
                 )
             )
         out.append(

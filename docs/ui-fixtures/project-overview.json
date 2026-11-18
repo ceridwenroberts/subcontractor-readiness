@@ -6,13 +6,48 @@
       "subcontractor_name": "Exempelrör AB",
       "document_count": 2,
       "glance": "awaiting_decision",
-      "counts": { "found": 3, "partial": 0, "missing": 1, "unclear": 0, "expired": 0, "not_assessed": 3 },
+      "counts": {
+        "found": 3,
+        "partial": 0,
+        "missing": 1,
+        "unclear": 0,
+        "expired": 0,
+        "not_assessed": 3,
+        "no_document": 1
+      },
       "awaiting_decision": 4,
       "open_requests": 0,
       "requirements": [
-        { "code": "VVS-01", "title": "Tax registration", "mandatory": true, "status": "found", "decided": true, "decided_by": "Test PM (demo)", "open_request": false },
-        { "code": "VVS-03", "title": "Liability insurance", "mandatory": true, "status": "found", "decided": false, "decided_by": null, "open_request": false },
-        { "code": "VVS-04", "title": "Environmental policy", "mandatory": false, "status": null, "decided": false, "decided_by": null, "open_request": false }
+        {
+          "code": "VVS-01",
+          "title": "Tax registration",
+          "mandatory": true,
+          "status": "found",
+          "decided": true,
+          "decided_by": "Test PM (demo)",
+          "open_request": false,
+          "no_document": false
+        },
+        {
+          "code": "VVS-03",
+          "title": "Liability insurance",
+          "mandatory": true,
+          "status": "found",
+          "decided": false,
+          "decided_by": null,
+          "open_request": false,
+          "no_document": false
+        },
+        {
+          "code": "VVS-04",
+          "title": "Environmental policy",
+          "mandatory": false,
+          "status": null,
+          "decided": false,
+          "decided_by": null,
+          "open_request": false,
+          "no_document": true
+        }
       ]
     }
   ]

@@ -14,6 +14,7 @@ import { ArrowDownUp, ChevronRight, FileText } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 
+import { NoDocumentBadge, isNoDocument } from "@/components/NoDocumentBadge";
 import { NotAssessedAction } from "@/components/NotAssessedAction";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ScanTag, isScanWarning } from "@/components/UploadDropzone";
@@ -29,11 +30,13 @@ type Cited = { id: string; name: string; page: number; quote: string };
 type Row = {
   requirement: Requirement;
   finding: Finding | null;
-  status: Status | "none";
+  status: Status | "none" | "nodoc";
   cited: Cited[];
 };
 
 const NONE = "none" as const;
+// A finding made without a document: "no document", not "not found".
+const NODOC = "nodoc" as const;
 
 /** The documents a result is based on: only quotes that were found in the document text. */
 function citedDocuments(f: Finding | null): Cited[] {
@@ -84,7 +87,7 @@ export function RequirementsTable({
       return {
         requirement,
         finding,
-        status: finding ? finding.ai_status : NONE,
+        status: finding ? (isNoDocument(finding) ? NODOC : finding.ai_status) : NONE,
         cited: citedDocuments(finding),
       };
     });
@@ -125,7 +128,7 @@ export function RequirementsTable({
         header: "Status",
         accessorFn: (r) => r.status,
         sortingFn: (a, b) =>
-          [...STATUSES, NONE].indexOf(a.original.status) - [...STATUSES, NONE].indexOf(b.original.status),
+          [...STATUSES, NODOC, NONE].indexOf(a.original.status) - [...STATUSES, NODOC, NONE].indexOf(b.original.status),
         filterFn: (row, _id, value: string) => value === "" || row.original.status === value,
         cell: ({ row }) => {
           const { finding, status } = row.original;
@@ -138,10 +141,22 @@ export function RequirementsTable({
                   onUpload={() => onUpload(row.original.requirement.code)}
                   onAssess={onAssess}
                 />
+              ) : status === NODOC ? (
+                <>
+                  {!hasDocumentFor(row.original.requirement.code) && <NoDocumentBadge />}
+                  <NotAssessedAction
+                    hasDocument={hasDocumentFor(row.original.requirement.code)}
+                    assessing={assessing}
+                    onUpload={() => onUpload(row.original.requirement.code)}
+                    onAssess={onAssess}
+                  />
+                </>
               ) : (
                 <StatusBadge status={status} short />
               )}
-              {finding?.human_status && <StatusBadge status={finding.human_status} prefix="Decision" short />}
+              {finding?.human_status && status !== NODOC && (
+                <StatusBadge status={finding.human_status} prefix="Decision" short />
+              )}
               {finding?.latest_request && <Badge variant="outline">New upload requested</Badge>}
             </span>
           );
@@ -215,6 +230,7 @@ export function RequirementsTable({
   const chips: { value: string; label: string }[] = [
     { value: "", label: "All" },
     ...STATUSES.filter((s) => counts[s]).map((s) => ({ value: s, label: STATUS_SHORT[s] })),
+    ...(counts[NODOC] ? [{ value: NODOC, label: "No document" }] : []),
     ...(counts[NONE] ? [{ value: NONE, label: "No result yet" }] : []),
   ];
 

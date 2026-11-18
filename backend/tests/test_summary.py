@@ -185,3 +185,43 @@ def test_endpoint_summarises_stored_findings_and_decisions(tmp_path: Path) -> No
 
 def test_endpoint_404_for_an_unknown_engagement(tmp_path: Path) -> None:
     assert make_client(tmp_path).get("/engagements/nope/summary").status_code == 404
+
+
+def test_a_requirement_with_no_document_is_listed_on_its_own() -> None:
+    from app.summary import FindingView, build_summary
+
+    def view(code: str, **kw: object) -> FindingView:
+        base: dict[str, object] = {
+            "code": code,
+            "title": code,
+            "ai_status": "found",
+            "human_status": None,
+            "valid_until": None,
+            "open_request_reason": None,
+            "provider_label": "Simulated",
+            "model": "fixture",
+        }
+        return FindingView(**{**base, **kw})  # type: ignore[arg-type]
+
+    summary = build_summary(
+        subcontractor="A",
+        project="P",
+        template_name="T",
+        placeholder=False,
+        document_count=1,
+        findings=[
+            view("R1"),
+            view(
+                "R2",
+                ai_status="missing",
+                provider_label="No model call",
+                model="none",
+                no_document=True,
+            ),
+        ],
+    )
+    labels = {g.status: [i.code for i in g.items] for g in summary.groups}
+    assert labels == {"found": ["R1"], "no_document": ["R2"]}
+    assert "missing" not in labels  # not shown as "Evidence not found"
+    assert summary.not_reviewed_count == 1  # the one with a document
+    assert summary.assessed_by == "Simulated (fixture)"

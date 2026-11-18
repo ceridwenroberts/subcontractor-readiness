@@ -17,6 +17,7 @@ Glance = Literal[
     "not_assessed",  # no documents, or no findings yet
     "new_upload_requested",  # a request for a new upload is open
     "awaiting_decision",  # a result with something to decide has no person's decision yet
+    "documents_missing",  # a mandatory requirement has no document uploaded
     "documentation_complete",  # every mandatory requirement decided as "found"
     "gaps_recorded",  # nothing left to decide, but a mandatory requirement is not "found"
 ]
@@ -30,6 +31,8 @@ class ReqState(BaseModel):
     )  # the person's decision if there is one, else the checked result
     decided: bool  # a person has decided (human_status is set)
     open_request: bool  # a request for a new upload is open for this requirement
+    # No document was uploaded for it, so no model was asked. Not the same as "not found".
+    no_document: bool = False
 
 
 def effective_status(
@@ -50,7 +53,7 @@ def effective_status(
 def needs_decision(s: ReqState) -> bool:
     """A result that shows something (evidence, part of it, an unclear case or an expired date)
     and has no person's decision yet."""
-    return s.status not in (None, "missing") and not s.decided
+    return s.status not in (None, "missing") and not s.decided and not s.no_document
 
 
 def glance_for(states: list[ReqState], has_documents: bool) -> Glance:
@@ -63,6 +66,9 @@ def glance_for(states: list[ReqState], has_documents: bool) -> Glance:
     # shows as a missing document and the way forward is a new upload, not a decision.
     if any(needs_decision(s) for s in mandatory):
         return "awaiting_decision"
+    # No document uploaded: the next step is an upload, so it is named before "gaps".
+    if any(s.no_document for s in mandatory):
+        return "documents_missing"
     if all(s.status == "found" for s in mandatory):
         return "documentation_complete"
     return "gaps_recorded"
@@ -72,6 +78,7 @@ def count_statuses(states: list[ReqState]) -> dict[str, int]:
     """How many requirements show each status. Plain counts, never a total or a ratio."""
     counts = {s: 0 for s in ("found", "partial", "missing", "unclear", "expired")}
     counts["not_assessed"] = 0
+    counts["no_document"] = 0
     for s in states:
-        counts[s.status or "not_assessed"] += 1
+        counts["no_document" if s.no_document else (s.status or "not_assessed")] += 1
     return counts

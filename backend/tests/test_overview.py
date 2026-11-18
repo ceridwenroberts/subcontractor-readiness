@@ -32,6 +32,7 @@ def state(
     decided: bool = True,
     mandatory: bool = True,
     open_request: bool = False,
+    no_document: bool = False,
 ) -> ReqState:
     return ReqState(
         code=code,
@@ -39,6 +40,7 @@ def state(
         status=status,
         decided=decided,
         open_request=open_request,
+        no_document=no_document,
     )
 
 
@@ -79,6 +81,35 @@ def test_a_missing_requirement_has_nothing_to_decide() -> None:
     assert needs_decision(state("D", status=None, decided=False)) is False
 
 
+def test_a_mandatory_requirement_with_no_document_is_named_before_gaps() -> None:
+    nodoc = state("B", status=None, decided=False, no_document=True)
+    assert glance_for([state(), nodoc], True) == "documents_missing"
+    assert needs_decision(nodoc) is False
+    # something with evidence still waiting on a decision comes first
+    assert glance_for([state(decided=False), nodoc], True) == "awaiting_decision"
+    # an open request comes before everything
+    assert (
+        glance_for([state(), nodoc, state("C", open_request=True)], True)
+        == "new_upload_requested"
+    )
+    # an optional requirement with no document does not hold anything back
+    optional = state("O", status=None, decided=False, mandatory=False, no_document=True)
+    assert glance_for([state(), optional], True) == "documentation_complete"
+
+
+def test_no_document_is_counted_on_its_own_not_as_not_found() -> None:
+    counts = count_statuses(
+        [
+            state(),
+            state("B", status=None, decided=False, no_document=True),
+            state("C", status="missing"),
+        ]
+    )
+    assert (
+        counts["no_document"] == 1 and counts["missing"] == 1 and counts["found"] == 1
+    )
+
+
 def test_optional_requirements_do_not_block_documentation_complete() -> None:
     states = [state(), state("O", status="missing", decided=False, mandatory=False)]
     assert glance_for(states, True) == "documentation_complete"
@@ -95,6 +126,7 @@ def test_counts_are_plain_counts_per_status() -> None:
         "unclear": 0,
         "expired": 0,
         "not_assessed": 1,
+        "no_document": 0,
     }
 
 
@@ -154,6 +186,7 @@ def add_finding(
     code: str,
     ai_status: str = "found",
     valid_until: date | None = None,
+    provider: str = "scripted",
 ) -> str:
     with client.app.state.session_factory() as db:
         f = Finding(
@@ -164,8 +197,8 @@ def add_finding(
             evidence_json=[],
             valid_until=valid_until,
             notes="",
-            provider="scripted",
-            provider_label="Simulated",
+            provider=provider,
+            provider_label="Simulated" if provider == "scripted" else "No model call",
             model="fixture",
             prompt_version="assess-v2",
             created_at=datetime(2026, 11, 1, tzinfo=UTC),
@@ -230,6 +263,31 @@ def test_two_documents_with_evidence_and_five_missing_waits_on_two_decisions(
     assert e["awaiting_decision"] == 2
     assert e["counts"]["found"] == 2 and e["counts"]["missing"] == 5
     assert e["glance"] == "awaiting_decision"
+
+
+def test_two_documents_tagged_and_five_without_are_named_as_no_document(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    p = make_project(client)
+    eng = add_engagement(client, p)
+    add_document(client, eng)
+    for code in MANDATORY:
+        add_finding(
+            client,
+            eng,
+            code,
+            provider="none" if code in ("VVS-02", "VVS-05", "VVS-07") else "scripted",
+            ai_status="missing" if code in ("VVS-02", "VVS-05", "VVS-07") else "found",
+        )
+    [e] = overview(client, p)
+    cells = {c["code"]: c for c in e["requirements"]}
+    assert cells["VVS-02"]["no_document"] is True and cells["VVS-02"]["status"] is None
+    assert (
+        cells["VVS-01"]["no_document"] is False and cells["VVS-01"]["status"] == "found"
+    )
+    assert e["counts"]["no_document"] == 3 and e["counts"]["missing"] == 0
+    assert e["awaiting_decision"] == 2  # only the two with evidence
 
 
 def test_every_mandatory_requirement_decided_found_is_documentation_complete(

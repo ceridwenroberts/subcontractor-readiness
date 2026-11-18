@@ -4,6 +4,7 @@ import type { Glance } from "@/lib/schemas";
 const ORDER: Glance[] = [
   "new_upload_requested",
   "awaiting_decision",
+  "documents_missing",
   "gaps_recorded",
   "documentation_complete",
   "not_assessed",

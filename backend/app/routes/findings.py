@@ -23,7 +23,7 @@ from app.config import Settings
 from app.db.models import DecisionLog, Engagement, Finding, Project, UploadRequest
 from app.db.session import Db
 from app.domain.status import Status
-from app.models import AssessmentResult
+from app.models import NO_MODEL_PROVIDER, AssessmentResult
 from app.providers.base import LLMProvider, ProviderError
 from app.routes.assess import PROVIDER_DOWN, SERVER_ERROR
 from app.routes.session import CurrentUser
@@ -63,7 +63,9 @@ class FindingOut(BaseModel):
     created_at: datetime
 
 
-UploadReason = Literal["expired", "wrong_document", "unreadable", "incomplete", "other"]
+UploadReason = Literal[
+    "expired", "wrong_document", "unreadable", "incomplete", "not_uploaded", "other"
+]
 
 
 class UploadRequestIn(BaseModel):
@@ -354,6 +356,7 @@ def engagement_summary(engagement_id: str, request: Request, db: Db) -> Summary:
             else None,
             provider_label=f.provider_label,
             model=f.model,
+            no_document=f.provider == NO_MODEL_PROVIDER,
         )
         for f in _latest_findings(engagement, request)
     ]

@@ -107,14 +107,16 @@ def test_typed_text_is_required_only_for_other(tmp_path: Path) -> None:
     _, findings = setup_engagement(client)
     found = next(f for f in findings if f["ai_status"] == "found")
     for blank in ({}, {"comment": "   "}):
-        response = patch(
-            client, found["id"], status="partial", reason="other", **blank
-        )
+        response = patch(client, found["id"], status="partial", reason="other", **blank)
         assert response.status_code == 422
         assert "Other" in response.json()["detail"]
     assert count(client, DecisionLog) == 0
     ok = patch(
-        client, found["id"], status="partial", reason="other", comment="Seen in the annex."
+        client,
+        found["id"],
+        status="partial",
+        reason="other",
+        comment="Seen in the annex.",
     )
     assert ok.status_code == 200
 
@@ -148,7 +150,9 @@ def test_requesting_a_new_upload_needs_a_reason_but_no_text_unless_other(
     no_reason = patch(client, f["id"], status="expired", request_upload={})
     assert no_reason.status_code == 422 and "reason" in no_reason.json()["detail"]
     assert count(client, DecisionLog) == 0 and count(client, UploadRequest) == 0
-    assert patch(client, f["id"], status="expired", **request_upload()).status_code == 200
+    assert (
+        patch(client, f["id"], status="expired", **request_upload()).status_code == 200
+    )
     assert count(client, UploadRequest) == 1
 
 
@@ -261,7 +265,11 @@ def test_unknown_reason_and_unknown_fields_are_refused(tmp_path: Path) -> None:
     bad = {"status": "expired", "comment": "x"}
     assert (
         patch(
-            client, f["id"], **bad, reason="rejected", request_upload={"send_email": False}
+            client,
+            f["id"],
+            **bad,
+            reason="rejected",
+            request_upload={"send_email": False},
         ).status_code
         == 422
     )
@@ -648,3 +656,20 @@ def test_the_request_email_reads_as_a_short_letter() -> None:
     assert lines[0] == "Hello Exempelrör AB,"
     assert "we need a new document for \u201cLiability insurance\u201d." in draft.body
     assert lines[-2:] == ["Kind regards,", "Test PM (demo)"]
+
+
+def test_a_missing_document_has_its_own_reason_and_email_sentence() -> None:
+    from app.upload_requests import REASON_SENTENCES
+
+    assert "not_uploaded" in REASONS
+    draft = build_draft(
+        to="a@x.example",
+        subcontractor="A",
+        project="P",
+        requirement="R",
+        reason_key="not_uploaded",
+        note="",
+        reviewer="Test PM (demo)",
+    )
+    assert REASON_SENTENCES["not_uploaded"] in draft.body
+    assert "information" not in draft.body.lower()  # not the "incomplete" wording

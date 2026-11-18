@@ -122,3 +122,6 @@ Data: `document-pages.json`. Back link to the findings; file name; "Page X of N"
 ## Things that are never shown to the user
 
 API keys, other people's sign-in tokens, raw stack traces, document text outside the viewer and the quotes. Errors use plain sentences (for example "Something went wrong on our side. Nothing was saved.").
+
+## No document (2026-11-18)
+A requirement with no uploaded document shows a dashed **No document** badge, never "Not found". The row has Upload documents (nothing tagged or untagged for it) or Assess (a document now applies). The filter has a "No document" chip. The review panel says no document was uploaded and offers Upload or Assess, with "Ask the subcontractor for this document?" below (reason "No document has been uploaded for this requirement" preselected). The project Overview grid shows an upload icon, the summary has a "No document uploaded" group, and the glance state **Documents missing** appears when a mandatory requirement has none. The Documents missing card says how many were not uploaded and how many were not found in documents. Data: `project-overview.json` has `no_document`.

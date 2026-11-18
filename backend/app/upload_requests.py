@@ -15,6 +15,7 @@ REASONS: dict[str, str] = {
     "wrong_document": "This is not the type of document required",
     "unreadable": "The document is unreadable or is a scan",
     "incomplete": "Information is missing from the document",
+    "not_uploaded": "No document has been uploaded for this requirement",
     "other": "Other reason (see the note)",
 }
 
@@ -24,6 +25,7 @@ REASON_SENTENCES: dict[str, str] = {
     "wrong_document": "The document we received is not the type of document we need for this requirement.",
     "unreadable": "We could not read the document we received. It may be a scan or a damaged file.",
     "incomplete": "The document we received does not contain all the information we need.",
+    "not_uploaded": "We have not received a document for this requirement yet.",
     "other": "Please see the note below for the reason.",
 }
 

@@ -234,6 +234,7 @@ export const GlanceSchema = z.enum([
   "not_assessed",
   "new_upload_requested",
   "awaiting_decision",
+  "documents_missing",
   "documentation_complete",
   "gaps_recorded",
 ]);
@@ -247,7 +248,7 @@ export const OverviewSchema = z.object({
       subcontractor_name: z.string(),
       document_count: z.number(),
       glance: GlanceSchema,
-      counts: z.record(z.string(), z.number()), // per status, plus "not_assessed". No total.
+      counts: z.record(z.string(), z.number()), // per status, plus "not_assessed" and "no_document". No total.
       awaiting_decision: z.number(),
       open_requests: z.number(),
       requirements: z.array(
@@ -257,6 +258,7 @@ export const OverviewSchema = z.object({
           mandatory: z.boolean(),
           status: StatusSchema.nullable(), // null: not assessed yet
           decided: z.boolean(),
+          no_document: z.boolean(), // no document was uploaded, so no model was asked
           decided_by: z.string().nullable(),
           open_request: z.boolean(),
         }),
@@ -271,7 +273,7 @@ export const SummarySchema = z.object({
   intro: z.string(),
   groups: z.array(
     z.object({
-      status: StatusSchema,
+      status: z.union([StatusSchema, z.literal("no_document")]), // no_document: nothing uploaded for it
       label: z.string(),
       items: z.array(
         z.object({

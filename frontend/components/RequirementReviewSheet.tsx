@@ -1,6 +1,8 @@
 "use client";
 
 import { FindingCard } from "@/components/FindingCard";
+import { isNoDocument } from "@/components/NoDocumentBadge";
+import { NotAssessedAction } from "@/components/NotAssessedAction";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import type { Finding, Reason, TemplateDetail, User } from "@/lib/schemas";
 
@@ -15,6 +17,10 @@ export function RequirementReviewSheet({
   reasons,
   onChanged,
   onClose,
+  hasDocument,
+  assessing,
+  onUpload,
+  onAssess,
 }: {
   requirement: Requirement | null;
   finding: Finding | null;
@@ -23,6 +29,11 @@ export function RequirementReviewSheet({
   reasons: Reason[];
   onChanged: (updated: Finding) => void;
   onClose: () => void;
+  /** A document is tagged for this requirement (or untagged), so it can be assessed. */
+  hasDocument: boolean;
+  assessing: boolean;
+  onUpload: () => void;
+  onAssess: () => void;
 }) {
   return (
     <Sheet open={!!requirement} onOpenChange={(o) => !o && onClose()}>
@@ -48,6 +59,20 @@ export function RequirementReviewSheet({
                 </p>
               )}
             </div>
+            {finding && isNoDocument(finding) && (
+              <div className="space-y-2 rounded-md border border-dashed border-border p-3 text-sm">
+                <p>
+                  <strong>No document has been uploaded for this requirement.</strong> Nothing was read, so there is no
+                  result to review.
+                </p>
+                <NotAssessedAction
+                  hasDocument={hasDocument}
+                  assessing={assessing}
+                  onUpload={onUpload}
+                  onAssess={onAssess}
+                />
+              </div>
+            )}
             {finding ? (
               <FindingCard
                 finding={finding}

@@ -10,6 +10,7 @@ import { useAssessments } from "@/components/AssessmentProvider";
 import { DecisionHistory } from "@/components/DecisionHistory";
 import { GlanceBadge } from "@/components/GlanceBadge";
 import { DocumentTags } from "@/components/DocumentTags";
+import { NoDocumentBadge, isNoDocument } from "@/components/NoDocumentBadge";
 import { NotAssessedAction } from "@/components/NotAssessedAction";
 import { HowItWasMade } from "@/components/HowItWasMade";
 import { MetricCard } from "@/components/MetricCard";
@@ -154,8 +155,10 @@ export default function EngagementPage({
   const withDocument = template.requirements.filter((r) => hasDocumentFor(r.code)).length;
   const withoutDocument = template.requirements.length - withDocument;
   const mine = overviewQ.data?.engagements.find((e) => e.engagement_id === engagementId);
-  // Required documents that are not there: no evidence was found, or nothing has been assessed yet.
-  const documentsMissing = mine ? mine.counts.missing + mine.counts.not_assessed : null;
+  // Required documents that are not there: never uploaded, never assessed, or read without finding evidence.
+  const notUploaded = mine ? mine.counts.no_document + mine.counts.not_assessed : 0;
+  const notFound = mine ? mine.counts.missing : 0;
+  const documentsMissing = mine ? notUploaded + notFound : null;
   const reviewing = template.requirements.find((r) => r.code === reviewCode) ?? null;
   const reviewingFinding = findings.find((f) => f.requirement_code === reviewCode) ?? null;
   const citedBy = (documentId: string) =>
@@ -259,7 +262,7 @@ export default function EngagementPage({
             icon={FileText}
             label="Documents missing"
             value={documentsMissing ?? "—"}
-            meta="Requirements with no document showing evidence"
+            meta={`${notUploaded} not uploaded, ${notFound} not found in the documents`}
           />
           <MetricCard
             icon={Upload}
@@ -319,11 +322,14 @@ export default function EngagementPage({
                               </span>
                               <span className="block text-xs text-muted-foreground">{r.description}</span>
                             </span>
-                            {f && <StatusBadge status={f.ai_status} short />}
-                            {f?.human_status && <StatusBadge status={f.human_status} prefix="Decision" short />}
+                            {f && isNoDocument(f) && !hasDocumentFor(r.code) && <NoDocumentBadge />}
+                            {f && !isNoDocument(f) && <StatusBadge status={f.ai_status} short />}
+                            {f?.human_status && !isNoDocument(f) && (
+                              <StatusBadge status={f.human_status} prefix="Decision" short />
+                            )}
                             {f && <ChevronRight className="size-4 text-muted-foreground" aria-hidden />}
                           </button>
-                          {!f && (
+                          {(!f || isNoDocument(f)) && (
                             <NotAssessedAction
                               hasDocument={hasDocumentFor(r.code)}
                               assessing={assessing}
@@ -513,6 +519,10 @@ export default function EngagementPage({
         reasons={reasonsQ.data ?? []}
         onChanged={onFindingChanged}
         onClose={() => setReviewCode(null)}
+        hasDocument={reviewing ? hasDocumentFor(reviewing.code) : false}
+        assessing={assessing}
+        onUpload={() => startUpload(reviewing?.code)}
+        onAssess={onAssess}
       />
     </>
   );

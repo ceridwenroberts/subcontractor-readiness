@@ -14,7 +14,7 @@ A subcontractor readiness tool. A PM picks a template (for example VVS), uploads
 - Code checks may only weaken a status, never strengthen it.
 - `found` and `partial` need at least one quote that verifies against the stored page text. Otherwise the status becomes `unclear`. This rule lives in `backend/app/domain/`, not in a prompt.
 - Requirements come only from `templates/*.json`. Never generate or hardcode them.
-- Show the provider label (Simulated, Local model, or Claude) on every finding. The demo-build banner must say the requirements are a placeholder while a template has `reviewedBy: null` (changed 2026-11-18, see `docs/decisions.md`).
+- Show the provider label (Simulated, Local model, or Claude) on every finding. A requirement with no uploaded document gets the label "No model call", because no model was asked (added 2026-11-18, see `docs/decisions.md`). The demo-build banner must say the requirements are a placeholder while a template has `reviewedBy: null` (changed 2026-11-18, see `docs/decisions.md`).
 - `DecisionLog` is append-only.
 
 ### Security

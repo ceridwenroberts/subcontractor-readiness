@@ -59,6 +59,7 @@ class FindingView(BaseModel):
     open_request_reason: str | None
     provider_label: str
     model: str
+    no_document: bool = False  # no document was uploaded, so no model was asked
 
 
 def _plural(n: int, word: str) -> str:
@@ -79,7 +80,7 @@ def build_summary(
         items: list[SummaryItem] = []
         for f in findings:
             effective = f.human_status or f.ai_status
-            if effective != status:
+            if f.no_document or effective != status:
                 continue
             notes: list[str] = []
             if f.valid_until and status in ("found", "partial", "expired"):
@@ -101,7 +102,32 @@ def build_summary(
                 SummaryGroup(status=status, label=STATUS_LABEL[status], items=items)
             )
 
-    not_reviewed = sum(1 for f in findings if f.human_status is None)
+    # A requirement with no document is not a result about documents: list it on its own.
+    missing_docs = [f for f in findings if f.no_document]
+    if missing_docs:
+        groups.append(
+            SummaryGroup(
+                status="no_document",
+                label="No document uploaded",
+                items=[
+                    SummaryItem(
+                        code=f.code,
+                        title=f.title,
+                        reviewed_by_person=f.human_status is not None,
+                        note=(
+                            f"a new upload was requested ({f.open_request_reason.lower()})"
+                            if f.open_request_reason
+                            else ""
+                        ),
+                    )
+                    for f in missing_docs
+                ],
+            )
+        )
+
+    not_reviewed = sum(
+        1 for f in findings if f.human_status is None and not f.no_document
+    )
     intro = (
         f"Based on {_plural(document_count, 'uploaded document')} and "
         f"{_plural(len(findings), 'requirement')} in the {template_name} template"
@@ -114,7 +140,11 @@ def build_summary(
     if not findings:
         not_reviewed_text = "No assessment has been run yet."
     elif not_reviewed == 0:
-        not_reviewed_text = "A person has recorded a decision on every requirement."
+        not_reviewed_text = (
+            "A person has recorded a decision on every result that has a document."
+            if missing_docs
+            else "A person has recorded a decision on every requirement."
+        )
     else:
         not_reviewed_text = (
             f"{_plural(not_reviewed, 'requirement')} not yet reviewed by a person. "

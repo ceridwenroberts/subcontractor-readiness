@@ -7,6 +7,7 @@ import { use, useEffect, useState } from "react";
 
 import { ErrorBox } from "@/components/Banners";
 import { PageBody, PageHeader } from "@/components/PageHeader";
+import { NoDocumentBadge } from "@/components/NoDocumentBadge";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -93,7 +94,7 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
         <Card key={g.status}>
           <CardHeader>
             <h2 className="flex items-center gap-2 text-sm font-medium">
-              <StatusBadge status={g.status} />
+              {g.status === "no_document" ? <NoDocumentBadge /> : <StatusBadge status={g.status} />}
               <span className="text-sm font-normal text-muted-foreground">{g.items.length}</span>
             </h2>
           </CardHeader>

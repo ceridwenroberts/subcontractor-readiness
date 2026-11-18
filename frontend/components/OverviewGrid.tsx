@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, FilePlus2 } from "lucide-react";
 import Link from "next/link";
 
 import { AssessRowButton } from "@/components/AssessRowButton";
@@ -64,16 +64,22 @@ export function OverviewGrid({ overview }: { overview: Overview }) {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <span tabIndex={0} className="inline-flex items-center gap-0.5">
-                      {r.status ? <StatusIcon status={r.status} /> : <span className="text-muted-foreground">—</span>}
+                      {r.no_document ? (
+                        <FilePlus2 className="size-3.5 text-muted-foreground" aria-hidden />
+                      ) : r.status ? (
+                        <StatusIcon status={r.status} />
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                       {r.decided && <Check className="size-3" aria-hidden />}
                       <span className="sr-only">
-                        {r.status ? STATUS_SHORT[r.status] : "Not assessed"}
+                        {r.no_document ? "No document" : r.status ? STATUS_SHORT[r.status] : "Not assessed"}
                         {r.decided ? ", decided by a person" : ""}
                       </span>
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {r.code}: {r.status ? STATUS_LABEL[r.status] : "No result yet"}
+                    {r.code}: {r.no_document ? "No document uploaded" : r.status ? STATUS_LABEL[r.status] : "No result yet"}
                     {r.decided ? ` · decided by ${r.decided_by ?? "a person"}` : r.status ? " · awaiting a decision" : ""}
                     {r.open_request ? " · new upload requested" : ""}
                   </TooltipContent>
