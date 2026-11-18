@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { ErrorBox, PlaceholderBanner } from "@/components/Banners";
+import { ErrorBox } from "@/components/Banners";
 import { TextField } from "@/components/FormField";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -107,9 +107,6 @@ export function NewProjectDialog({ open, onOpenChange }: { open: boolean; onOpen
               </TextField>
             )}
           </form.Field>
-          <form.Subscribe selector={(s) => s.values.templateId}>
-            {(id) => (templates.find((t) => t.id === (id || templates[0]?.id))?.placeholder ? <PlaceholderBanner /> : null)}
-          </form.Subscribe>
           <details className="text-sm">
             <summary className="select-none text-xs text-muted-foreground hover:text-foreground">
               About the deletion date

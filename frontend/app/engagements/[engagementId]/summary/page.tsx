@@ -2,6 +2,7 @@
 
 import { ChevronLeft } from "lucide-react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import { use, useEffect, useState } from "react";
 
 import { ErrorBox } from "@/components/Banners";
@@ -9,7 +10,8 @@ import { PageBody, PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getSummary } from "@/lib/api";
+import { getEngagement, getProject, getSummary } from "@/lib/api";
+import { queryKeys } from "@/lib/queries";
 import { SUMMARY_TEXT } from "@/lib/labels";
 import type { Summary } from "@/lib/schemas";
 
@@ -19,6 +21,12 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
   const { engagementId } = use(params);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const engagementQ = useQuery({ queryKey: queryKeys.engagement(engagementId), queryFn: () => getEngagement(engagementId) });
+  const projectQ = useQuery({
+    queryKey: queryKeys.project(engagementQ.data?.project_id ?? ""),
+    queryFn: () => getProject(engagementQ.data?.project_id ?? ""),
+    enabled: !!engagementQ.data,
+  });
 
   useEffect(() => {
     let ignore = false;
@@ -53,9 +61,22 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
       </>
     );
 
+  // "Local model (qwen2.5:7b)": the provider label always shows (product rule), the model name is Model details.
+  const parsed = /^(.*?) \((.*)\)$/.exec(summary.assessed_by);
+  const assessedLabel = parsed ? parsed[1] : summary.assessed_by;
+  const assessedModel = parsed ? parsed[2] : null;
+
   return (
     <>
-      <PageHeader title={summary.title} subtitle={`${SUMMARY_TEXT.assessedBy}: ${summary.assessed_by}`} />
+      <PageHeader
+        title={summary.title}
+        subtitle={
+          <>
+            {SUMMARY_TEXT.assessedBy}: {assessedLabel}
+            {assessedModel && <span className="dev-only dev-ink"> ({assessedModel})</span>}
+          </>
+        }
+      />
       <PageBody>
       <p>
         <Link
@@ -63,7 +84,7 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
           className="inline-flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
         >
           <ChevronLeft className="size-3.5" aria-hidden />
-          {SUMMARY_TEXT.back}
+          {projectQ.data ? `Back to ${projectQ.data.name} findings` : SUMMARY_TEXT.back}
         </Link>
       </p>
       <p className="text-sm">{summary.intro}</p>
@@ -80,7 +101,12 @@ export default function SummaryPage({ params }: { params: Promise<{ engagementId
           <ul className="divide-y divide-border text-sm">
             {g.items.map((i) => (
               <li key={i.code} className="py-2 first:pt-0 last:pb-0">
-                <span className="font-mono text-xs text-muted-foreground">{i.code}</span> {i.title}
+                <Link
+                  href={`/engagements/${engagementId}?review=${encodeURIComponent(i.code)}`}
+                  className="underline-offset-2 hover:underline"
+                >
+                  <span className="font-mono text-xs text-muted-foreground">{i.code}</span> {i.title}
+                </Link>
                 <span className="block text-xs text-muted-foreground">
                   {i.reviewed_by_person ? SUMMARY_TEXT.reviewed : SUMMARY_TEXT.notReviewed}
                   {i.note ? ` · ${i.note}` : ""}

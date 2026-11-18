@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 
 import { AddSubcontractorDialog } from "@/components/AddSubcontractorDialog";
-import { ErrorBox, OverdueBanner, PlaceholderBanner } from "@/components/Banners";
+import { ErrorBox, OverdueBanner } from "@/components/Banners";
 import { cn } from "@/components/cn";
 import { AssessRowButton } from "@/components/AssessRowButton";
 import { CountPill } from "@/components/CountPill";
@@ -103,7 +103,6 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
           <span className="text-foreground">{project.name}</span>
         </nav>
 
-        {template.placeholder && <PlaceholderBanner />}
         {project.delete_overdue && <OverdueBanner date={project.delete_after} />}
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Project summary">

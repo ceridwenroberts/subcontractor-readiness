@@ -5,7 +5,7 @@ import { ChevronRight, FileText, Hourglass, Play, Upload } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 
-import { ErrorBox, OverdueBanner, PlaceholderBanner } from "@/components/Banners";
+import { ErrorBox, OverdueBanner } from "@/components/Banners";
 import { useAssessments } from "@/components/AssessmentProvider";
 import { DecisionHistory } from "@/components/DecisionHistory";
 import { GlanceBadge } from "@/components/GlanceBadge";
@@ -46,8 +46,15 @@ const initials = (name: string) =>
     .map((p) => p[0]?.toUpperCase())
     .join("");
 
-export default function EngagementPage({ params }: { params: Promise<{ engagementId: string }> }) {
+export default function EngagementPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ engagementId: string }>;
+  searchParams: Promise<{ review?: string }>;
+}) {
   const { engagementId } = use(params);
+  const { review: reviewParam } = use(searchParams);
   const queryClient = useQueryClient();
   const { user } = useSession();
 
@@ -82,7 +89,8 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   const progress = run?.progress ?? null;
   const assessError = errors[engagementId] ?? null;
   const [uploading, setUploading] = useState(false);
-  const [reviewCode, setReviewCode] = useState<string | null>(null);
+  // A link from the summary page opens that requirement's panel straight away.
+  const [reviewCode, setReviewCode] = useState<string | null>(reviewParam ?? null);
 
   const loadError = engagementQ.error ?? projectQ.error ?? templateQ.error ?? documentsQ.error ?? findingsQ.error;
 
@@ -155,7 +163,6 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
           <span className="text-foreground">{engagement.subcontractor_name}</span>
         </nav>
 
-        {template.placeholder && <PlaceholderBanner />}
         {project?.delete_overdue && <OverdueBanner date={project.delete_after} />}
 
         <section className="flex flex-wrap items-center gap-3 rounded-xl border border-border p-4">
