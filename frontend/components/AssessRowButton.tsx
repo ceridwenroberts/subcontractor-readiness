@@ -1,14 +1,10 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
 import { Play, Upload } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
 
+import { useAssessments } from "@/components/AssessmentProvider";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { assessEngagementStream, type AssessProgress } from "@/lib/api";
-import { queryKeys } from "@/lib/queries";
 
 /**
  * Shown in place of "Not assessed yet". With documents it starts the assessment right here and
@@ -19,14 +15,17 @@ export function AssessRowButton({
   engagementId,
   projectId,
   documentCount,
+  name,
 }: {
   engagementId: string;
   projectId: string;
   documentCount: number | undefined;
+  name: string;
 }) {
-  const queryClient = useQueryClient();
-  const [progress, setProgress] = useState<AssessProgress | null>(null);
-  const [busy, setBusy] = useState(false);
+  const { runs, start } = useAssessments();
+  const run = runs[engagementId];
+  const busy = !!run;
+  const progress = run?.progress ?? null;
 
   if (documentCount === 0) {
     return (
@@ -41,30 +40,12 @@ export function AssessRowButton({
     );
   }
 
-  async function run() {
-    if (busy) return;
-    setBusy(true);
-    try {
-      const result = await assessEngagementStream(engagementId, setProgress);
-      queryClient.setQueryData(queryKeys.findings(engagementId), result);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.overview(projectId) });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.openRequests });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.expiring });
-      toast(`Assessment finished: ${result.length} requirements checked.`);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "The assessment could not be completed.");
-    } finally {
-      setBusy(false);
-      setProgress(null);
-    }
-  }
-
   return (
     <Button
       size="sm"
       onClick={(e) => {
         e.stopPropagation();
-        void run();
+        start({ engagementId, projectId, name });
       }}
       loading={busy}
       loadingText={progress && progress.index > 0 ? `Checking ${progress.index} of ${progress.total}…` : "Starting…"}

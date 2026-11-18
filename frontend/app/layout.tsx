@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/AppShell";
+import { AssessmentProvider } from "@/components/AssessmentProvider";
 import { DevDetailsProvider } from "@/components/DevDetails";
 import { QueryProvider } from "@/components/QueryProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -20,10 +21,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <ThemeProvider>
           <TooltipProvider delayDuration={150}>
             <QueryProvider>
-              <DevDetailsProvider>
-                <AppShell>{children}</AppShell>
-                <Toaster />
-              </DevDetailsProvider>
+              <AssessmentProvider>
+                <DevDetailsProvider>
+                  <AppShell>{children}</AppShell>
+                  <Toaster />
+                </DevDetailsProvider>
+              </AssessmentProvider>
             </QueryProvider>
           </TooltipProvider>
         </ThemeProvider>

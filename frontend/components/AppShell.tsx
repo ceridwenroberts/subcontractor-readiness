@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as React from "react";
 
+import { AssessmentStatus } from "@/components/AssessmentStatus";
 import { cn } from "@/components/cn";
 import { DemoBanner } from "@/components/DemoBanner";
 import { DevToggle } from "@/components/DevDetails";
@@ -122,6 +123,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </nav>
 
           <div className="mt-auto space-y-2">
+            <AssessmentStatus />
             <div className="space-y-1.5">
               <DevToggle />
               <ThemeToggle />

@@ -201,7 +201,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                             <Td>{docs === undefined ? <span className="text-muted-foreground">…</span> : docs}</Td>
                             <Td>
                               {glanceOf.get(e.id)?.glance === "not_assessed" ? (
-                                <AssessRowButton engagementId={e.id} projectId={projectId} documentCount={docs} />
+                                <AssessRowButton engagementId={e.id} projectId={projectId} documentCount={docs} name={e.subcontractor_name} />
                               ) : glanceOf.get(e.id) ? (
                                 <GlanceBadge glance={glanceOf.get(e.id)!.glance} />
                               ) : (

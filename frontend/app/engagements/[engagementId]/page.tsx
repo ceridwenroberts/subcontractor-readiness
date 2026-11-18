@@ -4,9 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, FileText, Hourglass, Play, Upload } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
-import { toast } from "sonner";
 
 import { ErrorBox, OverdueBanner, PlaceholderBanner } from "@/components/Banners";
+import { useAssessments } from "@/components/AssessmentProvider";
 import { DecisionHistory } from "@/components/DecisionHistory";
 import { GlanceBadge } from "@/components/GlanceBadge";
 import { HowItWasMade } from "@/components/HowItWasMade";
@@ -24,8 +24,6 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  assessEngagementStream,
-  type AssessProgress,
   getEngagement,
   getProject,
   getTemplate,
@@ -78,9 +76,11 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   const documents = documentsQ.data ?? [];
   const findings = findingsQ.data ?? [];
 
-  const [assessing, setAssessing] = useState(false);
-  const [progress, setProgress] = useState<AssessProgress | null>(null);
-  const [assessError, setAssessError] = useState<string | null>(null);
+  const { runs, errors, start } = useAssessments();
+  const run = runs[engagementId];
+  const assessing = !!run;
+  const progress = run?.progress ?? null;
+  const assessError = errors[engagementId] ?? null;
   const [uploading, setUploading] = useState(false);
   const [reviewCode, setReviewCode] = useState<string | null>(null);
 
@@ -91,23 +91,11 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
     const current = queryClient.getQueryData<unknown[]>(queryKeys.documents(engagementId)) ?? documents;
     if (assessing || current.length === 0) return;
     setUploading(false);
-    setAssessing(true);
-    setAssessError(null);
-    setProgress(null);
-    try {
-      const result = await assessEngagementStream(engagementId, setProgress);
-      queryClient.setQueryData(queryKeys.findings(engagementId), result);
-      void queryClient.invalidateQueries({ queryKey: queryKeys.openRequests });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.expiring });
-      void queryClient.invalidateQueries({ queryKey: ["decisions"] });
-      void queryClient.invalidateQueries({ queryKey: queryKeys.overview(project?.id ?? "") });
-      toast(`Assessment finished: ${result.length} requirements checked.`);
-    } catch (err) {
-      setAssessError(errorText(err));
-    } finally {
-      setAssessing(false);
-      setProgress(null);
-    }
+    start({
+      engagementId,
+      projectId: project?.id ?? "",
+      name: engagementQ.data?.subcontractor_name ?? "this subcontractor",
+    });
   }
 
   function onFindingChanged(updated: Finding) {
