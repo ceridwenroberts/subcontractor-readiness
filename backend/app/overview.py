@@ -16,9 +16,9 @@ from app.domain.status import Status
 Glance = Literal[
     "not_assessed",  # no documents, or no findings yet
     "new_upload_requested",  # a request for a new upload is open
-    "awaiting_decision",  # a mandatory requirement has no person's decision yet
+    "awaiting_decision",  # a result with something to decide has no person's decision yet
     "documentation_complete",  # every mandatory requirement decided as "found"
-    "gaps_recorded",  # decided, but a mandatory requirement is not "found"
+    "gaps_recorded",  # nothing left to decide, but a mandatory requirement is not "found"
 ]
 
 
@@ -47,13 +47,21 @@ def effective_status(
     return status
 
 
+def needs_decision(s: ReqState) -> bool:
+    """A result that shows something (evidence, part of it, an unclear case or an expired date)
+    and has no person's decision yet."""
+    return s.status not in (None, "missing") and not s.decided
+
+
 def glance_for(states: list[ReqState], has_documents: bool) -> Glance:
     if not has_documents or all(s.status is None for s in states):
         return "not_assessed"
     if any(s.open_request for s in states):
         return "new_upload_requested"
     mandatory = [s for s in states if s.mandatory]
-    if any(not s.decided for s in mandatory):
+    # A requirement with no evidence ("missing", or never assessed) has nothing to decide: it
+    # shows as a missing document and the way forward is a new upload, not a decision.
+    if any(needs_decision(s) for s in mandatory):
         return "awaiting_decision"
     if all(s.status == "found" for s in mandatory):
         return "documentation_complete"

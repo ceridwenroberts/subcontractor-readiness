@@ -64,10 +64,10 @@ Header: subcontractor name, template name, contact email line ("Contact (fiction
 - After a first assessment: "Assessing again adds new findings. Earlier findings and your decisions on them are kept."
 
 ### 3. Required documents and results
-- An explanation at the top: the documents are pre-selected from the template, can't be edited here, and each row opens to what it means. Before an assessment: "Nothing has been assessed yet, so every row shows "Not assessed yet"."
-- **One table with every requirement of the template, always visible.** Columns: Requirement (code, title, optional / has an expiry date), Status (the status badge, or "Not assessed yet"; plus "Your decision" and "New upload requested" when they apply), Documents (documents cited by verified quotes, linked to the viewer; hidden on narrow screens), Date in documents (hidden on narrow screens).
+- An explanation at the top: the documents are pre-selected from the template, can't be edited here, and each row opens to what it means. Before an assessment each row shows an Upload documents button (nothing uploaded yet) or an Assess button (documents uploaded), never a "not assessed" label.
+- **One table with every requirement of the template, always visible.** Columns: Requirement (code, title, optional / has an expiry date), Status (the status badge, or, with no result, an Upload documents button (nothing uploaded yet) or an Assess button (documents uploaded); plus "Your decision" and "New upload requested" when they apply), Documents (documents cited by verified quotes, linked to the viewer; hidden on narrow screens), Date in documents (hidden on narrow screens).
 - Status filter chips with counts (counts are allowed, percentages are not) and a "Sort by status" toggle.
-- **A row opens** to the description, the words the check looks for, and the finding card (or "Not assessed yet").
+- **A row opens** to the description, the words the check looks for, and the finding card (or "No result yet").
 - **Other uploaded documents:** documents that no requirement cites, so every uploaded file appears.
 - Above the table, when findings exist: "View summary" link and the "About these results" note (`dev-only`) with the Simulated notice always visible.
 

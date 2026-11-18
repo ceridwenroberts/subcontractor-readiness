@@ -39,7 +39,7 @@ export default function Home() {
             icon={Hourglass}
             label="Waiting for your decision"
             value={num(totals.awaiting)}
-            meta="Requirements with no decision yet"
+            meta="Results with no decision yet"
             href="/projects"
           />
           <MetricCard

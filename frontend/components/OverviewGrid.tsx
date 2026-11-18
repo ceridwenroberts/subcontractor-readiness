@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import Link from "next/link";
 
+import { AssessRowButton } from "@/components/AssessRowButton";
 import { GlanceBadge } from "@/components/GlanceBadge";
 import { StatusIcon } from "@/components/StatusBadge";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
@@ -46,7 +47,16 @@ export function OverviewGrid({ overview }: { overview: Overview }) {
                 {e.subcontractor_name}
               </Link>
               <div className="mt-1">
-                <GlanceBadge glance={e.glance} />
+                {e.glance === "not_assessed" ? (
+                  <AssessRowButton
+                    engagementId={e.engagement_id}
+                    projectId={overview.project_id}
+                    documentCount={e.document_count}
+                    name={e.subcontractor_name}
+                  />
+                ) : (
+                  <GlanceBadge glance={e.glance} />
+                )}
               </div>
             </Td>
             {e.requirements.map((r) => (
@@ -63,7 +73,7 @@ export function OverviewGrid({ overview }: { overview: Overview }) {
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    {r.code}: {r.status ? STATUS_LABEL[r.status] : "Not assessed yet"}
+                    {r.code}: {r.status ? STATUS_LABEL[r.status] : "No result yet"}
                     {r.decided ? ` · decided by ${r.decided_by ?? "a person"}` : r.status ? " · awaiting a decision" : ""}
                     {r.open_request ? " · new upload requested" : ""}
                   </TooltipContent>

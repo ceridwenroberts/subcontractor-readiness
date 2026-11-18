@@ -15,7 +15,14 @@ from sqlalchemy import select
 from app.db.models import DecisionLog, Finding, Project, UploadRequest
 from app.db.session import Db
 from app.domain.status import Status
-from app.overview import Glance, ReqState, count_statuses, effective_status, glance_for
+from app.overview import (
+    Glance,
+    ReqState,
+    count_statuses,
+    effective_status,
+    glance_for,
+    needs_decision,
+)
 from app.routes.issues import get_today
 
 router = APIRouter()
@@ -37,7 +44,9 @@ class EngagementOverview(BaseModel):
     document_count: int
     glance: Glance
     counts: dict[str, int]  # per status, plus "not_assessed". No total, no ratio.
-    awaiting_decision: int  # requirements with a finding but no person's decision
+    awaiting_decision: (
+        int  # results with something to decide and no decision yet (not missing)
+    )
     open_requests: int
     requirements: list[RequirementCell]
 
@@ -123,9 +132,7 @@ def project_overview(
                 document_count=len(e.documents),
                 glance=glance_for(states, has_documents=bool(e.documents)),
                 counts=count_statuses(states),
-                awaiting_decision=sum(
-                    1 for s in states if s.status is not None and not s.decided
-                ),
+                awaiting_decision=sum(1 for s in states if needs_decision(s)),
                 open_requests=sum(1 for s in states if s.open_request),
                 requirements=cells,
             )

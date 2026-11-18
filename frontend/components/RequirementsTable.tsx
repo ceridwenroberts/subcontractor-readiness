@@ -14,6 +14,7 @@ import { ArrowDownUp, ChevronRight, FileText } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { NotAssessedAction } from "@/components/NotAssessedAction";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ScanTag, isScanWarning } from "@/components/UploadDropzone";
 import { Badge } from "@/components/ui/badge";
@@ -51,7 +52,7 @@ function citedDocuments(f: Finding | null): Cited[] {
 
 /**
  * Every requirement in the template, always visible, with its result. Before an assessment each
- * shows "Not assessed yet". Each row opens to the description, what the check looks for, and the
+ * has an Upload or Assess button instead of a result. Each row opens to the description, what the check looks for, and the
  * finding with its quotes and decision. Documents that no requirement cites are listed below.
  */
 export function RequirementsTable({
@@ -59,12 +60,19 @@ export function RequirementsTable({
   findings,
   documents,
   onReview,
+  onUpload,
+  onAssess,
+  assessing,
 }: {
   template: TemplateDetail;
   findings: Finding[];
   documents: DocumentInfo[];
   /** Open the review panel for a requirement (its finding and decision). */
   onReview: (code: string) => void;
+  /** A requirement with no result: upload a document (none yet) or assess the ones that are there. */
+  onUpload: () => void;
+  onAssess: () => void;
+  assessing: boolean;
 }) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [filters, setFilters] = useState<ColumnFiltersState>([]);
@@ -119,7 +127,12 @@ export function RequirementsTable({
           return (
             <span className="flex flex-wrap items-center gap-1">
               {status === NONE ? (
-                <Badge variant="dashed">Not assessed yet</Badge>
+                <NotAssessedAction
+                  documentCount={documents.length}
+                  assessing={assessing}
+                  onUpload={onUpload}
+                  onAssess={onAssess}
+                />
               ) : (
                 <StatusBadge status={status} short />
               )}
@@ -165,7 +178,7 @@ export function RequirementsTable({
         ),
       },
     ],
-    [onReview],
+    [onReview, documents.length, assessing, onUpload, onAssess],
   );
 
   // TanStack Table returns functions React Compiler cannot memoize; this component opts out safely.
@@ -197,7 +210,7 @@ export function RequirementsTable({
   const chips: { value: string; label: string }[] = [
     { value: "", label: "All" },
     ...STATUSES.filter((s) => counts[s]).map((s) => ({ value: s, label: STATUS_SHORT[s] })),
-    ...(counts[NONE] ? [{ value: NONE, label: "Not assessed yet" }] : []),
+    ...(counts[NONE] ? [{ value: NONE, label: documents.length === 0 ? "Needs a document" : "Ready to assess" }] : []),
   ];
 
   return (
@@ -209,7 +222,11 @@ export function RequirementsTable({
           here. Open a row to see what it means, what the check looks for, and the result.
         </p>
         {!assessed && (
-          <p className="text-muted-foreground">Nothing has been assessed yet, so every row shows “Not assessed yet”.</p>
+          <p className="text-muted-foreground">
+            {documents.length === 0
+              ? "Upload documents first. Each row then gets a result when you assess them."
+              : "Choose Assess to get a result for each row."}
+          </p>
         )}
       </div>
 

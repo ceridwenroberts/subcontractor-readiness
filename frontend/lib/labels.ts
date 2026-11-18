@@ -46,11 +46,11 @@ export const GLANCE_LABEL: Record<Glance, string> = {
 export const GLANCE_HELP: Record<Glance, string> = {
   not_assessed: "No documents have been assessed yet.",
   new_upload_requested: "A request for a new upload is open for at least one requirement.",
-  awaiting_decision: "At least one mandatory requirement has no decision from a person yet.",
+  awaiting_decision: "At least one result that shows something has no decision from a person yet.",
   documentation_complete:
     "A person has decided that the documents show evidence for every mandatory requirement, and no new upload is requested. This describes the documents, not the company.",
   gaps_recorded:
-    "A person has decided every mandatory requirement, but at least one is not shown as evidence found.",
+    "Nothing is left to decide, but at least one mandatory requirement is not shown as evidence found: its document is missing, or a person decided otherwise.",
 };
 
 export const PLACEHOLDER_BANNER =

@@ -8,7 +8,14 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.db.models import Document, Finding
 from app.main import create_app
-from app.overview import Glance, ReqState, count_statuses, effective_status, glance_for
+from app.overview import (
+    Glance,
+    ReqState,
+    count_statuses,
+    effective_status,
+    glance_for,
+    needs_decision,
+)
 from app.routes.issues import get_today
 
 TODAY = date(2026, 11, 17)
@@ -61,6 +68,15 @@ def test_glance_priority_open_request_then_awaiting_then_complete_or_gaps() -> N
     assert glance_for([state(), state("B")], True) == "documentation_complete"
     assert glance_for([state(), state("B", status="missing")], True) == "gaps_recorded"
     assert glance_for([state(), state("B", status="partial")], True) == "gaps_recorded"
+
+
+def test_a_missing_requirement_has_nothing_to_decide() -> None:
+    # Everything else is decided as found, one mandatory requirement has no evidence.
+    states = [state(), state("B", status="missing", decided=False)]
+    assert glance_for(states, True) == "gaps_recorded"
+    assert needs_decision(states[1]) is False
+    assert needs_decision(state("C", status="unclear", decided=False)) is True
+    assert needs_decision(state("D", status=None, decided=False)) is False
 
 
 def test_optional_requirements_do_not_block_documentation_complete() -> None:
@@ -197,6 +213,23 @@ def test_assessed_but_undecided_is_awaiting_decision(tmp_path: Path) -> None:
     assert e["glance"] == "awaiting_decision"
     assert e["awaiting_decision"] == 7
     assert e["counts"]["found"] == 7
+
+
+def test_two_documents_with_evidence_and_five_missing_waits_on_two_decisions(
+    tmp_path: Path,
+) -> None:
+    client = make_client(tmp_path)
+    p = make_project(client)
+    eng = add_engagement(client, p)
+    add_document(client, eng)
+    add_finding(client, eng, "VVS-01")
+    add_finding(client, eng, "VVS-02")
+    for code in ["VVS-03", "VVS-04", "VVS-05", "VVS-06", "VVS-07"]:
+        add_finding(client, eng, code, ai_status="missing")
+    [e] = overview(client, p)
+    assert e["awaiting_decision"] == 2
+    assert e["counts"]["found"] == 2 and e["counts"]["missing"] == 5
+    assert e["glance"] == "awaiting_decision"
 
 
 def test_every_mandatory_requirement_decided_found_is_documentation_complete(

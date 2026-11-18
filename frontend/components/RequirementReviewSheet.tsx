@@ -58,7 +58,7 @@ export function RequirementReviewSheet({
               />
             ) : (
               <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
-                Not assessed yet. Upload documents and choose “Assess documents” to see a result here.
+                No result yet. Upload documents and choose “Assess documents” to see one here.
               </p>
             )}
           </>

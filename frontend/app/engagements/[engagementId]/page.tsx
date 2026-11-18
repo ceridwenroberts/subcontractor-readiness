@@ -9,6 +9,7 @@ import { ErrorBox, OverdueBanner } from "@/components/Banners";
 import { useAssessments } from "@/components/AssessmentProvider";
 import { DecisionHistory } from "@/components/DecisionHistory";
 import { GlanceBadge } from "@/components/GlanceBadge";
+import { NotAssessedAction } from "@/components/NotAssessedAction";
 import { HowItWasMade } from "@/components/HowItWasMade";
 import { MetricCard } from "@/components/MetricCard";
 import { PageBody, PageHeader } from "@/components/PageHeader";
@@ -16,7 +17,6 @@ import { RequirementReviewSheet } from "@/components/RequirementReviewSheet";
 import { RequirementsTable } from "@/components/RequirementsTable";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ScanTag, UploadDropzone, isScanWarning } from "@/components/UploadDropzone";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -142,7 +142,8 @@ export default function EngagementPage({
 
   const hasDocuments = documents.length > 0;
   const mine = overviewQ.data?.engagements.find((e) => e.engagement_id === engagementId);
-  const scansNotRead = documents.filter((d) => d.warnings.some(isScanWarning)).length;
+  // Required documents that are not there: no evidence was found, or nothing has been assessed yet.
+  const documentsMissing = mine ? mine.counts.missing + mine.counts.not_assessed : null;
   const reviewing = template.requirements.find((r) => r.code === reviewCode) ?? null;
   const reviewingFinding = findings.find((f) => f.requirement_code === reviewCode) ?? null;
   const citedBy = (documentId: string) =>
@@ -177,7 +178,7 @@ export default function EngagementPage({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="truncate text-base font-semibold">{engagement.subcontractor_name}</h2>
-              {mine && <GlanceBadge glance={mine.glance} />}
+              {mine && mine.glance !== "not_assessed" && <GlanceBadge glance={mine.glance} />}
             </div>
             <p className="text-xs text-muted-foreground">
               Template: {template.name} ·{" "}
@@ -234,19 +235,19 @@ export default function EngagementPage({
             icon={Hourglass}
             label="Waiting for your decision"
             value={mine ? mine.awaiting_decision : "—"}
-            meta="Requirements with no decision yet"
-          />
-          <MetricCard
-            icon={Upload}
-            label="New upload requested"
-            value={mine ? mine.open_requests : "—"}
-            meta="Waiting for the subcontractor"
+            meta="Results with no decision yet"
           />
           <MetricCard
             icon={FileText}
-            label="Scans not read"
-            value={scansNotRead}
-            meta={scansNotRead ? "Text in scans is not read yet" : "All uploaded files have readable text"}
+            label="Documents missing"
+            value={documentsMissing ?? "—"}
+            meta="Requirements with no document showing evidence"
+          />
+          <MetricCard
+            icon={Upload}
+            label="New uploads requested"
+            value={mine ? mine.open_requests : "—"}
+            meta="Waiting for the subcontractor"
           />
         </section>
 
@@ -286,11 +287,11 @@ export default function EngagementPage({
                     {template.requirements.map((r) => {
                       const f = byCode.get(r.code);
                       return (
-                        <li key={r.code}>
+                        <li key={r.code} className="flex flex-wrap items-center gap-x-3 gap-y-1 pr-4 transition-colors hover:bg-subtle">
                           <button
                             type="button"
                             onClick={() => setReviewCode(r.code)}
-                            className="flex w-full flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-left transition-colors hover:bg-subtle"
+                            className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1 py-2.5 pl-4 text-left"
                           >
                             <span className="min-w-0 flex-1">
                               <span className="block text-sm font-medium">
@@ -300,10 +301,18 @@ export default function EngagementPage({
                               </span>
                               <span className="block text-xs text-muted-foreground">{r.description}</span>
                             </span>
-                            {f ? <StatusBadge status={f.ai_status} /> : <Badge variant="dashed">Not assessed yet</Badge>}
-                            {f?.human_status && <StatusBadge status={f.human_status} prefix="Your decision" />}
-                            <ChevronRight className="size-4 text-muted-foreground" aria-hidden />
+                            {f && <StatusBadge status={f.ai_status} short />}
+                            {f?.human_status && <StatusBadge status={f.human_status} prefix="Decision" short />}
+                            {f && <ChevronRight className="size-4 text-muted-foreground" aria-hidden />}
                           </button>
+                          {!f && (
+                            <NotAssessedAction
+                              documentCount={documents.length}
+                              assessing={assessing}
+                              onUpload={() => setUploading(true)}
+                              onAssess={onAssess}
+                            />
+                          )}
                         </li>
                       );
                     })}
@@ -420,6 +429,9 @@ export default function EngagementPage({
                   findings={findings}
                   documents={documents}
                   onReview={setReviewCode}
+                  onUpload={() => setUploading(true)}
+                  onAssess={onAssess}
+                  assessing={assessing}
                 />
               </CardContent>
             </Card>
