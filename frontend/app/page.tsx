@@ -24,7 +24,7 @@ export default function Home() {
   return (
     <>
       <PageHeader
-        title="Overview"
+        title="Dashboard"
         subtitle="What needs your attention today."
         actions={
           <Button onClick={() => setCreating(true)}>

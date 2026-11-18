@@ -20,7 +20,7 @@ const ShellContext = React.createContext<{ openMenu: () => void }>({ openMenu: (
 export const useShell = () => React.useContext(ShellContext);
 
 const NAV = [
-  { href: "/", label: "Home", icon: Home },
+  { href: "/", label: "Dashboard", icon: Home },
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/issues", label: "Issues", icon: AlertTriangle },
   { href: "/about", label: "About this demo", icon: Info },

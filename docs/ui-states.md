@@ -6,12 +6,12 @@ Conventions: "required" means the element must stay (restyle and move it freely)
 
 ## Layout (from the Figma)
 
-A left sidebar on wide screens (a slide-over menu behind a menu button on narrow ones): product name, **Workspace** navigation (Home, Projects, Issues with a count badge), then at the bottom the **Model details** switch, the theme button, the "Documentation status only…" line, and the simulated sign-in card. Every page has a title band (title, subtitle, page actions) above a content area. Creating a project or adding a subcontractor opens a dialog; uploading opens a dialog; reviewing a requirement opens a panel from the right.
+A left sidebar on wide screens (a slide-over menu behind a menu button on narrow ones): product name, **Workspace** navigation (Dashboard, Projects, Issues with a count badge), then at the bottom the **Model details** switch, the theme button, the "Documentation status only…" line, and the simulated sign-in card. Every page has a title band (title, subtitle, page actions) above a content area. Creating a project or adding a subcontractor opens a dialog; uploading opens a dialog; reviewing a requirement opens a panel from the right.
 
 ## Navigation map
 
 ```
-/                                  Home: overview numbers, projects needing attention
+/                                  Dashboard: overview numbers, projects needing attention
 /projects                          All projects, with search
 /issues                            Issues: expiring document dates, requests waiting for a new upload
 /projects/[projectId]              Project: numbers, tabs Subcontractors and Requirements
@@ -22,7 +22,7 @@ A left sidebar on wide screens (a slide-over menu behind a menu button on narrow
 
 Not in the Figma because the data does not exist: project codes, per-project document totals, trade, company number, phone, notification bell, global search, help card, "approved" document states, percentages. Do not invent them.
 
-## Home `/`
+## Dashboard `/`
 
 Sections in order: **Issues** (documents close to expiry, then needs a new upload), **New project** (form), **Your projects** (list).
 
