@@ -6,21 +6,21 @@ import { Button } from "@/components/ui/button";
 
 /**
  * What to show for a requirement that has no result yet. There is never a "not assessed" label:
- * with no document there is nothing to assess, so the action is to upload one, and with
- * documents the action is to assess them.
+ * a requirement with no document has nothing to assess, so the action is to upload one, and a
+ * requirement with a document (tagged for it, or untagged) is ready to assess.
  */
 export function NotAssessedAction({
-  documentCount,
+  hasDocument,
   assessing,
   onUpload,
   onAssess,
 }: {
-  documentCount: number;
+  hasDocument: boolean;
   assessing: boolean;
   onUpload: () => void;
   onAssess: () => void;
 }) {
-  if (documentCount === 0) {
+  if (!hasDocument) {
     return (
       <Button
         size="sm"

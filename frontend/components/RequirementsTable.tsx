@@ -12,7 +12,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowDownUp, ChevronRight, FileText } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { NotAssessedAction } from "@/components/NotAssessedAction";
 import { StatusBadge } from "@/components/StatusBadge";
@@ -90,6 +90,11 @@ export function RequirementsTable({
     });
   }, [template, findings]);
 
+  const hasDocumentFor = useCallback(
+    (code: string) => documents.some((d) => d.requirement_codes.length === 0 || d.requirement_codes.includes(code)),
+    [documents],
+  );
+
   const columns = useMemo<ColumnDef<Row>[]>(
     () => [
       {
@@ -128,7 +133,7 @@ export function RequirementsTable({
             <span className="flex flex-wrap items-center gap-1">
               {status === NONE ? (
                 <NotAssessedAction
-                  documentCount={documents.length}
+                  hasDocument={hasDocumentFor(row.original.requirement.code)}
                   assessing={assessing}
                   onUpload={() => onUpload(row.original.requirement.code)}
                   onAssess={onAssess}
@@ -178,7 +183,7 @@ export function RequirementsTable({
         ),
       },
     ],
-    [onReview, documents.length, assessing, onUpload, onAssess],
+    [onReview, hasDocumentFor, assessing, onUpload, onAssess],
   );
 
   // TanStack Table returns functions React Compiler cannot memoize; this component opts out safely.
@@ -210,7 +215,7 @@ export function RequirementsTable({
   const chips: { value: string; label: string }[] = [
     { value: "", label: "All" },
     ...STATUSES.filter((s) => counts[s]).map((s) => ({ value: s, label: STATUS_SHORT[s] })),
-    ...(counts[NONE] ? [{ value: NONE, label: documents.length === 0 ? "Needs a document" : "Ready to assess" }] : []),
+    ...(counts[NONE] ? [{ value: NONE, label: "No result yet" }] : []),
   ];
 
   return (

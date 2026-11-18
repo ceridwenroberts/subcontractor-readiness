@@ -149,9 +149,9 @@ export default function EngagementPage({
 
   const hasDocuments = documents.length > 0;
   // A requirement is checked only against documents tagged for it, plus untagged ones.
-  const withDocument = template.requirements.filter((r) =>
-    documents.some((d) => d.requirement_codes.length === 0 || d.requirement_codes.includes(r.code)),
-  ).length;
+  const hasDocumentFor = (code: string) =>
+    documents.some((d) => d.requirement_codes.length === 0 || d.requirement_codes.includes(code));
+  const withDocument = template.requirements.filter((r) => hasDocumentFor(r.code)).length;
   const withoutDocument = template.requirements.length - withDocument;
   const mine = overviewQ.data?.engagements.find((e) => e.engagement_id === engagementId);
   // Required documents that are not there: no evidence was found, or nothing has been assessed yet.
@@ -325,7 +325,7 @@ export default function EngagementPage({
                           </button>
                           {!f && (
                             <NotAssessedAction
-                              documentCount={documents.length}
+                              hasDocument={hasDocumentFor(r.code)}
                               assessing={assessing}
                               onUpload={() => startUpload(r.code)}
                               onAssess={onAssess}
