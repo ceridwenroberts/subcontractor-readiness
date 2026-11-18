@@ -50,7 +50,7 @@ def test_reminder_before_expiry_names_the_date_and_days() -> None:
         days=9,
     )
     assert r.kind == "before_expiry"
-    assert "2026-11-26" in r.subject and "in 9 days" in r.body
+    assert "2026-11-26" in r.subject and "9 days from now" in r.body
     assert "Exempelrör AB" in r.body and "Hamnen 4" in r.body
 
 
@@ -63,7 +63,7 @@ def test_reminder_uses_singular_for_one_day() -> None:
         valid_until=TODAY + timedelta(days=1),
         days=1,
     )
-    assert "in 1 day." in r.body
+    assert "1 day from now" in r.body
 
 
 def test_reminder_at_and_after_expiry() -> None:
@@ -76,8 +76,8 @@ def test_reminder_at_and_after_expiry() -> None:
     today = build_reminder(valid_until=TODAY, days=0, **kwargs)
     past = build_reminder(valid_until=TODAY - timedelta(days=3), days=-3, **kwargs)
     assert today.kind == past.kind == "at_expiry"
-    assert "which is today" in today.body
-    assert "which has ended" in past.body
+    assert "expires today" in today.body
+    assert "expired on" in past.body
 
 
 def test_reminder_text_avoids_the_words_the_interface_may_not_use() -> None:

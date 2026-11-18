@@ -553,8 +553,8 @@ def test_the_draft_is_neutral_and_contains_no_document_text() -> None:
     text = (draft.subject + draft.body).lower()
     for word in BANNED:
         assert word not in text, word
-    assert "new upload" in text
-    assert "note from the reviewer" not in text  # no note, no line
+    assert "new document" in text
+    assert "a note from" not in text  # no note, no line
 
 
 @pytest.mark.parametrize("key", list(REASONS))
@@ -613,3 +613,38 @@ def test_an_older_database_without_contact_email_is_upgraded(tmp_path: Path) -> 
         and engagement["contact_email"] is None
     )
     assert client.get("/upload-requests/open").json() == []
+
+
+def test_every_reason_has_its_own_plain_sentence() -> None:
+    from app.upload_requests import REASON_SENTENCES
+
+    assert set(REASON_SENTENCES) == set(REASONS)
+    for key in REASONS:
+        draft = build_draft(
+            to="a@x.example",
+            subcontractor="Exempelrör AB",
+            project="Hamnen 4",
+            requirement="Liability insurance",
+            reason_key=key,
+            note="",
+            reviewer="Test PM (demo)",
+        )
+        assert REASON_SENTENCES[key] in draft.body
+        assert "Reason:" not in draft.body  # no form-style label, the sentence says it
+
+
+def test_the_request_email_reads_as_a_short_letter() -> None:
+    draft = build_draft(
+        to="a@x.example",
+        subcontractor="Exempelrör AB",
+        project="Hamnen 4",
+        requirement="Liability insurance",
+        reason_key="expired",
+        note="",
+        reviewer="Test PM (demo)",
+    )
+    assert draft.subject == "Please send a new document: Liability insurance (Hamnen 4)"
+    lines = draft.body.splitlines()
+    assert lines[0] == "Hello Exempelrör AB,"
+    assert "we need a new document for \u201cLiability insurance\u201d." in draft.body
+    assert lines[-2:] == ["Kind regards,", "Test PM (demo)"]

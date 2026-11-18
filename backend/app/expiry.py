@@ -58,25 +58,35 @@ def build_reminder(
 ) -> ReminderDraft:
     """A reminder to the subcontractor. "before_expiry" while the date is ahead, "at_expiry"
     once it is today or in the past."""
+    date = valid_until.isoformat()
+    document = f"the document we have on file for \u201c{requirement}\u201d"
     if days > 0:
         kind: ReminderKind = "before_expiry"
-        subject = f"Reminder: {requirement} runs out on {valid_until.isoformat()}"
-        when = f"The document we hold shows a date of {valid_until.isoformat()}, in {days} day{'s' if days != 1 else ''}."
+        subject = f"Reminder: {requirement} expires on {date}"
+        when = (
+            f"Our records show that {document} is valid until {date}, "
+            f"which is {days} day{'s' if days != 1 else ''} from now."
+        )
+        ask = "Please send us an updated document before then."
     else:
         kind = "at_expiry"
-        subject = f"Action needed: {requirement} ran out on {valid_until.isoformat()}"
-        when = f"The document we hold shows a date of {valid_until.isoformat()}, " + (
-            "which is today." if days == 0 else "which has ended."
-        )
+        if days == 0:
+            subject = f"Reminder: {requirement} expires today"
+            when = f"Our records show that {document} expires today ({date})."
+        else:
+            subject = f"Action needed: {requirement} expired on {date}"
+            when = f"Our records show that {document} expired on {date}."
+        ask = "Please send us an updated document as soon as possible."
     body = "\n".join(
         [
             f"Hello {subcontractor},",
             "",
-            f"For the project {project}, this concerns: {requirement}.",
-            when,
-            "Please upload a renewed document.",
+            f"This is a message about the project {project}.",
             "",
-            "Regards,",
+            when,
+            ask,
+            "",
+            "Kind regards,",
             "The project team",
         ]
     )

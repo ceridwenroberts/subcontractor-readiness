@@ -18,6 +18,15 @@ REASONS: dict[str, str] = {
     "other": "Other reason (see the note)",
 }
 
+# One plain sentence per reason, for the email. `REASONS` holds the short labels the screens use.
+REASON_SENTENCES: dict[str, str] = {
+    "expired": "The document we have on file has expired.",
+    "wrong_document": "The document we received is not the type of document we need for this requirement.",
+    "unreadable": "We could not read the document we received. It may be a scan or a damaged file.",
+    "incomplete": "The document we received does not contain all the information we need.",
+    "other": "Please see the note below for the reason.",
+}
+
 # Reserved, never-real domains (RFC 2606 and RFC 6761): safe for synthetic data.
 _RESERVED_SUFFIXES = (".example", ".test", ".invalid", ".localhost")
 _RESERVED_DOMAINS = ("example.com", "example.org", "example.net")
@@ -58,19 +67,20 @@ def build_draft(
     lines = [
         f"Hello {subcontractor},",
         "",
-        f"For the project {project}, we need a new upload for: {requirement}.",
-        f"Reason: {REASONS[reason_key]}.",
+        f"For the project {project}, we need a new document for \u201c{requirement}\u201d.",
+        "",
+        REASON_SENTENCES[reason_key],
     ]
     if note.strip():
-        lines += [f"Note from the reviewer: {note.strip()}"]
+        lines += [f"A note from {reviewer}: {note.strip()}"]
     lines += [
         "",
-        "Please upload a new document that shows this. If you have questions, reply to this message.",
+        "Please upload the new document as a PDF. If you have any questions, just reply to this message.",
         "",
-        f"Regards,\n{reviewer}",
+        f"Kind regards,\n{reviewer}",
     ]
     return Draft(
         to=to,
-        subject=f"New upload needed: {requirement} ({project})",
+        subject=f"Please send a new document: {requirement} ({project})",
         body="\n".join(lines),
     )

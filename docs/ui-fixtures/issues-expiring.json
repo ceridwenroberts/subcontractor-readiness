@@ -15,8 +15,8 @@
     "reminder": {
       "kind": "at_expiry",
       "to": "kontakt@exempelror.example",
-      "subject": "Action needed: Liability insurance ran out on 2026-11-13",
-      "body": "Hello Exempelrör AB,\n\nFor the project Hamnen 4, this concerns: Liability insurance.\nThe document we hold shows a date of 2026-11-13, which has ended.\nPlease upload a renewed document.\n\nRegards,\nThe project team"
+      "subject": "Action needed: Liability insurance expired on 2026-11-13",
+      "body": "Hello Exempelrör AB,\n\nThis is a message about the project Hamnen 4.\n\nOur records show that the document we have on file for “Liability insurance” expired on 2026-11-13.\nPlease send us an updated document as soon as possible.\n\nKind regards,\nThe project team"
     }
   },
   {
@@ -35,8 +35,8 @@
     "reminder": {
       "kind": "before_expiry",
       "to": "kontakt@exempelror.example",
-      "subject": "Reminder: Säker Vatten authorisation runs out on 2026-11-26",
-      "body": "Hello Exempelrör AB,\n\nFor the project Hamnen 4, this concerns: Liability insurance.\nThe document we hold shows a date of 2026-11-26, in 9 days.\nPlease upload a renewed document.\n\nRegards,\nThe project team"
+      "subject": "Reminder: Säker Vatten authorisation expires on 2026-11-26",
+      "body": "Hello Exempelrör AB,\n\nThis is a message about the project Hamnen 4.\n\nOur records show that the document we have on file for “Säker Vatten authorisation” is valid until 2026-11-26, which is 9 days from now.\nPlease send us an updated document before then.\n\nKind regards,\nThe project team"
     }
   },
   {
