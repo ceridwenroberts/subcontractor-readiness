@@ -74,7 +74,9 @@ Work on a branch, for example `ui/redesign`. Before it is merged, both of these 
 ./check.sh                    # lint, backend tests, secret scan, frontend lint, tests and build
 ```
 
-`check_ui_boundary.sh` lists protected files that changed, and greps the UI for forbidden things: `fetch(` outside `lib/`, `localStorage`, `dangerouslySetInnerHTML`, banned words, and missing required elements such as the provider label and the disclaimer.
+The base is the commit the redesign started from (default `main`). On the `ui/styling` branch, which also contains deliberate protected-file slices, use the tag `ui-styling-base` so only later changes are compared: `./check_ui_boundary.sh ui-styling-base`.
+
+`check_ui_boundary.sh` lists protected files that changed, and greps the UI for forbidden things: `fetch(` outside `lib/`, `localStorage`, `dangerouslySetInnerHTML`, a "not allowed" cursor, banned words (also inside variable names), and missing required elements such as the provider label and the disclaimer.
 
 ## Interaction rules
 
