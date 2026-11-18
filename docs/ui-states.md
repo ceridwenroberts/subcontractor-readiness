@@ -24,7 +24,7 @@ Not in the Figma because the data does not exist: project codes, per-project doc
 
 ## Dashboard `/`
 
-Sections in order: **Issues** (documents close to expiry, then needs a new upload), **New project** (form), **Your projects** (list).
+Sections in order: three metric cards (**Waiting for your decision**, **Waiting for a new upload**, **Expired or ending soon**; the last two open the Issues page already filtered), then the **Projects** table with a Documentation column that counts subcontractors per review state. While data loads the cards show a dash, never 0. **New project** opens a dialog.
 
 | State | What shows |
 |---|---|

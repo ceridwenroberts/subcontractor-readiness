@@ -20,7 +20,7 @@ export function ProjectsTable({ rows }: { rows: ProjectRow[] }) {
           <Th>Subcontractors</Th>
           <Th>Documentation</Th>
           <Th>New upload</Th>
-          <Th>Close to expiry</Th>
+          <Th>Expired or ending soon</Th>
           <Th>Delete data by</Th>
           <Th>
             <span className="sr-only">Open</span>

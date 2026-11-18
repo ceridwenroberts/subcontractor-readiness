@@ -13,6 +13,7 @@ export type ProjectRow = {
   waiting: number; // open requests for a new upload
   expiring: number; // dates that ended or are close to ending
   glance: Partial<Record<Glance, number>> | null; // subcontractors per glance state, null while loading
+  awaiting: number | null; // requirements with a finding but no decision yet, null while loading
 };
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
@@ -56,6 +57,9 @@ export function useProjectStats() {
           {},
         )
       : null,
+    awaiting: overviews[i]?.data
+      ? overviews[i].data.engagements.reduce((n, e) => n + e.awaiting_decision, 0)
+      : null,
   }));
 
   const withIssues = rows?.filter((r) => r.waiting + r.expiring > 0).length ?? 0;
@@ -63,7 +67,13 @@ export function useProjectStats() {
     ? `Cannot reach the backend at ${API_URL}. Check that it is running, then reload. (${errorText(health.error)})`
     : null;
 
-  const loading = !loadError && (health.isPending || projectsQ.isPending || requestsQ.isPending || expiringQ.isPending);
+  const loading =
+    !loadError &&
+    (health.isPending ||
+      projectsQ.isPending ||
+      requestsQ.isPending ||
+      expiringQ.isPending ||
+      overviews.some((o) => o.isPending));
 
   return {
     rows,
@@ -75,6 +85,7 @@ export function useProjectStats() {
     totals: {
       projects: rows?.length ?? 0,
       withoutIssues: (rows?.length ?? 0) - withIssues,
+      awaiting: rows?.reduce((n, r) => n + (r.awaiting ?? 0), 0) ?? 0,
       withIssues,
       waiting: requests.length,
       expiring: expiring.length,

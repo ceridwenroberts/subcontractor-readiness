@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock, FolderKanban, Plus } from "lucide-react";
+import { ArrowRight, Clock, Hourglass, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -9,7 +9,6 @@ import { MetricCard } from "@/components/MetricCard";
 import { NewProjectDialog } from "@/components/NewProjectDialog";
 import { PageBody, PageHeader } from "@/components/PageHeader";
 import { ProjectsTable } from "@/components/ProjectsTable";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +18,6 @@ export default function Home() {
   const { rows, totals, loadError, loading } = useProjectStats();
   const num = (n: number) => (loading ? "—" : n);
   const [creating, setCreating] = useState(false);
-  const needAttention = totals.withIssues;
 
   return (
     <>
@@ -36,16 +34,16 @@ export default function Home() {
       <PageBody>
         {loadError && <ErrorBox>{loadError}</ErrorBox>}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Summary">
-          <MetricCard icon={FolderKanban} label="Projects" value={num(totals.projects)} meta="All projects" href="/projects" />
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Summary">
           <MetricCard
-            icon={CheckCircle2}
-            label="Nothing to follow up"
-            value={num(totals.withoutIssues)}
-            meta="No expiring dates, no requests"
+            icon={Hourglass}
+            label="Waiting for your decision"
+            value={num(totals.awaiting)}
+            meta="Requirements with no decision yet"
+            href="/projects"
           />
           <MetricCard
-            icon={AlertTriangle}
+            icon={Upload}
             label="Waiting for a new upload"
             value={num(totals.waiting)}
             meta={(() => {
@@ -56,26 +54,12 @@ export default function Home() {
           />
           <MetricCard
             icon={Clock}
-            label="Close to expiry"
+            label="Expired or ending soon"
             value={num(totals.expiring)}
-            meta="Dates that ended or end within 60 days"
+            meta="Document dates"
             href="/issues?filter=expiry"
           />
         </section>
-
-        {!loading && needAttention > 0 && (
-          <Alert icon={AlertTriangle} tone="alert" title={`${needAttention} project${needAttention === 1 ? "" : "s"} need${needAttention === 1 ? "s" : ""} your attention`}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span>
-                {totals.expiring} document date{totals.expiring === 1 ? "" : "s"} close to expiry and {totals.waiting} request
-                {totals.waiting === 1 ? "" : "s"} waiting for a new upload.
-              </span>
-              <Link href="/issues" className="inline-flex items-center gap-1 font-medium text-foreground underline underline-offset-2">
-                Review all issues <ArrowRight className="size-3.5" aria-hidden />
-              </Link>
-            </div>
-          </Alert>
-        )}
 
         <Card>
           <CardHeader className="flex-row flex-wrap items-center justify-between gap-2">

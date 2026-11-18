@@ -158,7 +158,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                         <Th>Documents</Th>
                         <Th>Documentation</Th>
                         <Th>New upload</Th>
-                        <Th>Close to expiry</Th>
+                        <Th>Expired or ending soon</Th>
                         <Th>
                           <span className="sr-only">Open</span>
                         </Th>

@@ -60,7 +60,7 @@ function IssuesView({ initial, projectId }: { initial: string | null; projectId:
   const dash = (n: number) => (known ? String(n) : "—");
   const filters: { value: Filter; label: string; count: number }[] = [
     { value: "all", label: "All", count: issueCount(expiring, requests) },
-    { value: "expiry", label: "Close to expiry", count: expiring.length },
+    { value: "expiry", label: "Expired or ending soon", count: expiring.length },
     { value: "upload", label: "Waiting for a new upload", count: requests.length },
   ];
   const countOf = (t: ExpiryTier) => expiring.filter((i) => i.tier === t).length;
@@ -103,7 +103,7 @@ function IssuesView({ initial, projectId }: { initial: string | null; projectId:
             {(filter === "all" || filter === "expiry") && known && (
               <Card>
                 <CardHeader>
-                  <CardTitle>Documents close to expiry</CardTitle>
+                  <CardTitle>Expired or ending soon</CardTitle>
                   <CardDescription>
                     Most urgent first. Based on the dates the assessment read from the documents. Reminder drafts are
                     simulated: nothing is sent.
