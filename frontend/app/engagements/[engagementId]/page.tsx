@@ -1,13 +1,14 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, ChevronRight, FileText, Play, Upload } from "lucide-react";
+import { ChevronRight, FileText, Hourglass, Play, Upload } from "lucide-react";
 import Link from "next/link";
 import { use, useState } from "react";
 import { toast } from "sonner";
 
 import { ErrorBox, OverdueBanner, PlaceholderBanner } from "@/components/Banners";
 import { DecisionHistory } from "@/components/DecisionHistory";
+import { GlanceBadge } from "@/components/GlanceBadge";
 import { HowItWasMade } from "@/components/HowItWasMade";
 import { MetricCard } from "@/components/MetricCard";
 import { PageBody, PageHeader } from "@/components/PageHeader";
@@ -28,6 +29,7 @@ import {
   getEngagement,
   getProject,
   getTemplate,
+  getProjectOverview,
   listDocuments,
   listFindings,
   listRequestReasons,
@@ -67,6 +69,11 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   const template = templateQ.data;
   const documentsQ = useQuery({ queryKey: queryKeys.documents(engagementId), queryFn: () => listDocuments(engagementId) });
   const findingsQ = useQuery({ queryKey: queryKeys.findings(engagementId), queryFn: () => listFindings(engagementId) });
+  const overviewQ = useQuery({
+    queryKey: queryKeys.overview(project?.id ?? ""),
+    queryFn: () => getProjectOverview(project?.id ?? ""),
+    enabled: !!project,
+  });
   const reasonsQ = useQuery({ queryKey: queryKeys.reasons, queryFn: listRequestReasons, staleTime: Infinity });
   const documents = documentsQ.data ?? [];
   const findings = findingsQ.data ?? [];
@@ -93,6 +100,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
       void queryClient.invalidateQueries({ queryKey: queryKeys.openRequests });
       void queryClient.invalidateQueries({ queryKey: queryKeys.expiring });
       void queryClient.invalidateQueries({ queryKey: ["decisions"] });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.overview(project?.id ?? "") });
       toast(`Assessment finished: ${result.length} requirements checked.`);
     } catch (err) {
       setAssessError(errorText(err));
@@ -109,6 +117,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
     void queryClient.invalidateQueries({ queryKey: queryKeys.openRequests });
     void queryClient.invalidateQueries({ queryKey: queryKeys.expiring });
     void queryClient.invalidateQueries({ queryKey: ["decisions"] });
+    void queryClient.invalidateQueries({ queryKey: queryKeys.overview(project?.id ?? "") });
   }
 
   if (loadError) {
@@ -136,9 +145,8 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   }
 
   const hasDocuments = documents.length > 0;
-  const evidence = findings.filter((f) => f.ai_status === "found").length;
-  const review = findings.filter((f) => f.ai_status === "unclear").length;
-  const requested = findings.filter((f) => f.latest_request).length;
+  const mine = overviewQ.data?.engagements.find((e) => e.engagement_id === engagementId);
+  const scansNotRead = documents.filter((d) => d.warnings.some(isScanWarning)).length;
   const reviewing = template.requirements.find((r) => r.code === reviewCode) ?? null;
   const reviewingFinding = findings.find((f) => f.requirement_code === reviewCode) ?? null;
   const byCode = new Map(findings.map((f) => [f.requirement_code, f]));
@@ -170,7 +178,10 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
             {initials(engagement.subcontractor_name)}
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-base font-semibold">{engagement.subcontractor_name}</h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-base font-semibold">{engagement.subcontractor_name}</h2>
+              {mine && <GlanceBadge glance={mine.glance} />}
+            </div>
             <p className="text-xs text-muted-foreground">
               Template: {template.name} ·{" "}
               {engagement.contact_email ? `Contact (fictional): ${engagement.contact_email}` : REQUEST_TEXT.noContactHere}
@@ -221,11 +232,25 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
           )}
         </section>
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Status">
-          <MetricCard icon={FileText} label="Documents uploaded" value={documents.length} meta="PDF files" />
-          <MetricCard icon={FileText} label="Documents show evidence" value={evidence} meta="After the automatic checks" />
-          <MetricCard icon={AlertTriangle} label="Needs human review" value={review} meta="A person should read the documents" />
-          <MetricCard icon={Upload} label="New upload requested" value={requested} meta="Waiting for the subcontractor" />
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Status">
+          <MetricCard
+            icon={Hourglass}
+            label="Waiting for your decision"
+            value={mine ? mine.awaiting_decision : "—"}
+            meta="Requirements with no decision yet"
+          />
+          <MetricCard
+            icon={Upload}
+            label="New upload requested"
+            value={mine ? mine.open_requests : "—"}
+            meta="Waiting for the subcontractor"
+          />
+          <MetricCard
+            icon={FileText}
+            label="Scans not read"
+            value={scansNotRead}
+            meta={scansNotRead ? "Text in scans is not read yet" : "All uploaded files have readable text"}
+          />
         </section>
 
         <Tabs defaultValue="overview">
@@ -428,6 +453,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
             listUploaded={false}
             onUploaded={async () => {
               await queryClient.invalidateQueries({ queryKey: queryKeys.documents(engagementId) });
+              void queryClient.invalidateQueries({ queryKey: queryKeys.overview(project?.id ?? "") });
             }}
             onAssess={onAssess}
           />

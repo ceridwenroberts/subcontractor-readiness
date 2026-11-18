@@ -27,6 +27,7 @@ export const queryKeys = {
   findings: (engagementId: string) => ["engagements", engagementId, "findings"] as const,
   openRequests: ["upload-requests", "open"] as const,
   expiring: ["issues", "expiring"] as const,
+  overview: (projectId: string) => ["projects", projectId, "overview"] as const,
   reasons: ["upload-requests", "reasons"] as const,
 };
 

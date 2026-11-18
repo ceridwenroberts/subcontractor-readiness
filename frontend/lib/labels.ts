@@ -1,4 +1,4 @@
-import type { Status } from "./schemas";
+import type { Glance, Status } from "./schemas";
 
 /**
  * Wording for each status. Product rule: report what the documents show, never a verdict.
@@ -20,7 +20,38 @@ export const STATUS_HELP: Record<Status, string> = {
   expired: "A verified quote shows a date that has passed.",
 };
 
+/** Short forms for chips, table cells and overviews. The long labels stay for selects and tooltips. */
+export const STATUS_SHORT: Record<Status, string> = {
+  found: "Found",
+  partial: "Partial",
+  missing: "Not found",
+  unclear: "Needs review",
+  expired: "Expired",
+};
+
 export const STATUSES = Object.keys(STATUS_LABEL) as Status[];
+
+/**
+ * One line per subcontractor: where the review stands. Documentation status only. It describes
+ * the documents and the review, never the company, and there is no score or total.
+ */
+export const GLANCE_LABEL: Record<Glance, string> = {
+  not_assessed: "Not assessed yet",
+  new_upload_requested: "New upload requested",
+  awaiting_decision: "Awaiting your decision",
+  documentation_complete: "Documentation complete",
+  gaps_recorded: "Evidence gaps recorded",
+};
+
+export const GLANCE_HELP: Record<Glance, string> = {
+  not_assessed: "No documents have been assessed yet.",
+  new_upload_requested: "A request for a new upload is open for at least one requirement.",
+  awaiting_decision: "At least one mandatory requirement has no decision from a person yet.",
+  documentation_complete:
+    "A person has decided that the documents show evidence for every mandatory requirement, and no new upload is requested. This describes the documents, not the company.",
+  gaps_recorded:
+    "A person has decided every mandatory requirement, but at least one is not shown as evidence found.",
+};
 
 export const PLACEHOLDER_BANNER =
   "Placeholder requirements, not reviewed by a domain expert.";

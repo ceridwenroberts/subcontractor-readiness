@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { AlertTriangle, ArrowRight, Building2, CalendarClock, Check, ChevronRight, Clock, Plus, Upload, Users } from "lucide-react";
+import { Building2, Check, ChevronRight, Clock, Hourglass, Plus, Upload } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
@@ -10,15 +10,16 @@ import { AddSubcontractorDialog } from "@/components/AddSubcontractorDialog";
 import { ErrorBox, OverdueBanner, PlaceholderBanner } from "@/components/Banners";
 import { cn } from "@/components/cn";
 import { CountPill } from "@/components/CountPill";
+import { GlanceBadge } from "@/components/GlanceBadge";
 import { MetricCard } from "@/components/MetricCard";
+import { OverviewGrid } from "@/components/OverviewGrid";
 import { PageBody, PageHeader } from "@/components/PageHeader";
-import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getProject, getTemplate, listDocuments, listExpiring, listOpenRequests } from "@/lib/api";
+import { getProject, getProjectOverview, getTemplate, listDocuments, listExpiring, listOpenRequests } from "@/lib/api";
 import { queryKeys } from "@/lib/queries";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
@@ -36,6 +37,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
   const template = templateQ.data;
   const expiringQ = useQuery({ queryKey: queryKeys.expiring, queryFn: listExpiring });
   const requestsQ = useQuery({ queryKey: queryKeys.openRequests, queryFn: listOpenRequests });
+  const overviewQ = useQuery({ queryKey: queryKeys.overview(projectId), queryFn: () => getProjectOverview(projectId) });
   const docCounts = useQueries({
     queries: (project?.engagements ?? []).map((e) => ({
       queryKey: queryKeys.documents(e.id),
@@ -72,6 +74,8 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
 
   const expiring = (expiringQ.data ?? []).filter((i) => i.project_id === projectId);
   const waiting = (requestsQ.data ?? []).filter((r) => r.project_id === projectId);
+  const glanceOf = new Map((overviewQ.data?.engagements ?? []).map((e) => [e.engagement_id, e]));
+  const awaitingDecision = (overviewQ.data?.engagements ?? []).reduce((n, e) => n + e.awaiting_decision, 0);
   const attention = (id: string) => ({
     expiring: expiring.filter((i) => i.engagement_id === id).length,
     waiting: waiting.filter((r) => r.engagement_id === id).length,
@@ -81,7 +85,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
     <>
       <PageHeader
         title={project.name}
-        subtitle={`Template: ${template.name} (version ${template.version}, ${template.requirements.length} requirements)`}
+        subtitle={`Template: ${template.name} (version ${template.version}, ${template.requirements.length} requirements) · Delete data by ${project.delete_after ?? "no date set"}`}
         actions={
           <Button onClick={() => setAdding(true)}>
             <Plus className="size-3.5" aria-hidden />
@@ -101,31 +105,35 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
         {template.placeholder && <PlaceholderBanner />}
         {project.delete_overdue && <OverdueBanner date={project.delete_after} />}
 
-        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Project summary">
-          <MetricCard icon={Users} label="Subcontractors" value={project.engagements.length} meta="On this project" />
-          <MetricCard icon={Clock} label="Close to expiry" value={expiring.length} meta="Dates that ended or end within 60 days" href="/issues" />
-          <MetricCard icon={Upload} label="Waiting for a new upload" value={waiting.length} meta="Open requests" href="/issues" />
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label="Project summary">
           <MetricCard
-            icon={CalendarClock}
-            label="Delete data by"
-            value={project.delete_after ?? "No date set"}
-            meta={project.delete_overdue ? "Overdue" : "Placeholder advice, not legal advice"}
+            icon={Hourglass}
+            label="Waiting for your decision"
+            value={overviewQ.data ? awaitingDecision : "—"}
+            meta="Requirements with no decision yet"
+          />
+          <MetricCard
+            icon={Upload}
+            label="Waiting for a new upload"
+            value={requestsQ.data ? waiting.length : "—"}
+            meta="Open requests"
+            href="/issues"
+          />
+          <MetricCard
+            icon={Clock}
+            label="Expired or ending soon"
+            value={expiringQ.data ? expiring.length : "—"}
+            meta="Document dates"
+            href="/issues"
           />
         </section>
-
-        {expiring.length > 0 && (
-          <Alert icon={AlertTriangle} tone="alert" title={`${expiring.length} document date${expiring.length === 1 ? "" : "s"} close to expiry`}>
-            <Link href="/issues" className="inline-flex items-center gap-1 font-medium text-foreground underline underline-offset-2">
-              Review in Issues <ArrowRight className="size-3.5" aria-hidden />
-            </Link>
-          </Alert>
-        )}
 
         <Tabs defaultValue="subcontractors">
           <TabsList>
             <TabsTrigger value="subcontractors">
               Subcontractors <span className="rounded-full bg-muted px-1.5 text-xs">{project.engagements.length}</span>
             </TabsTrigger>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="requirements">
               Requirements <span className="rounded-full bg-muted px-1.5 text-xs">{template.requirements.length}</span>
             </TabsTrigger>
@@ -148,6 +156,7 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                       <Tr>
                         <Th>Company</Th>
                         <Th>Documents</Th>
+                        <Th>Documentation</Th>
                         <Th>New upload</Th>
                         <Th>Close to expiry</Th>
                         <Th>
@@ -190,6 +199,13 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                             </Td>
                             <Td>{docs === undefined ? <span className="text-muted-foreground">…</span> : docs}</Td>
                             <Td>
+                              {glanceOf.get(e.id) ? (
+                                <GlanceBadge glance={glanceOf.get(e.id)!.glance} />
+                              ) : (
+                                <span className="text-muted-foreground">…</span>
+                              )}
+                            </Td>
+                            <Td>
                               <CountPill count={a.waiting} one="waiting" many="waiting" none="None" icon={Upload} />
                             </Td>
                             <Td>
@@ -203,6 +219,27 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                       })}
                     </TBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="overview">
+            <Card>
+              <CardHeader>
+                <CardTitle>Documentation overview</CardTitle>
+                <CardDescription>
+                  One row per subcontractor, one column per requirement. A tick means a person has decided it. Hover a cell
+                  for details.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {overviewQ.data ? (
+                  <OverviewGrid overview={overviewQ.data} />
+                ) : overviewQ.error ? (
+                  <p className="px-4 py-6 text-sm text-muted-foreground">{errorText(overviewQ.error)}</p>
+                ) : (
+                  <Skeleton className="m-4 h-24" />
                 )}
               </CardContent>
             </Card>
