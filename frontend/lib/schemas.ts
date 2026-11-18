@@ -227,6 +227,43 @@ export const ExpiringItemSchema = z.object({
 });
 export type ExpiringItem = z.infer<typeof ExpiringItemSchema>;
 
+/** What each subcontractor's documents show right now. Documentation status, never a verdict. */
+export const GlanceSchema = z.enum([
+  "not_assessed",
+  "new_upload_requested",
+  "awaiting_decision",
+  "documentation_complete",
+  "gaps_recorded",
+]);
+export type Glance = z.infer<typeof GlanceSchema>;
+
+export const OverviewSchema = z.object({
+  project_id: z.string(),
+  engagements: z.array(
+    z.object({
+      engagement_id: z.string(),
+      subcontractor_name: z.string(),
+      document_count: z.number(),
+      glance: GlanceSchema,
+      counts: z.record(z.string(), z.number()), // per status, plus "not_assessed". No total.
+      awaiting_decision: z.number(),
+      open_requests: z.number(),
+      requirements: z.array(
+        z.object({
+          code: z.string(),
+          title: z.string(),
+          mandatory: z.boolean(),
+          status: StatusSchema.nullable(), // null: not assessed yet
+          decided: z.boolean(),
+          decided_by: z.string().nullable(),
+          open_request: z.boolean(),
+        }),
+      ),
+    }),
+  ),
+});
+export type Overview = z.infer<typeof OverviewSchema>;
+
 export const SummarySchema = z.object({
   title: z.string(),
   intro: z.string(),

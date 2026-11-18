@@ -43,6 +43,7 @@ import {
   EngagementSchema,
   FindingSchema,
   ExpiringItemSchema,
+  OverviewSchema,
   OpenRequestSchema,
   ReasonSchema,
   ProjectDetailSchema,
@@ -310,6 +311,10 @@ export const listOpenRequests = () => request("/upload-requests/open", z.array(O
 
 /** Documents whose date is close to running out, or has. Most urgent first. */
 export const listExpiring = () => request("/issues/expiring", z.array(ExpiringItemSchema));
+
+/** Per subcontractor on a project: the status of every requirement, and a glance state. */
+export const getProjectOverview = (projectId: string) =>
+  request(`/projects/${encodeURIComponent(projectId)}/overview`, OverviewSchema);
 
 export const getSummary = (engagementId: string) =>
   request(`/engagements/${encodeURIComponent(engagementId)}/summary`, SummarySchema);

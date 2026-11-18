@@ -7,6 +7,7 @@ import {
   decideFinding,
   getSummary,
   listProjects,
+  getProjectOverview,
   listExpiring,
   listOpenRequests,
   messageFromBody,
@@ -384,5 +385,31 @@ describe("summary", () => {
     const bad = { ...summary, groups: [{ ...summary.groups[0], status: "approved" }] };
     mockFetch(async () => Response.json(bad));
     await expect(getSummary("e1")).rejects.toThrow(/unexpected format/);
+  });
+});
+
+describe("project overview", () => {
+  const eng = {
+    engagement_id: "e1",
+    subcontractor_name: "Exempelrör AB",
+    document_count: 2,
+    glance: "awaiting_decision",
+    counts: { found: 3, partial: 0, missing: 1, unclear: 0, expired: 0, not_assessed: 3 },
+    awaiting_decision: 4,
+    open_requests: 0,
+    requirements: [
+      { code: "VVS-01", title: "Tax", mandatory: true, status: "found", decided: false, decided_by: null, open_request: false },
+      { code: "VVS-04", title: "Env", mandatory: false, status: null, decided: false, decided_by: null, open_request: false },
+    ],
+  };
+  it("parses the overview, including a requirement that is not assessed yet", async () => {
+    const fn = mockFetch(async () => Response.json({ project_id: "p1", engagements: [eng] }));
+    const got = await getProjectOverview("p1");
+    expect(fn.mock.calls[0][0]).toContain("/projects/p1/overview");
+    expect(got.engagements[0].requirements[1].status).toBeNull();
+  });
+  it("rejects an unknown glance state", async () => {
+    mockFetch(async () => Response.json({ project_id: "p1", engagements: [{ ...eng, glance: "approved" }] }));
+    await expect(getProjectOverview("p1")).rejects.toThrow(/unexpected format/);
   });
 });
