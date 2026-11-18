@@ -34,7 +34,7 @@ Sections in order: **Issues** (documents close to expiry, then needs a new uploa
 | No open requests | "Nothing needs a new upload right now." |
 | Issues: expiry | Documents whose date has ended or is within 60 days (placeholder thresholds), most urgent first. Each row: tier chip (Expired, Urgent, Soon, Upcoming, shown by icon and fill, not colour meaning), "Expires in N days" / "Expired N days ago" / "Expires today", the date, requirement, subcontractor, project link, status, a "New upload requested" chip when one is open, "View reminder draft" (simulated, opens a side panel) and "Open documents". Empty: "No document dates are close to running out." Data: `issues-expiring.json`. |
 | Open requests | Count badge by the title. Table columns: Project (link), Subcontractor, Requirement (code + title), Reason, Request, "Open documents" link. The Request cell shows either "Request email recorded (simulated, nothing sent)" or "No email request", plus who and when. The table scrolls sideways on narrow screens. Data: `open-requests.json`. |
-| New project form | Fields: project name, template dropdown, "Delete data by" date (prefilled with a suggestion). Collapsed "About the deletion date" with placeholder advice. Placeholder banner if the chosen template is not expert-reviewed. States: idle, saving ("Creating…"), form error (for example a past date: "The deletion date must be today or later."). The button is disabled without a name or template. |
+| New project form | Fields: project name, template dropdown, "Delete data by" date (prefilled with a suggestion). Collapsed "About the deletion date" with placeholder advice. States: idle, saving ("Creating…"), form error (for example a past date: "The deletion date must be today or later."). The button is disabled without a name or template. |
 | Project row | Link, template name, and either "Delete by {date}" or, if the date passed, "Deletion overdue {date}" emphasised. |
 
 ## Project `/projects/[projectId]`
@@ -42,7 +42,7 @@ Sections in order: **Issues** (documents close to expiry, then needs a new uploa
 | State | What shows |
 |---|---|
 | Loading / not found | "Loading…" / error box with the backend message. |
-| Banners | Placeholder banner if the template is not reviewed. Overdue banner if the deletion date passed. Otherwise a quiet line "Delete the data for this project by {date}." |
+| Banners | Overdue banner if the deletion date passed. Otherwise a quiet line "Delete the data for this project by {date}." |
 | Add subcontractor | Fields: name (required), contact email (optional, fictional only). Help text: "Fictional addresses only: ending in .example, .test or example.com." States: idle, saving, error (a real-looking address is refused with that explanation). |
 | Subcontractor list | Newest first. Each name links to the engagement page. A just-added subcontractor is highlighted with a checkmark and "Added" (and a toast). Fields validate when left and then as the person types. Empty: "None yet. Add one above, then upload their documents." |
 | Requirements | Code, title, "(optional)" or "(has an expiry date)", description. |

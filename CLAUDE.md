@@ -14,7 +14,7 @@ A subcontractor readiness tool. A PM picks a template (for example VVS), uploads
 - Code checks may only weaken a status, never strengthen it.
 - `found` and `partial` need at least one quote that verifies against the stored page text. Otherwise the status becomes `unclear`. This rule lives in `backend/app/domain/`, not in a prompt.
 - Requirements come only from `templates/*.json`. Never generate or hardcode them.
-- Show the provider label (Simulated, Local model, or Claude) on every finding. Show the placeholder banner when a template has `reviewedBy: null`.
+- Show the provider label (Simulated, Local model, or Claude) on every finding. The demo-build banner must say the requirements are a placeholder while a template has `reviewedBy: null` (changed 2026-11-18, see `docs/decisions.md`).
 - `DecisionLog` is append-only.
 
 ### Security
@@ -103,7 +103,7 @@ A design or layout tool (or an AI) may redesign the screens. It must not touch t
 - **Protected, never changed in a redesign:** `backend/`, `templates/`, `evals/`, `frontend/lib/` (API client, zod schemas, wording, `decisionForm.ts`, `forms.ts`, `theme.ts`, `queries.ts`, sign-in token, highlighter and their tests), `frontend/package.json`, `frontend/package-lock.json`, `check.sh`, `check_ui_boundary.sh`, `CLAUDE.md`, `PLAN.md`.
 - **Editable:** markup and styling in `frontend/app/**/page.tsx`, `frontend/app/layout.tsx`, `frontend/components/`, `globals.css`.
 - The UI calls the backend only through `frontend/lib/api.ts`. No `fetch`, browser storage, `NEXT_PUBLIC_` values, `dangerouslySetInnerHTML` or `any` in `app/` or `components/`. The decision form must keep using `lib/decisionForm.ts`; its rules are never re-implemented in a component.
-- Product rules still apply to every screen: no verdict words or scores, the provider label on every finding, the placeholder and Simulated banners, the disclaimer, three separate statuses, and model detail kept quiet and collapsed.
+- Product rules still apply to every screen: no verdict words or scores, the provider label on every finding, the demo-build banner (which carries the placeholder notice), the Simulated notices, the disclaimer, three separate statuses, and model detail kept quiet and collapsed.
 - Work on a branch (for example `ui/redesign`). Before merging, `./check_ui_boundary.sh main` and `./check.sh` must both pass. If a tool changed a protected file, revert that file instead of adjusting the test or the script.
 - A change to a protected file is a normal slice, with its own goal, tests and approval, never part of a redesign.
 
