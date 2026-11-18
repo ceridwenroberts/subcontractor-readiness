@@ -49,16 +49,19 @@ export function ExpiringList({ items }: { items: ExpiringItem[] }) {
                 <strong className="font-medium">{whenText(i.days_left)}</strong>
                 <span className="text-xs text-muted-foreground">({i.valid_until})</span>
               </p>
+              <p className="text-sm font-medium">
+                <Link href={`/projects/${i.project_id}`} className="underline-offset-2 hover:underline">
+                  {i.project_name}
+                </Link>
+                <span className="font-normal text-muted-foreground"> · </span>
+                {i.subcontractor_name}
+              </p>
               <p className="text-sm">
                 <span className="font-mono text-xs text-muted-foreground">{i.requirement_code}</span>{" "}
                 {i.requirement_title}
-                <span className="text-muted-foreground"> · {i.subcontractor_name}</span>
               </p>
               <p className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                <Link href={`/projects/${i.project_id}`} className="underline underline-offset-2 hover:text-foreground">
-                  {i.project_name}
-                </Link>
-                <StatusBadge status={i.status} />
+                <StatusBadge status={i.status} short />
                 {i.new_upload_requested && <Badge variant="outline">New upload requested</Badge>}
               </p>
             </div>
@@ -76,7 +79,7 @@ export function ExpiringList({ items }: { items: ExpiringItem[] }) {
                 href={`/engagements/${i.engagement_id}`}
                 className="text-xs underline underline-offset-2 hover:text-muted-foreground"
               >
-                Open documents
+                Open subcontractor
               </Link>
             </div>
           </li>
@@ -109,14 +112,11 @@ export function OpenRequestsTable({ requests }: { requests: OpenRequest[] }) {
           {requests.map((r) => (
             <Tr key={r.request_id}>
               <Td>
-                <Link
-                  href={`/projects/${r.project_id}`}
-                  className="underline underline-offset-2 hover:text-muted-foreground"
-                >
+                <Link href={`/projects/${r.project_id}`} className="font-medium underline-offset-2 hover:underline">
                   {r.project_name}
                 </Link>
               </Td>
-              <Td>{r.subcontractor_name}</Td>
+              <Td className="font-medium">{r.subcontractor_name}</Td>
               <Td>
                 <span className="font-mono text-xs text-muted-foreground">{r.requirement_code}</span>{" "}
                 {r.requirement_title}
@@ -136,7 +136,7 @@ export function OpenRequestsTable({ requests }: { requests: OpenRequest[] }) {
                   href={`/engagements/${r.engagement_id}`}
                   className="text-xs underline underline-offset-2 hover:text-muted-foreground"
                 >
-                  Open documents
+                  Open subcontractor
                 </Link>
               </Td>
             </Tr>

@@ -52,14 +52,14 @@ export default function Home() {
               const n = new Set(rows?.filter((r) => r.waiting > 0).map((r) => r.project.id)).size;
               return `Across ${n} project${n === 1 ? "" : "s"}`;
             })()}
-            href="/issues"
+            href="/issues?filter=upload"
           />
           <MetricCard
             icon={Clock}
             label="Close to expiry"
             value={num(totals.expiring)}
             meta="Dates that ended or end within 60 days"
-            href="/issues"
+            href="/issues?filter=expiry"
           />
         </section>
 

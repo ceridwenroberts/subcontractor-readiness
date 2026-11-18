@@ -9,6 +9,7 @@ import { use, useState } from "react";
 import { AddSubcontractorDialog } from "@/components/AddSubcontractorDialog";
 import { ErrorBox, OverdueBanner, PlaceholderBanner } from "@/components/Banners";
 import { cn } from "@/components/cn";
+import { AssessRowButton } from "@/components/AssessRowButton";
 import { CountPill } from "@/components/CountPill";
 import { GlanceBadge } from "@/components/GlanceBadge";
 import { MetricCard } from "@/components/MetricCard";
@@ -117,14 +118,14 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
             label="Waiting for a new upload"
             value={requestsQ.data ? waiting.length : "—"}
             meta="Open requests"
-            href="/issues"
+            href={`/issues?filter=upload&project=${projectId}`}
           />
           <MetricCard
             icon={Clock}
             label="Expired or ending soon"
             value={expiringQ.data ? expiring.length : "—"}
             meta="Document dates"
-            href="/issues"
+            href={`/issues?filter=expiry&project=${projectId}`}
           />
         </section>
 
@@ -199,7 +200,9 @@ export default function ProjectPage({ params }: { params: Promise<{ projectId: s
                             </Td>
                             <Td>{docs === undefined ? <span className="text-muted-foreground">…</span> : docs}</Td>
                             <Td>
-                              {glanceOf.get(e.id) ? (
+                              {glanceOf.get(e.id)?.glance === "not_assessed" ? (
+                                <AssessRowButton engagementId={e.id} projectId={projectId} documentCount={docs} />
+                              ) : glanceOf.get(e.id) ? (
                                 <GlanceBadge glance={glanceOf.get(e.id)!.glance} />
                               ) : (
                                 <span className="text-muted-foreground">…</span>

@@ -1,7 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
 import { ErrorBox } from "@/components/Banners";
 import { cn } from "@/components/cn";
@@ -11,7 +13,7 @@ import { PageBody, PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { API_URL, getHealth, listExpiring, listOpenRequests } from "@/lib/api";
+import { API_URL, getHealth, getProject, listExpiring, listOpenRequests } from "@/lib/api";
 import { REQUEST_TEXT } from "@/lib/labels";
 import { queryKeys } from "@/lib/queries";
 import type { ExpiryTier } from "@/lib/schemas";
@@ -26,12 +28,31 @@ const TIER_LABEL: Record<ExpiryTier, string> = {
 };
 
 export default function IssuesPage() {
+  // useSearchParams needs a Suspense boundary. The key restarts the page when the link changes.
+  return (
+    <Suspense fallback={<Skeleton className="m-4 h-24" />}>
+      <IssuesContent />
+    </Suspense>
+  );
+}
+
+function IssuesContent() {
+  const params = useSearchParams();
+  return <IssuesView key={params.toString()} initial={params.get("filter")} projectId={params.get("project")} />;
+}
+
+function IssuesView({ initial, projectId }: { initial: string | null; projectId: string | null }) {
   const health = useQuery({ queryKey: ["health"], queryFn: getHealth, retry: 0 });
   const expiringQ = useQuery({ queryKey: queryKeys.expiring, queryFn: listExpiring, enabled: health.isSuccess });
   const requestsQ = useQuery({ queryKey: queryKeys.openRequests, queryFn: listOpenRequests, enabled: health.isSuccess });
-  const [filter, setFilter] = useState<Filter>("all");
-  const expiring = expiringQ.data ?? [];
-  const requests = requestsQ.data ?? [];
+  const [filter, setFilter] = useState<Filter>(initial === "expiry" || initial === "upload" ? initial : "all");
+  const projectQ = useQuery({
+    queryKey: queryKeys.project(projectId ?? ""),
+    queryFn: () => getProject(projectId ?? ""),
+    enabled: !!projectId,
+  });
+  const expiring = (expiringQ.data ?? []).filter((i) => !projectId || i.project_id === projectId);
+  const requests = (requestsQ.data ?? []).filter((r) => !projectId || r.project_id === projectId);
   const offline = health.isError;
   // Until both lists have arrived we know nothing, so never show "nothing to follow up".
   const loading = !offline && (health.isPending || expiringQ.isPending || requestsQ.isPending);
@@ -53,6 +74,14 @@ export default function IssuesPage() {
       <PageBody>
         {health.error && (
           <ErrorBox>{`Cannot reach the backend at ${API_URL}. Check that it is running, then reload.`}</ErrorBox>
+        )}
+        {projectId && (
+          <p className="flex flex-wrap items-center gap-2 text-sm">
+            Showing only <strong className="font-semibold">{projectQ.data?.name ?? "this project"}</strong>
+            <Link href="/issues" className="text-xs underline underline-offset-2 hover:text-muted-foreground">
+              Show all projects
+            </Link>
+          </p>
         )}
         <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter issues">
           {filters.map((f) => (
