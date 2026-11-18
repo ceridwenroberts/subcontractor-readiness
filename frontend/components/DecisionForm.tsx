@@ -16,7 +16,7 @@ const errorText = (err: unknown) => (err instanceof Error ? err.message : "Somet
 
 const BLOCKED_TEXT: Record<BlockedBecause, string> = {
   saving: "Saving…",
-  sign_in: "Sign in at the top of the page to record a decision.",
+  sign_in: "Sign in at the bottom of the left menu to record a decision.",
   choose_option: "Choose one of the options above.",
   choose_status: "Choose the status you read from the documents.",
   reason_required: "Choose a reason.",

@@ -14,7 +14,7 @@ export const SheetClose = SheetPrimitive.Close;
 export function SheetContent({ className, children, ...props }: React.ComponentProps<typeof SheetPrimitive.Content>) {
   return (
     <SheetPrimitive.Portal>
-      <SheetPrimitive.Overlay className="fixed inset-0 z-40 bg-foreground/30" />
+      <SheetPrimitive.Overlay className="fixed inset-0 z-40 bg-black/50" />
       <SheetPrimitive.Content
         className={cn(
           "fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col gap-3 border-l border-border bg-background p-4 text-foreground shadow-lg",

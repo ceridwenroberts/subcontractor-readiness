@@ -80,7 +80,9 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
   const loadError = engagementQ.error ?? projectQ.error ?? templateQ.error ?? documentsQ.error ?? findingsQ.error;
 
   async function onAssess() {
-    if (assessing || documents.length === 0) return;
+    // Read the cache, not the render's copy: the upload toast keeps this function from before the upload.
+    const current = queryClient.getQueryData<unknown[]>(queryKeys.documents(engagementId)) ?? documents;
+    if (assessing || current.length === 0) return;
     setUploading(false);
     setAssessing(true);
     setAssessError(null);
@@ -88,6 +90,9 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
     try {
       const result = await assessEngagementStream(engagementId, setProgress);
       queryClient.setQueryData(queryKeys.findings(engagementId), result);
+      void queryClient.invalidateQueries({ queryKey: queryKeys.openRequests });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.expiring });
+      void queryClient.invalidateQueries({ queryKey: ["decisions"] });
       toast(`Assessment finished: ${result.length} requirements checked.`);
     } catch (err) {
       setAssessError(errorText(err));
@@ -103,6 +108,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
     );
     void queryClient.invalidateQueries({ queryKey: queryKeys.openRequests });
     void queryClient.invalidateQueries({ queryKey: queryKeys.expiring });
+    void queryClient.invalidateQueries({ queryKey: ["decisions"] });
   }
 
   if (loadError) {
@@ -205,7 +211,7 @@ export default function EngagementPage({ params }: { params: Promise<{ engagemen
           )}
           {!assessing && findings.length > 0 && (
             <p className="w-full text-xs text-muted-foreground">
-              Assessing again adds new findings. Earlier findings and your decisions on them are kept.
+              Assessing again adds new findings. Earlier findings and decisions stay in the decision log, but the table shows only the newest results.
             </p>
           )}
           {assessError && (

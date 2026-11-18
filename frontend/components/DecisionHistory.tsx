@@ -11,8 +11,8 @@ import { formatWhen, parseUtc } from "@/lib/time";
 export function DecisionHistory({ findings }: { findings: Finding[] }) {
   const results = useQueries({
     queries: findings.map((f) => ({
-      // The status is part of the key so a new decision reloads the list.
-      queryKey: ["decisions", f.id, f.human_status ?? ""],
+      // Decisions are invalidated by prefix when one is saved (see the subcontractor page).
+      queryKey: ["decisions", f.id],
       queryFn: () => listDecisions(f.id),
     })),
   });

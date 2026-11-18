@@ -143,6 +143,7 @@ export function RequirementsTable({
               {row.original.cited.map((c) => (
                 <li key={`${c.id}:${c.page}`}>
                   <Link
+                    onClick={(e) => e.stopPropagation()}
                     href={viewerPath(c.id, c.page, c.quote)}
                     className="inline-flex items-center gap-1 underline underline-offset-2 hover:text-muted-foreground"
                   >

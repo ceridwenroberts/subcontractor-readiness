@@ -49,8 +49,11 @@ export function useProjectStats() {
     ? `Cannot reach the backend at ${API_URL}. Check that it is running, then reload. (${errorText(health.error)})`
     : null;
 
+  const loading = !loadError && (health.isPending || projectsQ.isPending || requestsQ.isPending || expiringQ.isPending);
+
   return {
     rows,
+    loading,
     requests,
     expiring,
     templates,

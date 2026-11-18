@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { ErrorBox } from "@/components/Banners";
 import { cn } from "@/components/cn";
+import { issueCount } from "@/components/issueCounts";
 import { ExpiringList, OpenRequestsTable } from "@/components/IssuesPanel";
 import { PageBody, PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -31,9 +32,13 @@ export default function IssuesPage() {
   const [filter, setFilter] = useState<Filter>("all");
   const expiring = expiringQ.data ?? [];
   const requests = requestsQ.data ?? [];
-  const loading = health.isSuccess && (expiringQ.isPending || requestsQ.isPending);
+  const offline = health.isError;
+  // Until both lists have arrived we know nothing, so never show "nothing to follow up".
+  const loading = !offline && (health.isPending || expiringQ.isPending || requestsQ.isPending);
+  const known = !loading && !offline;
+  const dash = (n: number) => (known ? String(n) : "—");
   const filters: { value: Filter; label: string; count: number }[] = [
-    { value: "all", label: "All", count: expiring.length + requests.length },
+    { value: "all", label: "All", count: issueCount(expiring, requests) },
     { value: "expiry", label: "Close to expiry", count: expiring.length },
     { value: "upload", label: "Waiting for a new upload", count: requests.length },
   ];
@@ -58,7 +63,7 @@ export default function IssuesPage() {
               aria-pressed={filter === f.value}
               onClick={() => setFilter(f.value)}
             >
-              {f.label} ({f.count})
+              {f.label} ({dash(f.count)})
             </Button>
           ))}
         </div>
@@ -66,7 +71,7 @@ export default function IssuesPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_16rem] lg:items-start">
           <div className="space-y-4">
             {loading && <Skeleton className="h-24 w-full" />}
-            {(filter === "all" || filter === "expiry") && !loading && (
+            {(filter === "all" || filter === "expiry") && known && (
               <Card>
                 <CardHeader>
                   <CardTitle>Documents close to expiry</CardTitle>
@@ -80,7 +85,7 @@ export default function IssuesPage() {
                 </CardContent>
               </Card>
             )}
-            {(filter === "all" || filter === "upload") && !loading && (
+            {(filter === "all" || filter === "upload") && known && (
               <Card>
                 <CardHeader>
                   <CardTitle>{REQUEST_TEXT.dashboardTitle}</CardTitle>
@@ -101,16 +106,16 @@ export default function IssuesPage() {
               {(Object.keys(TIER_LABEL) as ExpiryTier[]).map((t) => (
                 <div key={t} className="flex items-center justify-between py-1.5">
                   <dt className="text-muted-foreground">{TIER_LABEL[t]}</dt>
-                  <dd className="font-medium">{countOf(t)}</dd>
+                  <dd className="font-medium">{dash(countOf(t))}</dd>
                 </div>
               ))}
               <div className="flex items-center justify-between py-1.5">
                 <dt className="text-muted-foreground">Waiting for a new upload</dt>
-                <dd className="font-medium">{requests.length}</dd>
+                <dd className="font-medium">{dash(requests.length)}</dd>
               </div>
               <div className="flex items-center justify-between pt-2">
                 <dt className="font-semibold">Total</dt>
-                <dd className="font-semibold">{expiring.length + requests.length}</dd>
+                <dd className="font-semibold">{dash(issueCount(expiring, requests))}</dd>
               </div>
             </dl>
           </aside>

@@ -13,6 +13,7 @@ import { SessionBar } from "@/components/SessionBar";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 import { listExpiring, listOpenRequests } from "@/lib/api";
+import { issueCount as countIssues } from "@/components/issueCounts";
 import { queryKeys } from "@/lib/queries";
 
 const ShellContext = React.createContext<{ openMenu: () => void }>({ openMenu: () => {} });
@@ -64,18 +65,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = React.useState(false);
   const expiring = useQuery({ queryKey: queryKeys.expiring, queryFn: listExpiring, retry: 0 });
   const requests = useQuery({ queryKey: queryKeys.openRequests, queryFn: listOpenRequests, retry: 0 });
-  const issueCount = (expiring.data?.length ?? 0) + (requests.data?.length ?? 0);
+  const issueCount = countIssues(expiring.data ?? [], requests.data ?? []);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
     <ShellContext.Provider value={{ openMenu: () => setOpen(true) }}>
       <div className="lg:grid lg:min-h-screen lg:grid-cols-[15rem_minmax(0,1fr)]">
         {open && (
-          <div className="fixed inset-0 z-30 bg-foreground/40 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
+          <div className="fixed inset-0 z-30 bg-black/50 lg:hidden" onClick={() => setOpen(false)} aria-hidden />
         )}
         <aside
           className={cn(
-            "fixed inset-y-0 left-0 z-40 flex w-60 flex-col gap-4 border-r border-border bg-subtle p-3 transition-transform lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0",
-            open ? "translate-x-0" : "-translate-x-full",
+            "fixed inset-y-0 left-0 z-40 flex w-60 flex-col gap-4 border-r border-border bg-subtle p-3 transition-[transform,visibility] lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0",
+            // Hidden (not just off screen) below the wide layout, so a closed menu is out of the tab order.
+            open ? "translate-x-0" : "invisible -translate-x-full lg:visible",
           )}
           aria-label="Main navigation"
         >

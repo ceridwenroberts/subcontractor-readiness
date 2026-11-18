@@ -16,7 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useProjectStats } from "@/components/useProjectStats";
 
 export default function Home() {
-  const { rows, totals, loadError } = useProjectStats();
+  const { rows, totals, loadError, loading } = useProjectStats();
+  const num = (n: number) => (loading ? "—" : n);
   const [creating, setCreating] = useState(false);
   const needAttention = totals.withIssues;
 
@@ -36,30 +37,33 @@ export default function Home() {
         {loadError && <ErrorBox>{loadError}</ErrorBox>}
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Summary">
-          <MetricCard icon={FolderKanban} label="Projects" value={totals.projects} meta="All projects" href="/projects" />
+          <MetricCard icon={FolderKanban} label="Projects" value={num(totals.projects)} meta="All projects" href="/projects" />
           <MetricCard
             icon={CheckCircle2}
             label="Nothing to follow up"
-            value={totals.withoutIssues}
+            value={num(totals.withoutIssues)}
             meta="No expiring dates, no requests"
           />
           <MetricCard
             icon={AlertTriangle}
             label="Waiting for a new upload"
-            value={totals.waiting}
-            meta={`Across ${new Set(rows?.filter((r) => r.waiting > 0).map((r) => r.project.id)).size} projects`}
+            value={num(totals.waiting)}
+            meta={(() => {
+              const n = new Set(rows?.filter((r) => r.waiting > 0).map((r) => r.project.id)).size;
+              return `Across ${n} project${n === 1 ? "" : "s"}`;
+            })()}
             href="/issues"
           />
           <MetricCard
             icon={Clock}
             label="Close to expiry"
-            value={totals.expiring}
+            value={num(totals.expiring)}
             meta="Dates that ended or end within 60 days"
             href="/issues"
           />
         </section>
 
-        {needAttention > 0 && (
+        {!loading && needAttention > 0 && (
           <Alert icon={AlertTriangle} tone="alert" title={`${needAttention} project${needAttention === 1 ? "" : "s"} need${needAttention === 1 ? "s" : ""} your attention`}>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span>
