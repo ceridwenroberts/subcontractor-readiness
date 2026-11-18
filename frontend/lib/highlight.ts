@@ -64,3 +64,29 @@ export function splitAround(page: string, range: [number, number] | null) {
     after: page.slice(range[1]),
   };
 }
+
+export type Mark = { range: [number, number]; active?: boolean };
+export type Segment = { text: string; mark: "none" | "active" | "other" };
+
+/**
+ * Cut page text into plain and highlighted pieces for several quotes at once. The active
+ * quote is placed first, so it wins where two quotes overlap. A quote that overlaps one
+ * already placed is skipped, never merged, so every highlighted piece is exactly one quote.
+ */
+export function segmentPage(page: string, marks: Mark[]): Segment[] {
+  const placed: Mark[] = [];
+  const ordered = [...marks].sort((a, b) => Number(!!b.active) - Number(!!a.active) || a.range[0] - b.range[0]);
+  for (const m of ordered) {
+    if (!placed.some((p) => m.range[0] < p.range[1] && p.range[0] < m.range[1])) placed.push(m);
+  }
+  placed.sort((a, b) => a.range[0] - b.range[0]);
+  const out: Segment[] = [];
+  let at = 0;
+  for (const m of placed) {
+    if (m.range[0] > at) out.push({ text: page.slice(at, m.range[0]), mark: "none" });
+    out.push({ text: page.slice(m.range[0], m.range[1]), mark: m.active ? "active" : "other" });
+    at = m.range[1];
+  }
+  if (at < page.length) out.push({ text: page.slice(at), mark: "none" });
+  return out.length ? out : [{ text: page, mark: "none" }];
+}

@@ -145,6 +145,8 @@ export default function EngagementPage({
   const scansNotRead = documents.filter((d) => d.warnings.some(isScanWarning)).length;
   const reviewing = template.requirements.find((r) => r.code === reviewCode) ?? null;
   const reviewingFinding = findings.find((f) => f.requirement_code === reviewCode) ?? null;
+  const citedBy = (documentId: string) =>
+    findings.filter((f) => f.evidence.some((e) => e.document_id === documentId && e.verified)).length;
   const byCode = new Map(findings.map((f) => [f.requirement_code, f]));
 
   return (
@@ -394,7 +396,10 @@ export default function EngagementPage({
                           )}
                         </div>
                         <Link href={`/documents/${d.id}`} className="text-xs underline underline-offset-2 hover:text-muted-foreground">
-                          Review text
+                          {citedBy(d.id) === 0
+                            ? "Not cited by any requirement"
+                            : `Cited by ${citedBy(d.id)} requirement${citedBy(d.id) === 1 ? "" : "s"}`}
+                          {" · Review text"}
                         </Link>
                       </li>
                     ))}

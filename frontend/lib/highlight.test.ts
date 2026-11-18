@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { findQuoteRange, splitAround } from "./highlight";
+import { findQuoteRange, segmentPage, splitAround } from "./highlight";
 
 const PAGE = "Intyg om F-skatt\n\nExempelrör AB är godkänd för F-skatt.\nUtfärdat av Skatteverket.";
 
@@ -49,5 +49,34 @@ describe("splitAround", () => {
   });
   it("returns the whole page as 'before' when there is no range", () => {
     expect(splitAround("abc", null)).toEqual({ before: "abc", match: "", after: "" });
+  });
+});
+
+describe("segmentPage", () => {
+  const text = "aaa BBB ccc DDD eee";
+  it("returns the whole page as one plain piece without marks", () => {
+    expect(segmentPage(text, [])).toEqual([{ text, mark: "none" }]);
+  });
+  it("marks several quotes and keeps the text in between", () => {
+    const got = segmentPage(text, [
+      { range: [12, 15] },
+      { range: [4, 7], active: true },
+    ]);
+    expect(got.map((g) => g.mark)).toEqual(["none", "active", "none", "other", "none"]);
+    expect(got.map((g) => g.text).join("")).toBe(text);
+  });
+  it("lets the active quote win when two overlap, and never merges them", () => {
+    const got = segmentPage(text, [
+      { range: [0, 7] },
+      { range: [4, 11], active: true },
+    ]);
+    expect(got.filter((g) => g.mark !== "none").map((g) => [g.mark, g.text])).toEqual([["active", "BBB ccc"]]);
+    expect(got.map((g) => g.text).join("")).toBe(text);
+  });
+  it("works with quotes found by findQuoteRange", () => {
+    const r = findQuoteRange(PAGE, "godkänd för F-skatt");
+    expect(r).not.toBeNull();
+    const got = segmentPage(PAGE, [{ range: r as [number, number] }]);
+    expect(got.find((g) => g.mark === "other")?.text).toBe("godkänd för F-skatt");
   });
 });

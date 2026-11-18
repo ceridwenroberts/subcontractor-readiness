@@ -1,17 +1,20 @@
 "use client";
 
+import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { use, useEffect, useMemo, useRef, useState } from "react";
 
 import { ErrorBox } from "@/components/Banners";
 import { PageBody, PageHeader } from "@/components/PageHeader";
+import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { documentFileUrl, getDocumentPages } from "@/lib/api";
-import { findQuoteRange, splitAround } from "@/lib/highlight";
+import { documentFileUrl, getDocumentPages, listFindings } from "@/lib/api";
+import { findQuoteRange, type Mark, segmentPage } from "@/lib/highlight";
 import { VIEWER_TEXT } from "@/lib/labels";
+import { queryKeys } from "@/lib/queries";
 import type { DocumentPages } from "@/lib/schemas";
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
@@ -24,7 +27,9 @@ export default function DocumentViewer({
   searchParams: Promise<{ page?: string; quote?: string }>;
 }) {
   const { documentId } = use(params);
-  const { page: pageParam, quote = "" } = use(searchParams);
+  const { page: pageParam, quote: quoteParam = "" } = use(searchParams);
+  // The quote that is scrolled to. A link from a finding sets it, and so does clicking a cited quote below.
+  const [quote, setQuote] = useState(quoteParam);
   const [doc, setDoc] = useState<DocumentPages | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(() => Math.max(1, Number.parseInt(pageParam ?? "1", 10) || 1));
@@ -46,8 +51,30 @@ export default function DocumentViewer({
 
   const current = doc ? Math.min(page, doc.page_count) : page;
   const text = doc?.pages[current - 1] ?? "";
+  const findingsQ = useQuery({
+    queryKey: queryKeys.findings(doc?.engagement_id ?? ""),
+    queryFn: () => listFindings(doc?.engagement_id ?? ""),
+    enabled: !!doc,
+  });
+  // Every verified quote in the latest findings that points at this document.
+  const cited = useMemo(
+    () =>
+      (findingsQ.data ?? []).flatMap((f) =>
+        f.evidence.filter((e) => e.document_id === documentId && e.verified).map((e) => ({ f, e })),
+      ),
+    [findingsQ.data, documentId],
+  );
   const range = useMemo(() => (quote ? findQuoteRange(text, quote) : null), [text, quote]);
-  const parts = splitAround(text, range);
+  const segments = useMemo(() => {
+    const marks: Mark[] = [];
+    for (const { e } of cited) {
+      if (e.page !== current) continue;
+      const r = findQuoteRange(text, e.quote);
+      if (r) marks.push({ range: r });
+    }
+    if (range) marks.push({ range, active: true });
+    return segmentPage(text, marks);
+  }, [cited, current, text, range]);
 
   useEffect(() => {
     mark.current?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -124,15 +151,53 @@ export default function DocumentViewer({
           </p>
         )}
         <pre className="whitespace-pre-wrap break-words font-sans text-sm leading-6">
-          {parts.before}
-          {parts.match && (
-            <mark ref={mark} className="rounded bg-model/40 px-0.5 text-foreground underline decoration-model-ink decoration-2 underline-offset-2">
-              {parts.match}
-            </mark>
+          {segments.map((s, i) =>
+            s.mark === "none" ? (
+              s.text
+            ) : s.mark === "active" ? (
+              <mark key={i} ref={mark} className="rounded bg-model/40 px-0.5 text-foreground underline decoration-model-ink decoration-2 underline-offset-2">
+                {s.text}
+              </mark>
+            ) : (
+              <mark key={i} className="rounded bg-muted px-0.5 text-foreground underline decoration-muted-foreground decoration-1 underline-offset-2">
+                {s.text}
+              </mark>
+            ),
           )}
-          {parts.after}
         </pre>
         {!text && <p className="text-sm text-muted-foreground">No readable text on this page. It may be a scan.</p>}
+        </CardContent>
+      </Card>
+      <Card>
+        <CardContent>
+          <h2 className="mb-1 text-sm font-medium">Cited in this document</h2>
+          {findingsQ.isPending ? (
+            <p className="text-xs text-muted-foreground">Loading…</p>
+          ) : cited.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No requirement cites this document.</p>
+          ) : (
+            <ul className="divide-y divide-border text-sm">
+              {cited.map(({ f, e }, i) => (
+                <li key={`${f.id}:${i}`} className="space-y-1 py-2 first:pt-0 last:pb-0">
+                  <p className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono text-xs text-muted-foreground">{f.requirement_code}</span>
+                    <span className="font-medium">{f.requirement_title}</span>
+                    <StatusBadge status={f.human_status ?? f.ai_status} short />
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPage(e.page);
+                      setQuote(e.quote);
+                    }}
+                    className="block w-full text-left text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+                  >
+                    Page {e.page}: &ldquo;{e.quote}&rdquo;
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </CardContent>
       </Card>
       <p className="text-xs text-muted-foreground">{VIEWER_TEXT.note}</p>
