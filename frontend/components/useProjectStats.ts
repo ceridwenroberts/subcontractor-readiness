@@ -2,9 +2,9 @@
 
 import { useQueries, useQuery } from "@tanstack/react-query";
 
-import { API_URL, getHealth, getProject, listExpiring, listOpenRequests, listProjects, listTemplates } from "@/lib/api";
+import { API_URL, getHealth, getProject, getProjectOverview, listExpiring, listOpenRequests, listProjects, listTemplates } from "@/lib/api";
 import { queryKeys } from "@/lib/queries";
-import type { ExpiringItem, OpenRequest, Project } from "@/lib/schemas";
+import type { ExpiringItem, Glance, OpenRequest, Project } from "@/lib/schemas";
 
 export type ProjectRow = {
   project: Project;
@@ -12,6 +12,7 @@ export type ProjectRow = {
   subcontractors: number | null; // null while loading
   waiting: number; // open requests for a new upload
   expiring: number; // dates that ended or are close to ending
+  glance: Partial<Record<Glance, number>> | null; // subcontractors per glance state, null while loading
 };
 
 const errorText = (err: unknown) => (err instanceof Error ? err.message : "Something went wrong.");
@@ -32,6 +33,13 @@ export function useProjectStats() {
     })),
   });
 
+  const overviews = useQueries({
+    queries: (projects ?? []).map((p) => ({
+      queryKey: queryKeys.overview(p.id),
+      queryFn: () => getProjectOverview(p.id),
+    })),
+  });
+
   const requests: OpenRequest[] = requestsQ.data ?? [];
   const expiring: ExpiringItem[] = expiringQ.data ?? [];
   const templates = templatesQ.data ?? [];
@@ -42,6 +50,12 @@ export function useProjectStats() {
     subcontractors: details[i]?.data ? details[i].data.engagements.length : null,
     waiting: requests.filter((r) => r.project_id === project.id).length,
     expiring: expiring.filter((e) => e.project_id === project.id).length,
+    glance: overviews[i]?.data
+      ? overviews[i].data.engagements.reduce<Partial<Record<Glance, number>>>(
+          (acc, e) => ({ ...acc, [e.glance]: (acc[e.glance] ?? 0) + 1 }),
+          {},
+        )
+      : null,
   }));
 
   const withIssues = rows?.filter((r) => r.waiting + r.expiring > 0).length ?? 0;

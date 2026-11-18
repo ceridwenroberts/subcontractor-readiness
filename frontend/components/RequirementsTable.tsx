@@ -20,7 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import { viewerPath } from "@/lib/api";
-import { STATUSES, STATUS_LABEL } from "@/lib/labels";
+import { STATUSES, STATUS_SHORT } from "@/lib/labels";
 import type { DocumentInfo, Finding, Status, TemplateDetail } from "@/lib/schemas";
 
 type Requirement = TemplateDetail["requirements"][number];
@@ -121,9 +121,9 @@ export function RequirementsTable({
               {status === NONE ? (
                 <Badge variant="dashed">Not assessed yet</Badge>
               ) : (
-                <StatusBadge status={status} />
+                <StatusBadge status={status} short />
               )}
-              {finding?.human_status && <StatusBadge status={finding.human_status} prefix="Your decision" />}
+              {finding?.human_status && <StatusBadge status={finding.human_status} prefix="Decision" short />}
               {finding?.latest_request && <Badge variant="outline">New upload requested</Badge>}
             </span>
           );
@@ -196,7 +196,7 @@ export function RequirementsTable({
 
   const chips: { value: string; label: string }[] = [
     { value: "", label: "All" },
-    ...STATUSES.filter((s) => counts[s]).map((s) => ({ value: s, label: STATUS_LABEL[s] })),
+    ...STATUSES.filter((s) => counts[s]).map((s) => ({ value: s, label: STATUS_SHORT[s] })),
     ...(counts[NONE] ? [{ value: NONE, label: "Not assessed yet" }] : []),
   ];
 

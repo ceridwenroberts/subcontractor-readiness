@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { CountPill } from "@/components/CountPill";
+import { GlanceCounts } from "@/components/GlanceCounts";
 import { Table, TBody, Td, Th, THead, Tr } from "@/components/ui/table";
 import type { ProjectRow } from "@/components/useProjectStats";
 
@@ -12,11 +13,12 @@ import type { ProjectRow } from "@/components/useProjectStats";
 export function ProjectsTable({ rows }: { rows: ProjectRow[] }) {
   const router = useRouter();
   return (
-    <Table className="min-w-[44rem]">
+    <Table className="min-w-[52rem]">
       <THead>
         <Tr>
           <Th>Project</Th>
           <Th>Subcontractors</Th>
+          <Th>Documentation</Th>
           <Th>New upload</Th>
           <Th>Close to expiry</Th>
           <Th>Delete data by</Th>
@@ -26,7 +28,7 @@ export function ProjectsTable({ rows }: { rows: ProjectRow[] }) {
         </Tr>
       </THead>
       <TBody>
-        {rows.map(({ project, templateName, subcontractors, waiting, expiring }) => (
+        {rows.map(({ project, templateName, subcontractors, waiting, expiring, glance }) => (
           <Tr
             key={project.id}
             onClick={() => router.push(`/projects/${project.id}`)}
@@ -50,6 +52,9 @@ export function ProjectsTable({ rows }: { rows: ProjectRow[] }) {
               </div>
             </Td>
             <Td>{subcontractors === null ? <span className="text-muted-foreground">…</span> : subcontractors}</Td>
+            <Td>
+              <GlanceCounts counts={glance} />
+            </Td>
             <Td>
               <CountPill count={waiting} one="waiting" many="waiting" none="None" icon={Upload} />
             </Td>

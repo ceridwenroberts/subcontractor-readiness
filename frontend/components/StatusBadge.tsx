@@ -3,7 +3,7 @@ import * as React from "react";
 
 import { cn } from "@/components/cn";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { STATUS_HELP, STATUS_LABEL } from "@/lib/labels";
+import { STATUS_HELP, STATUS_LABEL, STATUS_SHORT } from "@/lib/labels";
 import type { Status } from "@/lib/schemas";
 
 /**
@@ -51,10 +51,13 @@ export function StatusIcon({ status }: { status: Status }) {
 export function StatusBadge({
   status,
   prefix,
+  short,
   className,
 }: {
   status: Status;
   prefix?: string;
+  /** The short label, for tight places such as table cells. The tooltip keeps the full help. */
+  short?: boolean;
   className?: string;
 }) {
   return (
@@ -70,7 +73,7 @@ export function StatusBadge({
         >
           {ICON[status]}
           {prefix ? `${prefix}: ` : ""}
-          {STATUS_LABEL[status]}
+          {short ? STATUS_SHORT[status] : STATUS_LABEL[status]}
         </span>
       </TooltipTrigger>
       <TooltipContent>{STATUS_HELP[status]}</TooltipContent>
