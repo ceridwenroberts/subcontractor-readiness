@@ -72,7 +72,7 @@ export const REQUEST_TEXT = {
 
 export const SUMMARY_TEXT = {
   link: "View summary",
-  back: "← Back to the findings",
+  back: "Back to the findings",
   reviewed: "reviewed by a person",
   notReviewed: "not yet reviewed",
   assessedBy: "Assessed by",
