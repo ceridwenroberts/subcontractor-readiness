@@ -9,7 +9,7 @@ const SECTIONS: Section[] = [
     items: [
       {
         label: "A demo build",
-        text: "A school project and a first step toward a product. It runs on one computer with fictional data. It is not for real use and must never be deployed in this form.",
+        text: "A prototype and a first step toward a product. It runs on one computer with fictional data. It is not for real use and must never be deployed in this form.",
       },
       {
         label: "Documentation status only",

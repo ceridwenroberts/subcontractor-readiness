@@ -10,7 +10,7 @@ A subcontractor readiness tool for construction project managers (PMs). A PM pic
 
 Users: **PM** (creates projects, uploads, reviews, decides) and **reviewer** (reviews and decides). The subcontractor does not use the app in this version.
 
-It is a school project and a first step toward a real product. It runs on localhost with fictional data only.
+It is a prototype and a first step toward a real product. It runs on localhost with fictional data only.
 
 ## Content rules (these are product rules, not style)
 

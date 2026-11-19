@@ -6,9 +6,11 @@ Thursday 2026-11-19. Aim for about 8 minutes: 1 minute pitch, 5 minutes live dem
 
 A project manager receives a subcontractor's documents: tax certificate, insurance, authorisations. Checking them by hand means opening every PDF and hunting for the right page. This tool reads the documents, checks each requirement, and shows the exact quote and page behind every answer. A person reviews and decides. **The tool never approves anything: it only reports what the documents show.**
 
-## How it meets the assignment
+## What it delivers
+
 
 - **Business outcome:** at one delivery point, when a subcontractor's document packet arrives, the PM gets an evidence-backed checklist instead of reading everything. A reviewer can then ask for a new upload, and the open requests and expiring documents show on a dashboard, with one badge per subcontractor that says where the review stands.
+
 - **Agents in orchestration:**
 
   | Part | Role | What it may not do |
@@ -17,6 +19,7 @@ A project manager receives a subcontractor's documents: tax certificate, insuran
   | **Code checks** | Verify every quote exists on the cited page, and check dates. | Strengthen a status. They can only lower one. |
   | **Verifier agent** (second AI call) | Reads only the requirement and the verified quotes: do they actually support it? | Strengthen a status. It can only lower one. |
   | **The PM** | Confirms or changes each finding, with a reason when changing. | Be bypassed. Every decision goes in an append-only log. |
+
 
 - **The idea to land:** *the agents propose, the code verifies, the human decides.* The safety does not come from asking the AI to behave. It comes from checks written in code around it.
 
@@ -46,11 +49,17 @@ All runs: 4 synthetic packets, 28 requirements per run.
 | Local model, with verifier (3 runs) | 82–93% | 0 in every run |
 | Local model, with verifier, after the expiry-date rule change (3 runs) | 86–89% | 0 in every run |
 
+
 - **False "found" is the number that matters:** saying "evidence found" when it is not. It was zero in all nine local-model runs.
+
 - **The checks earn their keep:** in the scripted run the "model" answered "found" for an expired insurance certificate. Code turned it into "expired". The first small local model (3B) invented quotes; the code downgraded every one of them.
+
 - **Verifier, tested directly on the 7B model:** 12 of 12 injected or vague sentences rejected, 4 of 4 real quotes accepted, 2 of 2 real quotes paired with the wrong requirement rejected.
+
 - **Honest reading:** the verifier did *not* show a measurable gain in the full runs, because the assessor wasn't fooled in those runs, so the baseline was already zero. Its value shows only in the direct test. It costs about 30% more time. The expiry rule change moved accuracy from "82–93%" to "86–89%", which is inside the old range, so I do not claim an improvement.
+
 - **Time:** about 1.5 to 2 minutes per subcontractor on a local model.
+
 - **Recall is the weak spot:** the small model sometimes says "evidence not found" when it is on the page. That fails safe (the PM sees it and can override), but it is not good enough for real use.
 
 **State clearly:** these numbers come from a small local model and are **not representative of production quality**. No hosted-model (Claude) evaluation has been run, because there is no API key. Even at temperature 0, the same packet gave different answers on different runs, so a single run proves little.
@@ -67,32 +76,60 @@ All runs: 4 synthetic packets, 28 requirements per run.
 
 ## What went wrong, and what I learned
 
+
 - **A quote check proves a quote exists, not that it supports the requirement.** I only saw this because I built an injection test packet. That led to the second agent.
+
 - **One run proves nothing.** The same prompt gave different answers twice. So the evaluation script repeats runs.
+
 - **A safety rule can cost accuracy.** Requiring the model to report the expiry date downgraded correct answers. Reading the date from the verified quote helped, but a second cause remains (the model quotes the sentence without the date).
+
 - **Language mismatch:** English requirements against Swedish documents made the small model miss evidence until the prompt told it to match on meaning.
+
 - **Being honest about gaps:** names are not redacted, scans are not read, the sign-in and the email are simulated.
+
 - **A count must answer the question it is named after.** The "Documents missing" card said seven after two uploads, because it counted every requirement not yet assessed. It now counts requirements with no document, worked out from the documents and their tags.
+
 - **A status can be true and still misleading.** "Not found" means the documents were read. For a requirement with nothing uploaded I show "No document" instead, and keep the stored status unchanged.
 
 ## If something goes wrong on the day
 
+
 - **Ollama slow or not running:** set `LLM_PROVIDER=scripted` in `.env` and restart the backend. Answers are instant and the screen labels them "Simulated". Say so out loud.
+
 - **Pre-run option:** assess a subcontractor before you start, and show the stored findings during the demo.
+
 - **Port 3000 busy:** Next.js starts on 3001 and the browser shows "cannot reach the backend". Set `FRONTEND_ORIGIN=http://localhost:3001` in `.env` and restart the backend.
+
 - **Hostname:** use `http://localhost:3000`. The backend only answers to `localhost` and `127.0.0.1`.
+
 - **Port 8000 busy:** another project's backend may be running there. The frontend always calls `http://127.0.0.1:8000`, so stop the other one (or start this backend on 8001 and the frontend with `NEXT_PUBLIC_API_URL=http://127.0.0.1:8001`). Check with `curl http://127.0.0.1:8000/openapi.json`: the title must be "Subcontractor readiness".
+
 - **Backend restarted with an older database:** a new column is added on startup. If the page shows errors after a code change, restart the backend once.
 
 ## Likely questions
 
+
 - **"Is it legally compliant?"** No claim is made. It reports documentation status only, the requirement list is a placeholder, and a domain expert must review it. The deletion-date advice is a placeholder, not legal advice.
+
+
 - **"Why not use Claude?"** There was no API key for this project. The provider layer is built so a hosted model can be switched on later (`LLM_PROVIDER=anthropic`) without changing other code. I would expect better recall, and the eval script would measure it.
+
+
 - **"What about privacy?"** Personnummer are redacted before storage or model calls. Names are not, and they are personal data. There is no automatic deletion yet, only a deletion date and an overdue banner. A real version needs a privacy review first.
+
+
+
+
 - **"Can the AI approve a subcontractor?"** No, by design. There is no approved status anywhere, and the interface is tested against verdict words.
+
+
+
 - **"What if the PDF is a scan?"** It is not read. The upload shows a warning, and "evidence not found" may then be wrong. Local OCR before redaction is the first roadmap item, and it must happen locally.
+
 - **"How does it know which document is which?"** It does not guess. When you upload, you can tick which requirements each file is for. Untagged files are read for every requirement. A requirement with no document is not sent to a model. One PDF can be ticked for several requirements. Automatic suggestions and page ranges are on the roadmap.
+
 - **"Can it blacklist a subcontractor, or say they meet the requirements?"** No. It shows what the documents show and whether a person has reviewed each requirement (a badge such as "Documentation complete" means a person decided every mandatory requirement as evidence found, and says nothing about the company). A person-recorded decision about the subcontractor is a deliberate next step, since it would change what the tool claims to be.
+
 - **"What would you build next?"** A hosted-model evaluation, local OCR, page ranges per tagged document, an engagement decision that a person records, a domain-expert-reviewed template, real sign-in and roles, real email sending with consent, and a purge that respects the audit log.
 
 ## One sentence to end on

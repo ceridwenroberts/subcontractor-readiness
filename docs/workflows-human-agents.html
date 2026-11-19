@@ -1,0 +1,122 @@
+<title>Human and Agent Workflows</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+:root{--bg:#fbfbf9;--fg:#1d2420;--muted:#5d6760;--line:#dcdfd8;--card:#f1f3ee;--accent:#1f6f5c;--head:'Space Grotesk',system-ui,sans-serif;--body:'Inter',system-ui,sans-serif;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141916;--fg:#e8ece6;--muted:#9aa59d;--line:#2c352f;--card:#1c231f;--accent:#5fc4a8;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#141916;--fg:#e8ece6;--muted:#9aa59d;--line:#2c352f;--card:#1c231f;--accent:#5fc4a8;color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.6;padding-block:24px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{max-width:760px;margin:0 auto}
+h1,h2,h3{font-family:var(--head);text-wrap:balance;line-height:1.2}
+h1{font-size:1.9rem;margin:0 0 8px}h2{font-size:1.35rem;margin:40px 0 8px;border-top:1px solid var(--line);padding-top:20px}h3{font-size:1.05rem;margin:22px 0 4px}
+p{margin:6px 0}.lede{color:var(--muted)}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;min-width:480px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}th{font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.tag{display:inline-block;font-size:.75rem;padding:1px 8px;border-radius:99px;border:1px solid var(--accent);color:var(--accent)}
+.idea{border-left:3px solid var(--accent);padding:4px 14px;margin:16px 0;background:var(--card)}
+li{margin:4px 0}code{font-size:.88em;background:var(--card);padding:1px 5px;border-radius:4px}
+pre.mermaid{margin:0;min-width:430px}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Space+Grotesk:wght@600&display=swap">
+<main>
+<h1>Two workflows: the person and the agents</h1>
+<p class="lede">The same product seen from two sides. The person works in the first diagram. The agents and code checks work in the second, inside the Assess step.</p>
+<div class="idea"><strong>The idea:</strong> the agents propose, the code verifies, the human decides.</div>
+
+<h2>1. Human workflow</h2>
+<p>What the project manager does, step by step. Nothing here asks a model anything except the Assess click.</p>
+<div class="scroll"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    actor PM as PM
+    participant UI as Screens
+    participant API as Backend
+    participant DB as Database
+    PM->>UI: Sign in (simulated)
+    UI->>API: Create session
+    PM->>UI: Create project and subcontractor
+    UI->>API: Save
+    API->>DB: Insert
+    PM->>UI: Drop PDFs, tick what each is for
+    UI->>API: Upload
+    API-->>UI: Per-file result, warnings
+    PM->>UI: Click Assess
+    Note over UI,API: Agents work here (see the other diagram)
+    API-->>UI: Progress, then findings
+    PM->>UI: Open a finding
+    UI->>API: Get quote and page text
+    API-->>UI: Redacted text, quote highlighted
+    PM->>UI: Decide (confirm or change, reason)
+    UI->>API: Save decision
+    alt not signed in
+        API-->>UI: 401
+    else reason missing
+        API-->>UI: 422, say what is missing
+    else valid
+        API->>DB: Append to decision log
+        opt ask for new upload
+            API->>DB: Append simulated email draft
+        end
+        API-->>UI: Updated finding
+    end
+    PM->>UI: Open overview and summary
+    UI->>API: Get overview
+    API-->>UI: Statuses and counts, no scores
+</pre></div>
+<ul><li>Sign-in and the email draft are <strong>simulated</strong>. Nothing is sent.</li>
+<li>The PM sees three separate statuses: what the model said, what the checks left, and the PM's own decision.</li>
+<li>Every decision is appended to a log. It is never edited.</li></ul>
+
+<h2>2. Agentic workflow</h2>
+<p>What happens behind one click on Assess. It repeats for every requirement.</p>
+<div class="scroll"><pre class="mermaid">
+sequenceDiagram
+    autonumber
+    participant API as Backend
+    participant Orch as Orchestrator
+    participant Chk as Code checks
+    participant Prov as Provider
+    participant LLM as Assessor model
+    participant Ver as Verifier agent
+    loop each requirement in the template
+        API->>API: Pick documents (tagged plus untagged)
+        alt no document applies
+            API->>API: Record No document, No model call
+        else documents exist
+            API->>Orch: Assess requirement
+            Orch->>Prov: Prompt with untrusted text between markers
+            Prov->>LLM: Request, no tools
+            LLM-->>Prov: JSON answer
+            Prov-->>Orch: Answer
+            alt invalid against schema
+                Orch->>Prov: Retry once
+                Prov-->>Orch: Answer
+                opt still invalid
+                    Orch-->>API: Needs human review plus note
+                end
+            end
+            Orch->>Chk: Check quotes on cited pages, dates
+            Chk-->>Orch: Automatic status (can only be weaker)
+            opt verifier on, status found or partial
+                Orch->>Ver: Requirement plus verified quotes
+                Ver-->>Orch: Supports yes or no
+                Note over Orch,Ver: No lowers to Needs human review
+            end
+            Orch-->>API: Result with provider label
+        end
+    end
+    alt provider error
+        API-->>API: Stop, save nothing, return 503
+    else all done
+        API->>API: Save one finding per requirement
+    end
+</pre></div>
+<div class="scroll"><table>
+<tr><th>Part</th><th>May do</th><th>May not do</th></tr>
+<tr><td>Assessor model</td><td>Propose a status and quotes</td><td>Use tools. Its answer only counts as validated data.</td></tr>
+<tr><td>Code checks</td><td>Verify quotes, check dates</td><td>Raise a status</td></tr>
+<tr><td>Verifier agent</td><td>Judge if the quotes support the requirement</td><td>Raise a status</td></tr>
+</table></div>
+<ul><li>A requirement with no document never reaches a model.</li>
+<li>Document text is untrusted. It sits between random markers and the prompt says to ignore instructions inside it.</li>
+<li>Found or partial needs a quote that exists on the cited page, or it becomes Needs human review.</li></ul>
+</main>

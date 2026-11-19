@@ -16,4 +16,4 @@ Done and committed on `ui/figma-layout` (tag `pre-presentation`): bug fixes, ove
 - Tagging follow-ups: "Assess now" after saving tags; decision history wording for a no-document decision.
 
 ## After Thursday
-Engagement decision (hard-rule change), re-assess keeps earlier decisions visible (backend), Claude provider (needs a key and an eval budget), page ranges per tag, suggested tags, VVS-05 prompt tweak, more eval packets, `/code-review` and `/security-review`, school report.
+Engagement decision (hard-rule change), re-assess keeps earlier decisions visible (backend), Claude provider (needs a key and an eval budget), page ranges per tag, suggested tags, VVS-05 prompt tweak, more eval packets, `/code-review` and `/security-review`, final write-up.

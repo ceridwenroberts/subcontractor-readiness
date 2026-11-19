@@ -1,113 +1,146 @@
 # Subcontractor readiness
 
-A tool that helps a project manager (PM) see what a subcontractor's documents show. The PM picks a template (for example VVS), uploads the subcontractor's PDFs, and the tool checks each requirement and shows the evidence: the exact quote and page. The PM reviews every finding and records a decision.
+A tool that helps a project manager see what a subcontractor's documents show. The manager picks a requirement template (for example VVS, a plumbing trade), uploads the subcontractor's PDFs, and gets each requirement checked with the exact quote and page behind every answer. A person reviews every finding and records a decision.
 
-It reports **documentation status only**. It never approves, rejects, or scores anyone. This is a school project and the first step toward a real product. Everything runs on localhost with synthetic data.
+It reports **documentation status only**. It never approves, rejects or scores anyone.
 
-> **REAL, SIMULATED, LATER**
-> - **Real:** PDF upload, text extraction, personal-number redaction, assessment by a model, quote verification, storage, PM decisions with an audit log.
-> - **Simulated:** the `scripted` provider (fixed answers, labeled "Simulated" everywhere it appears). All companies, people and numbers are fictional.
-> - **Later:** login, hosting, OCR for scans, a subcontractor portal, integrations.
+> **The agents propose, the code verifies, the human decides.**
 
-## How it works: agents, code, and a person
+Built by [Ceridwen Roberts](https://www.linkedin.com/in/ceridwenroberts/).
+
+![Dashboard: what needs attention, and projects](docs/images/dashboard.png)
+
+![A subcontractor's requirements, each with a status and the document it cites](docs/images/requirements.png)
+
+![Review panel: the quote, the model label, and the person's decision](docs/images/review-panel.png)
+
+*Screenshots use fictional data and the local model.*
+
+## What it demonstrates
+
+- **Agent orchestration with guardrails.** An assessor agent proposes, code checks verify, a second verifier agent can only lower a result, and the person decides. The safety comes from checks written in code around the model, not from asking the model to behave.
+- **Handling untrusted input.** Document text is treated as hostile. It sits between random markers, the model has no tools, and its output must validate against a schema. A prompt-injection test packet is part of the evaluation.
+- **Honest statuses.** Each finding keeps three separate statuses (model answer, automatic check, person's decision) and a provider label. They are never merged.
+- **Privacy by design.** Personal numbers are redacted before anything is stored or sent to a model.
+- **Measured, not assumed.** An evaluation harness with synthetic packets reports accuracy and the false "evidence found" rate across repeated runs.
+
+## How it works
 
 ```
-PDFs → upload checks → text → redaction → Assessor agent → code checks → Verifier agent → PM decides
+PDFs → upload checks → text → redaction → Assessor agent → code checks → Verifier agent → person decides
                                            (proposes)       (can only      (can only        (final say,
                                                              weaken)        weaken)          logged)
 ```
 
 | Part | Job | What it may not do |
 |---|---|---|
-| **Assessor agent** (LLM) | For one requirement, read the redacted pages and propose a status with quotes | Use tools. Its output is only accepted as validated JSON. |
-| **Code checks** (`backend/app/domain/`) | Verify each quote exists on the cited page; handle expiry dates | Strengthen a status. `found` without a verified quote becomes `unclear`. |
-| **Verifier agent** (LLM, `verify.py`) | Read only the requirement and the verified quotes: do they support it? | Strengthen a status. It can only turn `found`/`partial` into `unclear`. |
-| **PM** | Accept or override each finding with a comment | Be bypassed. Decisions go in an append-only log. |
+| **Assessor agent** (LLM) | For one requirement, read the redacted pages and propose a status with quotes. | Use tools. Its output is only accepted as validated data. |
+| **Code checks** (`backend/app/domain/`) | Verify each quote exists on the cited page and check expiry dates. | Strengthen a status. "Found" without a verified quote becomes "needs human review". |
+| **Verifier agent** (LLM) | Read only the requirement and the verified quotes: do they support it? | Strengthen a status. It can only lower one. |
+| **Person** | Confirm or change each finding, with a reason when changing. | Be bypassed. Every decision goes in an append-only log. |
 
-Each finding keeps three separate statuses: `modelStatus` (what the model said), `aiStatus` (after code checks and the verifier), `humanStatus` (the PM's decision). They are never copied into each other.
+A requirement with no uploaded document is never sent to a model. It shows **No document**, labelled "No model call".
 
-## Set up
+```mermaid
+sequenceDiagram
+    autonumber
+    participant API as Backend
+    participant Orch as Orchestrator
+    participant Chk as Code checks
+    participant Prov as Provider
+    participant LLM as Assessor model
+    participant Ver as Verifier agent
+    loop each requirement in the template
+        API->>API: Pick documents (tagged plus untagged)
+        alt no document applies
+            API->>API: Record No document, No model call
+        else documents exist
+            API->>Orch: Assess requirement
+            Orch->>Prov: Prompt with untrusted text between markers
+            Prov->>LLM: Request, no tools
+            LLM-->>Prov: JSON answer
+            Prov-->>Orch: Answer
+            Orch->>Chk: Check quotes on cited pages, dates
+            Chk-->>Orch: Automatic status (can only be weaker)
+            opt verifier on, status found or partial
+                Orch->>Ver: Requirement plus verified quotes
+                Ver-->>Orch: Supports yes or no
+            end
+            Orch-->>API: Result with provider label
+        end
+    end
+```
 
-Needs Python 3.11+ (developed on 3.15), Node.js, and optionally [Ollama](https://ollama.com).
+An [interactive workflow diagram](https://subcontractor-readiness-replay-26646.lovable.app) of the whole project is live, and its code is in [its own repository](https://github.com/ceridwenroberts/subcontractor-readiness-workflows).
+
+More diagrams: [the person's workflow](docs/sequence-diagram-human-workflow.md), [the full end-to-end flow](docs/sequence-diagram-end-to-end.md) and [an explanation of each lifeline](docs/sequence-diagram-explained.md).
+
+## Tech
+
+- **Backend:** Python, FastAPI, Pydantic, SQLAlchemy with SQLite, pypdf. Tests with pytest (461) and lint with ruff.
+- **Frontend:** Next.js, React, TypeScript (strict), Tailwind, zod, TanStack Query and Table. Tests with Vitest (122).
+- **Models:** a scripted provider for tests and demos, a local model through Ollama, and a hosted-model provider that is built but opt-in.
+
+## Quick start
+
+Needs Python 3.11 or newer and Node.js. No model, API key or account is needed.
 
 ```bash
-cp .env.example .env                    # then edit as needed; .env is gitignored
+cp .env.example .env                    # defaults to the scripted provider; .env is gitignored
 
 # backend
 cd backend && python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1    # http://127.0.0.1:8000/docs
+uvicorn app.main:app --reload --host 127.0.0.1    # API docs: http://127.0.0.1:8000/docs
 
 # frontend (second terminal)
-cd frontend && npm install && npm run dev         # http://localhost:3000
+cd frontend && npm install && npm run dev         # open http://localhost:3000
 ```
 
-**Providers** (`LLM_PROVIDER` in `.env`):
-- `scripted` (default): no network, fixed answers, labeled "Simulated". Use for tests and a safe demo.
-- `ollama`: a local model. `brew install ollama && brew services start ollama && ollama pull qwen2.5:7b`, then set `OLLAMA_MODEL=qwen2.5:7b`. Labeled "Local model".
-- `anthropic`: on hold, not available yet.
+Open `http://localhost:3000` (not `127.0.0.1`). Sign in as a demo user, create a project with the VVS template, add a subcontractor, and upload the PDFs from one of the synthetic packets in `evals/packets/`. With the scripted provider every answer is labelled **Simulated**.
 
-`VERIFIER_ENABLED=true` (default) turns the Verifier agent on.
+To run a real local model, switch providers or fix a setup problem, see [docs/setup-local-model.md](docs/setup-local-model.md).
 
-Before every commit, from the project root: `./check.sh` (ruff, backend tests, secret scan, frontend lint, tests and build).
-
-## Demo script
-
-Use the synthetic PDFs in `evals/packets/`. Each folder is one subcontractor's packet.
-
-1. Start the backend and the frontend.
-1b. Sign in at the top of the page as a demo user. This is a simulated sign-in, and the decision log uses that name.
-2. Create a project with the VVS template and a "Delete data by" date (open "About the deletion date" for the placeholder advice). The yellow banner says the requirements are placeholders.
-3. Add a subcontractor, for example "Exempelrör AB".
-4. Upload packet `03_expired_and_personnummer` (5 PDFs). One file shows a note: a personal number was hidden. The stored text contains `[PERSONNUMMER]`, never the number.
-5. Click **Assess documents**. Each requirement gets a status, a quote, a page and a provider label. The insurance shows "Documents show an expired date".
-6. Click "View in document" on a quote: the page opens with the quote highlighted. Then confirm or change one finding with a reason, and open "Show decision history". Open "How this result was made" to see which step was done by the AI model, by code, or by a person.
-7. Try packet `04_prompt_injection` in a new subcontractor: one page tells an AI to mark everything as found. The result must not change.
-8. Try packet `02_missing_items`: the tool says "Evidence not found" for what is really missing.
-9. Click "View summary" beside Findings: a short summary built from the stored findings and your decisions, with counts and lists (no scores) and the disclaimer. No model is involved.
-10. On a finding that does not show evidence, tick "Ask the subcontractor for a new upload", choose a reason, and tick the email option (give the subcontractor a fictional contact address first, for example `kontakt@firma.example`). The email is a simulated draft: nothing is sent. The request then appears under "Needs a new upload" on the home page, until a later decision on that requirement does not ask for one.
+Run all checks (lint, tests, secret scan) from the project root with `./check.sh`.
 
 ## Evaluation
 
-```bash
-backend/.venv/bin/python evals/run.py                        # provider from .env, verifier off and on
-LLM_PROVIDER=ollama OLLAMA_MODEL=qwen2.5:7b backend/.venv/bin/python evals/run.py --runs 3
-```
+Four synthetic packets, 28 requirements per run (complete, missing items, expired plus personal number, prompt injection):
 
-Prints overall accuracy, false `found` rate (target: zero), and the `unclear` rate, and saves each run to `evals/results/`. Four synthetic packets: complete, missing items, expired plus personnummer, prompt injection.
+| Run | Accuracy | False "found" |
+|---|---|---|
+| Scripted provider (proves the plumbing and the checks) | 100% | 0 |
+| Local model `qwen2.5:7b`, no verifier (3 runs) | 79–89% | 0 in every run |
+| Local model, with verifier (3 runs) | 82–93% | 0 in every run |
+| Local model, with verifier, after the expiry-date rule change (3 runs) | 86–89% | 0 in every run |
 
-**Read the numbers honestly.** `scripted` runs prove the plumbing and the code checks. `ollama` runs come from a small local model and are *not representative of production quality*. No hosted-model (Claude) evaluation has been run, because there is no API key. Even at temperature 0, the same packet gave different answers on different runs, so single runs prove little.
+The number that matters is false "found": saying evidence exists when it does not. It was zero in all nine local-model runs.
+
+These come from a small local model and are **not representative of production quality**. No hosted-model evaluation has been run. The same packet gave different answers on different runs, so one run proves little. The verifier did not show a measurable gain in the full runs, because the assessor was not fooled there. Its value shows in a direct test (12 of 12 injected or vague sentences rejected, 4 of 4 real quotes accepted). Details are in [docs/decisions.md](docs/decisions.md).
 
 ## Security in short
 
-- Document text is untrusted. Prompts wrap it in markers with a random per-call token, say that instructions inside documents are ignored, and give the model no tools. Output must validate against a schema, with one retry.
+- Document text is untrusted. It is wrapped in markers with a random per-call token, the model has no tools, and output must validate with one retry.
 - Quotes are verified in code against the stored text. The model cannot invent evidence.
 - Personnummer and samordningsnummer are redacted before text is stored or sent to any model.
-- Uploads: magic bytes, size, page count and file count checked; encrypted PDFs rejected; files stored under UUID names, never client filenames.
-- The decision log's name comes from a server-side session. The sign-in is simulated (fixed demo users), not real authentication.
-- The review viewer receives redacted text only. The "open original" link serves the uploaded PDF, which may still show personal numbers, and is labeled as such.
-- The backend refuses requests whose `Host` header is not `localhost` or `127.0.0.1` (setting `ALLOWED_HOSTS`), so a website cannot reach it by re-pointing its own domain at your machine (DNS rebinding). CORS alone does not stop that.
-- Secrets only in `.env`. Backend binds to `127.0.0.1`; CORS allows only the frontend origin. Logs hold ids and counts, never document text.
+- Uploads: magic bytes, size, page count and file count are checked. Encrypted PDFs are rejected. Files are stored under UUID names, never client file names.
+- The decision log's name comes from a server-side session. The sign-in is simulated.
+- The backend binds to `127.0.0.1`, allows one CORS origin, and refuses unknown `Host` headers, which blocks DNS rebinding.
+- Secrets live only in `.env`. Logs hold ids and counts, never document text.
 
 ## Known limits
 
-- **Not for real use.** No login, localhost only. Never deploy this version.
-- **Placeholder requirements.** The VVS list has not been reviewed by a domain expert.
-- **No OCR.** Scanned pages have no text, so a requirement may show "Evidence not found" when the evidence is in a scan. The UI warns when it sees a page with no text.
-- **Small local model.** `qwen2.5:7b` misses evidence sometimes and varies between runs. Misses fail safe (the PM sees "Evidence not found" and can override), but recall is not production quality.
-- **Verifier adds one model call per `found` or `partial` finding**, so a full assessment takes about a minute or more locally.
-- **Audit log guard is in application code.** Raw SQL against the database file would bypass it. A database trigger would be needed.
-- **Dates are matched in ISO form (2027-12-31).** Other date formats weaken the finding instead of being read.
-- **A real hyphen at a line break** in a quote can fail to match, which weakens a finding and never strengthens it.
-- **Re-assessing adds new findings** and the PM re-reviews them. Earlier findings and decisions are kept.
-- **Names are not redacted.** Only personnummer and samordningsnummer are hidden. People on certificates are identified by name text only, and names are personal data that reach the model. There is no opt-in to keep personnummer. Both are roadmap items that need a privacy review.
-- **No data deletion yet.** A project has a "delete data by" date and an overdue banner, with placeholder advice that is not legal advice and not reviewed by a specialist. Nothing is deleted automatically: original PDFs and stored text stay until someone deletes them by hand. A purge that respects the append-only decision log is a roadmap item.
-- **Simulated sign-in.** Two fixed demo users, sessions kept in memory (lost on restart). Real login, roles and httpOnly cookies are later.
-- **Emails are simulated.** A request for a new upload records an email draft and shows it; nothing is sent, and only fictional addresses (.example, .test, example.com) are accepted. Real sending needs an email service, consent and approved templates.
-- **Confirming needs no comment.** A comment is required only when changing the result or requesting a new upload. A project setting to require the reviewer to open the document first is a roadmap item.
-- **Not built:** more than four eval packets, other trades than VVS.
+This version is a prototype. In short: no real login (never deploy it), placeholder requirements, no OCR for scans, names are not redacted, emails are simulated, and the model evaluation is small. The full list is in [docs/known-limits.md](docs/known-limits.md).
 
-## Project documents
+## Documents
 
-- `PLAN.md`: the plan and checklist. `CLAUDE.md`: rules and how we work.
-- `docs/decisions.md`: decisions and reasons. `docs/journal.md`: what was learned.
+- [docs/decisions.md](docs/decisions.md): decisions and the reasons behind them.
+- [docs/journal.md](docs/journal.md): what I built and what I learned along the way.
+- [docs/presentation.md](docs/presentation.md): speaker notes for a demo.
+- [PLAN.md](PLAN.md) and [CLAUDE.md](CLAUDE.md): the plan and the working rules.
+
+## License
+
+Copyright © 2026 Ceridwen Roberts. All rights reserved. See [LICENSE](LICENSE).
+
+Contact: [Ceridwen Roberts on LinkedIn](https://www.linkedin.com/in/ceridwenroberts/).

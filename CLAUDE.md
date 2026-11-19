@@ -4,7 +4,7 @@ Read this at the start of every session. `PLAN.md` has the full plan and the che
 
 ## Project in one paragraph
 
-A subcontractor readiness tool. A PM picks a template (for example VVS), uploads a subcontractor's PDFs, and the backend assesses each requirement with an LLM. Code then verifies the evidence, and the PM reviews and decides in a web UI. It is a one-week school assignment (deadline 2026-11-17) and the first step toward a real product. The developer is learning while building, so explaining the work matters as much as producing it.
+A subcontractor readiness tool. A PM picks a template (for example VVS), uploads a subcontractor's PDFs, and the backend assesses each requirement with an LLM. Code then verifies the evidence, and the PM reviews and decides in a web UI. It is a one-week prototype (demo 2026-11-19) and the first step toward a real product. The developer is learning while building, so explaining the work matters as much as producing it.
 
 ## Hard rules
 
